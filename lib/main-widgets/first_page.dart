@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class FirsRoute extends StatelessWidget {
-  const FirsRoute({super.key});
+class FirstRoute extends StatelessWidget {
+  const FirstRoute({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -10,21 +10,22 @@ class FirsRoute extends StatelessWidget {
         backgroundColor: const Color(0xff5b16c2),
         foregroundColor: Colors.white,
         title: const Text(
-          'Primera Pagina',
+          'Home',
           style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Georgia'),
         ),
       ),
       body: Center(
           child: MaterialButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/second_page');
-        },
-        color: const Color.fromARGB(255, 33, 47, 243),
-        textColor: Colors.white,
-        child: const Text(
-          'Pagina 2',
-        ),
-      )),
+            onPressed: () {
+            Navigator.pushNamed(context, '/second_page');
+          },
+          color: const Color.fromARGB(255, 33, 47, 243),
+          textColor: Colors.white,
+          child: const Text(
+          'Opcion 1',
+          ),
+        )
+      ),
     );
   }
 }
