@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'main-widgets/first_page.dart';
+import 'main-widgets/second_page.dart';
 //import 'package:shoe_inventory_app/Services/local_storage.dart';
 
 
@@ -21,8 +22,11 @@ class MyApp extends StatelessWidget {
       ),
       //home: const MyHomePage(title: 'Inventario - Nibbet'),
       //home: const FirsRoute(),
-      initialRoute: '/',
-      routes: {'/': (context) => const FirsRoute()},
+      initialRoute: '/first_page',
+      routes: {
+        '/first_page': (context) => const FirsRoute(),
+        '/second_page': (context) => const SecondRoute(),
+        },
     );
   }
 }
