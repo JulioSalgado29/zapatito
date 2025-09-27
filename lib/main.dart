@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'main-widgets/first_page.dart';
 import 'main-widgets/second_page.dart';
-//import 'package:shoe_inventory_app/Services/local_storage.dart';
-
 
 void main() {
   //LocalStorage.configurePrefs();
