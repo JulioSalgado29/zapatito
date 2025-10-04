@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:zapatito/main-screens/splash_screen.dart';
+import 'package:zapatito/main-widgets/welcome_page.dart';
+import 'package:zapatito/splash-screens/splash_screen.dart';
 import 'main-widgets/first_page.dart';
 import 'main-widgets/second_page.dart';
 
@@ -27,8 +28,9 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff3a086c)),
       ),
-      home: const MyHomePage(),
+      home: const WelcomePage(),
       routes: {
+        '/welcome_page': (context) => const WelcomePage(),
         '/home': (context) => const MyHomePage(),
         '/splash_screen': (context) => const SplashScreen(),
         '/first_page': (context) => const FirsRoute(),
