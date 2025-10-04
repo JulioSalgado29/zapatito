@@ -37,11 +37,16 @@ dependencies:
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.3.2
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.3.1
+
+flutter_native_splash:
+  color: "#000000" # El color de fondo de tu splash screen
+  image: lib/assets/ic_launcher.png # La ruta de tu imagen
 
 flutter_launcher_icons:
   ios: true
   remove_alpha_ios: true
-  image_path: "lib/icons/ic_launcher.png"
+  image_path: "assets/icons/ic_launcher.png"
 
 dev_dependencies:
   flutter_test:
@@ -59,6 +64,8 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  assets:
+    - lib/assets/
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

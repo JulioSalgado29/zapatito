@@ -15,16 +15,17 @@ class SecondRoute extends StatelessWidget {
         ),
       ),
       body: Center(
-          child: MaterialButton(
-        onPressed: () {
-          Navigator.pop(context);
-        },
-        color: const Color.fromARGB(255, 33, 47, 243),
-        textColor: Colors.white,
-        child: const Text(
+        child: MaterialButton(
+          onPressed: () {
+            Navigator.pushNamed(context, '/first_page');
+          },
+          color: const Color.fromARGB(255, 33, 47, 243),
+          textColor: Colors.white,
+          child: const Text(
           'Pagina 1',
-        ),
-      )),
+          )
+        )
+      ),
     );
   }
 }
