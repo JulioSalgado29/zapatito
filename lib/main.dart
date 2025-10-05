@@ -33,8 +33,8 @@ class MyApp extends StatelessWidget {
         '/welcome_page': (context) => const WelcomePage(),
         '/home': (context) => const MyHomePage(),
         '/splash_screen': (context) => const SplashScreen(),
-        '/first_page': (context) => const FirsRoute(),
-        '/second_page': (context) => const SecondRoute(),
+        '/first_page': (context) => const FirstPage(),
+        '/second_page': (context) => const SecondPage(),
       }
     );
   }
