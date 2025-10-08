@@ -13,9 +13,13 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final String? ruta = ModalRoute.of(context)?.settings.arguments as String?;
-      Future.delayed(const Duration(seconds: 2), () { // Simula 2 segundos de retraso
-        Navigator.pushReplacementNamed(context, ruta!); // Navega a la pantalla de inicio
-      });
+      
+      // Si se proporciona una ruta válida, navega después de 2 segundos
+      if (ruta != null && ruta.isNotEmpty) {
+        Future.delayed(const Duration(seconds: 2), () {
+          Navigator.pushReplacementNamed(context, ruta);
+        });
+      }
     });
   }
 
