@@ -43,6 +43,7 @@ dependencies:
   flutter_custom_clippers: ^2.1.0
   auth_buttons: ^3.0.2
   firebase_core: ^4.1.1
+  firebase_auth: ^6.1.0
   google_sign_in: ^6.2.2
 
 flutter_native_splash:

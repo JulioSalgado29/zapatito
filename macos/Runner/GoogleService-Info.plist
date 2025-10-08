@@ -24,6 +24,22 @@
 	<true></true>
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
+	<!-- Google Sign-In -->
+	<key>GIDClientID</key>
+	<string>458935581305-vmibdrcf48k60p2o4snqsic7sffhhqtl.apps.googleusercontent.com</string>
+
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+		<key>CFBundleTypeRole</key>
+		<string>Editor</string>
+		<key>CFBundleURLSchemes</key>
+		<array>
+			<string>com.googleusercontent.apps.458935581305-vmibdrcf48k60p2o4snqsic7sffhhqtl</string>
+		</array>
+		</dict>
+	</array>
+	
 	<key>GOOGLE_APP_ID</key>
 	<string>1:458935581305:ios:969567078bb76da07572a8</string>
 </dict>

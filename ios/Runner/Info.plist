@@ -8,6 +8,19 @@
 		<string>Zapatito</string>
 		<key>CFBundleExecutable</key>
 		<string>$(EXECUTABLE_NAME)</string>
+		<key>GIDClientID</key>
+		<string>458935581305-vmibdrcf48k60p2o4snqsic7sffhhqtl.apps.googleusercontent.com</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.458935581305-vmibdrcf48k60p2o4snqsic7sffhhqtl</string>
+				</array>
+			</dict>
+		</array>
 		<key>CFBundleIdentifier</key>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 		<key>CFBundleInfoDictionaryVersion</key>

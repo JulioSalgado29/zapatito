@@ -39,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
                   Designwidgets().loginButton("Iniciar Sesión", const Color(0xff3a086c), Colors.white, context, '/home'),
                   Designwidgets().forgottenPassword(),
                   Designwidgets().divider(),
-                  Designwidgets().googleButton(),
+                  Designwidgets().googleButton(context),
                   Designwidgets().singupLabel(),
                 ],
               )

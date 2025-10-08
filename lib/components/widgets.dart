@@ -1,6 +1,9 @@
 import 'package:auth_buttons/auth_buttons.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:zapatito/auth/service/google_auth.dart';
+import 'package:zapatito/components/SplashScreen/splash_screen_copy.dart';
+import 'package:zapatito/main-widgets/home_page.dart';
 
 class Designwidgets {
 
@@ -66,20 +69,42 @@ class Designwidgets {
     );
   }
 
-  Widget googleButton(){
+  Widget googleButton(BuildContext context) {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 10, bottom: 10),
       child: GoogleAuthButton(
-        onPressed: () {
+        onPressed: () async {
           print('Google button pressed');
+
+          // Mostrar splash mientras se autentica
+          showDialog(
+            context: context,
+            barrierDismissible: false, // Evita cerrar la pantalla tocando fuera
+            builder: (context) => const SplashScreen02(),
+          );
+
+          // Llamar a la autenticación
+          final result = await GoogleAuthService().signInWithGoogle();
+
+          if (result != null) {
+            print('Usuario autenticado con Google');
+            print(result);
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const HomePage()),
+            );
+          } else {
+            Navigator.of(context).pop();
+            // Aquí puedes mostrar un error o dejar la pantalla actual
+            print('Error o usuario canceló la autenticación');
+          }
         },
         text: 'Iniciar sesión con Google',
         style: const AuthButtonStyle(
           borderRadius: 5.0,
-          buttonColor: Colors.white
+          buttonColor: Colors.white,
         ),
-      )
+      ),
     );
   }
 
