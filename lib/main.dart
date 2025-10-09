@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:zapatito/main-widgets/home_page.dart';
 import 'package:zapatito/main-widgets/login_page.dart';
 import 'package:zapatito/main-widgets/welcome_page.dart';
-import 'package:zapatito/components/SplashScreen/splash_screen.dart';
+import 'package:zapatito/components/SplashScreen/splash_screen_aut.dart';
 import 'main-widgets/first_page.dart';
 import 'main-widgets/second_page.dart';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 

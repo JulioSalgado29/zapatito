@@ -1,7 +1,7 @@
 import 'package:auth_buttons/auth_buttons.dart';
 import 'package:flutter/material.dart';
 import 'package:zapatito/auth/service/google_auth.dart';
-import 'package:zapatito/components/SplashScreen/splash_screen_copy.dart';
+import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/main-widgets/home_page.dart';
 
 class GoogleButton extends StatelessWidget {

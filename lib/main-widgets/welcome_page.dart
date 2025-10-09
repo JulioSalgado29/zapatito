@@ -2,7 +2,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:zapatito/components/Buttons/login_button.dart';
 import 'package:zapatito/components/Buttons/singup_button.dart';
-import 'package:zapatito/components/SplashScreen/splash_screen_copy.dart';
+import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
 
 class WelcomePage extends StatefulWidget {
@@ -45,8 +45,8 @@ class _WelcomePageState extends State<WelcomePage> {
                         routeName: '/login',
                       ),
                       const SingupButton(
-                          text: "Registrarte", 
-                          color: Color(0xff3a086c), 
+                          text: "Registrarte",
+                          color: Color(0xff3a086c),
                           textColor: Colors.white),
                       /*Container(
                         padding: const EdgeInsets.only(top: 25),

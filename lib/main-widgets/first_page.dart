@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zapatito/components/widgets.dart';
 
 class FirstPage extends StatelessWidget {
   const FirstPage({super.key});
@@ -6,14 +7,7 @@ class FirstPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xff5b16c2),
-        foregroundColor: Colors.white,
-        title: const Text(
-          'Primera Pagina',
-          style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Georgia'),
-        ),
-      ),
+      appBar: Designwidgets().appBarMain("Primera Página"),
       body: Center(
         child: MaterialButton(
           onPressed: () {

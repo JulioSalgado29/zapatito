@@ -3,6 +3,17 @@ import 'package:google_fonts/google_fonts.dart';
 
 class Designwidgets {
 
+  AppBar appBarMain(String title){
+    return AppBar(
+      backgroundColor: const Color(0xff5b16c2),
+      foregroundColor: Colors.white,
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Georgia'),
+      ),
+    );
+  }
+
   LinearGradient linearGradientMain(BuildContext context) {
     return const LinearGradient(
       begin: Alignment.topCenter,

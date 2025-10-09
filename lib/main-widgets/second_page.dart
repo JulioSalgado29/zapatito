@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zapatito/components/widgets.dart';
 
 class SecondPage extends StatelessWidget {
   const SecondPage({super.key});
@@ -6,14 +7,7 @@ class SecondPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xff5b16c2),
-        foregroundColor: Colors.white,
-        title: const Text(
-          'Segunda Pagina',
-          style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Georgia'),
-        ),
-      ),
+      appBar: Designwidgets().appBarMain("Segunda Página"),
       body: Center(
         child: MaterialButton(
           onPressed: () {

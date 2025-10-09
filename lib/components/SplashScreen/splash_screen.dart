@@ -1,27 +1,7 @@
 import 'package:flutter/material.dart';
 
-class SplashScreen extends StatefulWidget{
-  const SplashScreen({super.key});
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final String? ruta = ModalRoute.of(context)?.settings.arguments as String?;
-      
-      // Si se proporciona una ruta válida, navega después de 2 segundos
-      if (ruta != null && ruta.isNotEmpty) {
-        Future.delayed(const Duration(seconds: 2), () {
-          Navigator.pushReplacementNamed(context, ruta);
-        });
-      }
-    });
-  }
+class SplashScreen02 extends StatelessWidget {
+  const SplashScreen02({super.key});
 
   @override
   Widget build(BuildContext context) {
