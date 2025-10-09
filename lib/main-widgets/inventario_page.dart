@@ -8,18 +8,6 @@ class SecondPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: Designwidgets().appBarMain("Inventario"),
-      body: Center(
-        child: MaterialButton(
-          onPressed: () {
-            Navigator.pushNamed(context, '/ventas_page');
-          },
-          color: const Color.fromARGB(255, 33, 47, 243),
-          textColor: Colors.white,
-          child: const Text(
-          'Pagina 1',
-          )
-        )
-      ),
     );
   }
 }

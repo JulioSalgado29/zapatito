@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:zapatito/auth/service/google_auth.dart';
-import 'package:zapatito/main-widgets/login_page.dart';
+import 'package:zapatito/main-widgets/welcome_page.dart';
 
 class Designwidgets {
 
@@ -152,7 +152,7 @@ class Designwidgets {
             title: const Text('Cerrar sesión'),
             onTap: () {
               GoogleAuthService().signOut();
-              Navigator.of(context).push(MaterialPageRoute(builder: (context) => const LoginPage()));
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) => const WelcomePage()));
             },
           ),
         ],

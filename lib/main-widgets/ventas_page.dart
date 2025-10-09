@@ -7,19 +7,7 @@ class FirstPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: Designwidgets().appBarMain("Ventas"),
-      body: Center(
-        child: MaterialButton(
-          onPressed: () {
-            Navigator.pushNamed(context, '/inventario_page');
-          },
-          color: const Color.fromARGB(255, 33, 47, 243),
-          textColor: Colors.white,
-          child: const Text(
-          'Pagina 2',
-          )
-        )
-      )
+      appBar: Designwidgets().appBarMain("Ventas")
     );
   }
 }
