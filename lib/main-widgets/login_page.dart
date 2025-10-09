@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zapatito/components/Buttons/back_button.dart';
+import 'package:zapatito/components/Buttons/google_button.dart';
+import 'package:zapatito/components/Buttons/login_button.dart';
 import 'package:zapatito/components/Fields/field_form.dart';
 import 'package:zapatito/components/Shapes/container_shape.dart';
 import 'package:zapatito/components/widgets.dart';
@@ -40,19 +42,18 @@ class _LoginPageState extends State<LoginPage> {
                       _emailPasswordWidget(),
 
                       SizedBox(height: height * 0.025),
-                      Designwidgets().loginButton(
-                        "Iniciar Sesión",
-                        const Color(0xff3a086c),
-                        Colors.white,
-                        context,
-                        '/home',
+                      const LoginButton(
+                        text: "Iniciar Sesión",
+                        color: Color(0xff3a086c),
+                        textColor: Colors.white,
+                        routeName: '/home',
                       ),
 
                       const SizedBox(height: 8),
                       Designwidgets().forgottenPassword(),
 
                       Designwidgets().divider(),
-                      Designwidgets().googleButton(context),
+                      const GoogleButton(),
                       Designwidgets().singupLabel(),
                     ],
                   ),

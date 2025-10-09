@@ -1,5 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:zapatito/components/Buttons/login_button.dart';
+import 'package:zapatito/components/Buttons/singup_button.dart';
 import 'package:zapatito/components/SplashScreen/splash_screen_copy.dart';
 import 'package:zapatito/components/widgets.dart';
 
@@ -36,14 +38,16 @@ class _WelcomePageState extends State<WelcomePage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Designwidgets().tittleCustom("Bienvenido a Zapatito"),
-                      Designwidgets().loginButton(
-                          "Iniciar Sesión",
-                          Colors.white,
-                          const Color(0xff3a086c),
-                          context,
-                          '/login'),
-                      Designwidgets().singupButton(
-                          "Registrarte", const Color(0xff3a086c), Colors.white),
+                      const LoginButton(
+                        text: "Iniciar Sesión",
+                        color: Colors.white,
+                        textColor: Color(0xff3a086c),
+                        routeName: '/login',
+                      ),
+                      const SingupButton(
+                          text: "Registrarte", 
+                          color: Color(0xff3a086c), 
+                          textColor: Colors.white),
                       /*Container(
                         padding: const EdgeInsets.only(top: 25),
                         width: double.infinity,

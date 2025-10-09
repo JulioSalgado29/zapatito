@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 
 class BackButton01 extends StatelessWidget {
+  
   const BackButton01({super.key});
+  
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isPortrait = size.height > size.width;
+    
     return Container(
-      margin: const EdgeInsets.only(left: 16, top: 8),
+      margin: EdgeInsets.only(left: 5, top: isPortrait ? 20 : 8),
       decoration: BoxDecoration(
         color: Colors.transparent,// fondo semitransparente
         borderRadius: BorderRadius.circular(30),
