@@ -6,6 +6,25 @@ class GoogleAuthService {
   final googleSignIn = GoogleSignIn();
 
   // method to sign in using google
+  Future<UserCredential?> trySilentSignIn() async {
+  try {
+    final googleUser = await googleSignIn.signInSilently();
+    if (googleUser == null) return null;
+
+    final googleAuth = await googleUser.authentication;
+
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    return await auth.signInWithCredential(credential);
+  } catch (e) {
+    print('Error en trySilentSignIn: $e');
+    return null;
+  }
+}
+
   Future<UserCredential?> signInWithGoogle() async {
     try {
       final googleUser = await googleSignIn.signIn();

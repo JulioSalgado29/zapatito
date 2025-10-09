@@ -70,43 +70,54 @@ class Designwidgets {
   }
 
   Widget googleButton(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(top: 10, bottom: 10),
-      child: GoogleAuthButton(
-        onPressed: () async {
-          print('Google button pressed');
+  return Container(
+    width: double.infinity,
+    margin: const EdgeInsets.only(top: 10, bottom: 10),
+    child: GoogleAuthButton(
+      onPressed: () async {
+        print('Google button pressed');
 
-          // Mostrar splash mientras se autentica
-          showDialog(
-            context: context,
-            barrierDismissible: false, // Evita cerrar la pantalla tocando fuera
-            builder: (context) => const SplashScreen02(),
+        // Mostrar splash mientras se autentica
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const SplashScreen02(),
+        );
+
+        // Intentar iniciar sesión de forma silenciosa primero
+        final silentResult = await GoogleAuthService().trySilentSignIn();
+
+        if (silentResult != null) {
+          print('Sesión silenciosa exitosa');
+          print(silentResult);
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomePage()),
           );
+          return;
+        }
 
-          // Llamar a la autenticación
-          final result = await GoogleAuthService().signInWithGoogle();
+        // Si no hubo sesión silenciosa, iniciar sesión manual
+        final result = await GoogleAuthService().signInWithGoogle();
 
-          if (result != null) {
-            print('Usuario autenticado con Google');
-            print(result);
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const HomePage()),
-            );
-          } else {
-            Navigator.of(context).pop();
-            // Aquí puedes mostrar un error o dejar la pantalla actual
-            print('Error o usuario canceló la autenticación');
-          }
-        },
-        text: 'Iniciar sesión con Google',
-        style: const AuthButtonStyle(
-          borderRadius: 5.0,
-          buttonColor: Colors.white,
-        ),
+        if (result != null) {
+          print('Usuario autenticado con Google');
+          print(silentResult);
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomePage()),
+          );
+        } else {
+          Navigator.of(context).pop(); // Cierra el splash
+          print('Error o usuario canceló la autenticación');
+        }
+      },
+      text: 'Iniciar sesión con Google',
+      style: const AuthButtonStyle(
+        borderRadius: 5.0,
+        buttonColor: Colors.white,
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget forgottenPassword() {
     return Container(

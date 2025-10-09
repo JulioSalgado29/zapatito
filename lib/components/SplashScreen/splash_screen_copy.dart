@@ -6,38 +6,16 @@ class SplashScreen02 extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black, // Fondo negro
+      backgroundColor: Colors.black, // Color de fondo
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(
-              width: 100,
-              height: 100,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  const SizedBox(
-                    width: 100,
-                    height: 100,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 4,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                  Image.asset(
-                    'lib/assets/ic_launcher.png',
-                    height: 60,
-                    width: 60,
-                  ),
-                ],
-              ),
+            Image.asset('lib/assets/ic_launcher.png', height: 100), // Tu logo
+            const SizedBox(height: 20), // Espacio entre el logo y el loader
+            const CircularProgressIndicator( // Loader
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white), // Color del loader
             ),
-            const SizedBox(height: 20),
-            const Text(
-              "Cargando...",
-              style: TextStyle(color: Colors.white),
-            )
           ],
         ),
       ),
