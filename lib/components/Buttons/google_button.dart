@@ -40,7 +40,6 @@ class GoogleButton extends StatelessWidget {
 
           if (result != null) {
             print('Usuario autenticado con Google');
-            print(silentResult);
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (context) => const HomePage()),
             );

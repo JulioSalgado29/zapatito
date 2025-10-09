@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:zapatito/services/local_storage.dart';
 
 class GoogleAuthService {
   final auth = FirebaseAuth.instance;
@@ -44,7 +45,19 @@ class GoogleAuthService {
         idToken: googleAuth.idToken,
       );
 
-      return await auth.signInWithCredential(credential);
+      final userCredential = await auth.signInWithCredential(credential);
+
+      // 🔹 Guardar datos del usuario localmente
+      final user = userCredential.user;
+      if (user != null) {
+        await LocalStorageService.saveUserData(
+          name: user.displayName ?? '',
+          email: user.email ?? '',
+          photoUrl: user.photoURL,
+        );
+      }
+
+      return userCredential;
     } catch (e) {
       print('Error en signInWithGoogle: $e');
       return null;
@@ -63,6 +76,26 @@ class GoogleAuthService {
     else {
       print("No user is signed in.");
       throw Exception("No user is signed in.");
+    }
+  }
+
+  Future<void> signOut() async {
+    try {
+      // Cierra sesión de Firebase
+      await auth.signOut();
+
+      // Cierra sesión de Google si hay un usuario conectado
+      if (await googleSignIn.isSignedIn()) {
+        await googleSignIn.signOut();
+      }
+      
+      // 🔥 Elimina los datos guardados en local storage
+      await LocalStorageService.clearUserData();
+
+
+      print("Sesión cerrada correctamente.");
+    } catch (e) {
+      print('Error al cerrar sesión: $e');
     }
   }
 }

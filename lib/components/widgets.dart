@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:zapatito/auth/service/google_auth.dart';
+import 'package:zapatito/main-widgets/login_page.dart';
 
 class Designwidgets {
 
@@ -128,4 +130,33 @@ class Designwidgets {
     );
   }
   
+  Widget drawerHome(BuildContext context, String nombreUsuario){
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: <Widget>[
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              color: Color(0xff5b16c2),
+            ),
+            child: Text(
+              nombreUsuario,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+              ),
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Cerrar sesión'),
+            onTap: () {
+              GoogleAuthService().signOut();
+              Navigator.of(context).push(MaterialPageRoute(builder: (context) => const LoginPage()));
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }
