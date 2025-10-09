@@ -15,22 +15,22 @@ class HomePage extends StatelessWidget {
           children: <Widget>[
             MaterialButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/first_page');
+                Navigator.pushNamed(context, '/ventas_page');
               },
               color: const Color.fromARGB(255, 33, 47, 243),
               textColor: Colors.white,
               child: const Text(
-                'Pagina 1',
+                'Ventas',
                 ),
               ),
             MaterialButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/second_page');
+                Navigator.pushNamed(context, '/inventario_page');
               },
               color: const Color.fromARGB(255, 33, 47, 243),
               textColor: Colors.white,
               child: const Text(
-                'Pagina 2',
+                'Inventario',
               ),
             ),
           ]
