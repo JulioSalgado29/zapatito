@@ -14,48 +14,71 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
-    final height = MediaQuery.of(context).size.height;
-    return SafeArea(
-      child: Scaffold(
+    final size = MediaQuery.of(context).size;
+    final height = size.height;
+
+    return Scaffold(
+        resizeToAvoidBottomInset: true,
         body: Stack(
           children: [
+            /// 👉 Contenido principal con scroll adaptable
+            SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: height,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(height: height * 0.15),
+                      Designwidgets().tittleCustom("Inicio de Sesión"),
+
+                      SizedBox(height: height * 0.02),
+                      _emailPasswordWidget(),
+
+                      SizedBox(height: height * 0.025),
+                      Designwidgets().loginButton(
+                        "Iniciar Sesión",
+                        const Color(0xff3a086c),
+                        Colors.white,
+                        context,
+                        '/home',
+                      ),
+
+                      const SizedBox(height: 8),
+                      Designwidgets().forgottenPassword(),
+
+                      Designwidgets().divider(),
+                      Designwidgets().googleButton(context),
+                      Designwidgets().singupLabel(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             const ContainerShape01(),
-            Positioned(top: height * .025, child: const BackButton01()),
-            Container(
-              height: double.infinity,
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.only(top: height * .15),
-                    child: Designwidgets().tittleCustom("Inicio de Sesión"),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.only(top: height * .05),
-                    child: _emailPasswordWidget()
-                  ),
-                  Designwidgets().loginButton("Iniciar Sesión", const Color(0xff3a086c), Colors.white, context, '/home'),
-                  Designwidgets().forgottenPassword(),
-                  Designwidgets().divider(),
-                  Designwidgets().googleButton(context),
-                  Designwidgets().singupLabel(),
-                ],
-              )
-            )
+            /// 👉 Botón flotante sobre todo
+            Positioned(
+              top: height * 0.04,
+              left: 10,
+              child: const BackButton01(),
+            ),
           ],
         ),
-      )
-    );
+      );
   }
 
   Widget _emailPasswordWidget() {
     return const Column(
-      children: <Widget>[
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         FieldForm(tittle: "Email", isPassword: false),
-        FieldForm(tittle: "Contraseña", isPassword: true)
-      ]
+        SizedBox(height: 16),
+        FieldForm(tittle: "Contraseña", isPassword: true),
+      ],
     );
   }
-} 
+}

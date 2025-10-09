@@ -16,7 +16,7 @@ class HomePage extends StatelessWidget {
           children: <Widget>[
             MaterialButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/splash_screen', arguments: '/first_page',);
+                Navigator.pushNamed(context, '/first_page');
               },
               color: const Color.fromARGB(255, 33, 47, 243),
               textColor: Colors.white,
@@ -26,7 +26,7 @@ class HomePage extends StatelessWidget {
               ),
             MaterialButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/splash_screen', arguments: '/second_page',);
+                Navigator.pushNamed(context, '/second_page');
               },
               color: const Color.fromARGB(255, 33, 47, 243),
               textColor: Colors.white,

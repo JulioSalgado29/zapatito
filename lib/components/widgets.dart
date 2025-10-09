@@ -12,8 +12,9 @@ class Designwidgets {
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
+        Color(0xff3a086c),
         Color(0xff5b16c2),
-        Color(0xff5b16c2),
+
       ],
     );
   }
@@ -121,7 +122,7 @@ class Designwidgets {
 
   Widget forgottenPassword() {
     return Container(
-      padding: const EdgeInsets.only(top: 20.0, bottom: 20.0),
+      padding: const EdgeInsets.only(bottom: 20.0),
       alignment: Alignment.centerRight,
       child: TextButton(
         onPressed: () => print('¿Has olvidado tu contraseña?'),
@@ -139,7 +140,7 @@ class Designwidgets {
 
   Widget divider(){
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 5),
       child: const Row(
         children: <Widget>[
           SizedBox(
@@ -172,7 +173,7 @@ class Designwidgets {
   
   Widget loginButton(String text, Color color, Color textColor, BuildContext context, String routeName) {
     return Container(
-      padding: const EdgeInsets.only(top: 50.0, bottom: 25),
+      padding: const EdgeInsets.only(top: 20.0, bottom: 25),
       width: double.infinity,
       child: TextButton(
         style: TextButton.styleFrom(

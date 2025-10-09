@@ -11,38 +11,39 @@ class WelcomePage extends StatefulWidget {
 }
 
 class _WelcomePageState extends State<WelcomePage> {
-
   final Future<FirebaseApp> _initialization = Firebase.initializeApp();
 
   @override
   Widget build(BuildContext context) {
-    return 
-
-    SafeArea(
-      child: Scaffold(
+    return Scaffold(
         body: FutureBuilder(
-          future: _initialization, 
-          builder: (context, snapshot){
-            if(snapshot.hasError){
-              print('FIREBASE INIT. ERROR');
-              return const Center(
-                child: Text("Error al inicializar Firebase"),
-              );
-            }
-            else if(snapshot.connectionState == ConnectionState.done){
-              print('FIREBASE INIT. DONE');
-              //return const SplashScreen02();
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
-                height: MediaQuery.of(context).size.height,
-                width: MediaQuery.of(context).size.width,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Designwidgets().tittleCustom("Bienvenido a Zapatito"),
-                    Designwidgets().loginButton("Iniciar Sesión", Colors.white, const Color(0xff3a086c), context, '/login'),
-                    Designwidgets().singupButton("Registrarte", const Color(0xff3a086c), Colors.white),
+            future: _initialization,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                print('FIREBASE INIT. ERROR');
+                return const Center(
+                  child: Text("Error al inicializar Firebase"),
+                );
+              } else if (snapshot.connectionState == ConnectionState.done) {
+                print('FIREBASE INIT. DONE');
+                //return const SplashScreen02();
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  height: MediaQuery.of(context).size.height,
+                  width: MediaQuery.of(context).size.width,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Designwidgets().tittleCustom("Bienvenido a Zapatito"),
+                      Designwidgets().loginButton(
+                          "Iniciar Sesión",
+                          Colors.white,
+                          const Color(0xff3a086c),
+                          context,
+                          '/login'),
+                      Designwidgets().singupButton(
+                          "Registrarte", const Color(0xff3a086c), Colors.white),
                       /*Container(
                         padding: const EdgeInsets.only(top: 25),
                         width: double.infinity,
@@ -57,15 +58,12 @@ class _WelcomePageState extends State<WelcomePage> {
                           ),
                         )
                       )*/
-                  ],
-                ),
-              );
-            }
-            print('FIREBASE INIT. LOADING');
-            return const SplashScreen02();
-          }
-        )
-      )
-    );
+                    ],
+                  ),
+                );
+              }
+              print('FIREBASE INIT. LOADING');
+              return const SplashScreen02();
+            }));
   }
 }
