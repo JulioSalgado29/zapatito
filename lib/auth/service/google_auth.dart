@@ -64,18 +64,15 @@ class GoogleAuthService {
     }
   }
 
-  Future<User> isCurrentSignIn(User ?user) async {
+  Future<bool> isCurrentSignIn() async {
+    User? user = auth.currentUser;
     if (user != null) {
-      assert(!user.isAnonymous);
-      assert(await user.getIdToken() != null);
-      final User currentUser = auth.currentUser!;
-      assert(user.uid == currentUser.uid);
-      print("User is signed in!");
-      return user;
-    } 
+      print("User is signed in: ${user.email}");
+      return true;
+    }
     else {
       print("No user is signed in.");
-      throw Exception("No user is signed in.");
+      return false;
     }
   }
 

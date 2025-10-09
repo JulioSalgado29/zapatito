@@ -1,8 +1,8 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:zapatito/auth/service/google_auth.dart';
 import 'package:zapatito/components/Buttons/login_button.dart';
 import 'package:zapatito/components/Buttons/singup_button.dart';
-import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
 
 class WelcomePage extends StatefulWidget {
@@ -28,46 +28,34 @@ class _WelcomePageState extends State<WelcomePage> {
                 );
               } else if (snapshot.connectionState == ConnectionState.done) {
                 print('FIREBASE INIT. DONE');
-                //return const SplashScreen02();
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 30),
-                  height: MediaQuery.of(context).size.height,
-                  width: MediaQuery.of(context).size.width,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Designwidgets().tittleCustom("Bienvenido a Zapatito"),
-                      const LoginButton(
-                        text: "Iniciar Sesión",
-                        color: Colors.white,
-                        textColor: Color(0xff3a086c),
-                        routeName: '/login',
-                      ),
-                      const SingupButton(
-                          text: "Registrarte",
-                          color: Color(0xff3a086c),
-                          textColor: Colors.white),
-                      /*Container(
-                        padding: const EdgeInsets.only(top: 25),
-                        width: double.infinity,
-                        child: MaterialButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/home');
-                          },
-                          color: const Color.fromARGB(255, 33, 47, 243),
-                          textColor: Colors.white,
-                          child: const Text(
-                            'HOME',
-                          ),
-                        )
-                      )*/
-                    ],
-                  ),
-                );
+                GoogleAuthService().isCurrentSignIn().then((isSignedIn) {
+                  if (isSignedIn) {
+                    Navigator.pushReplacementNamed(context, '/home');
+                  }
+                });
               }
-              print('FIREBASE INIT. LOADING');
-              return const SplashScreen02();
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 30),
+                height: MediaQuery.of(context).size.height,
+                width: MediaQuery.of(context).size.width,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Designwidgets().tittleCustom("Bienvenido a Zapatito"),
+                    const LoginButton(
+                      text: "Iniciar Sesión",
+                      color: Colors.white,
+                      textColor: Color(0xff3a086c),
+                      routeName: '/login',
+                    ),
+                    const SingupButton(
+                        text: "Registrarte",
+                        color: Color(0xff3a086c),
+                        textColor: Colors.white),
+                  ],
+                ),
+              );
             }));
   }
 }
