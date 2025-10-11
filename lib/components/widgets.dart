@@ -5,7 +5,7 @@ import 'package:zapatito/main-widgets/welcome_page.dart';
 
 class Designwidgets {
 
-  AppBar appBarMain(String title){
+  AppBar appBarMain(String title, {bool isOnline = true}) {
     return AppBar(
       backgroundColor: const Color(0xff5b16c2),
       foregroundColor: Colors.white,
@@ -13,6 +13,11 @@ class Designwidgets {
         title,
         style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Georgia'),
       ),
+      actions: [
+          Icon(isOnline ? Icons.wifi : Icons.wifi_off,
+              color: isOnline ? Colors.green : Colors.red),
+          const SizedBox(width: 16),
+        ],
     );
   }
 

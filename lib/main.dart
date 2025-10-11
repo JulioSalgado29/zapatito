@@ -1,11 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:zapatito/main-widgets/home_page.dart';
+import 'package:zapatito/main-widgets/calzado_page.dart';
+import 'package:zapatito/main-widgets/ventas_page.dart';
 import 'package:zapatito/main-widgets/login_page.dart';
 import 'package:zapatito/main-widgets/welcome_page.dart';
 import 'package:zapatito/components/SplashScreen/splash_screen_aut.dart';
-import 'main-widgets/ventas_page.dart';
-import 'main-widgets/inventario_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
@@ -39,7 +39,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomePage(),
         '/login': (context) => const LoginPage(),
         '/ventas_page': (context) => const FirstPage(),
-        '/inventario_page': (context) => const SecondPage(),
+        '/calzado_page': (context) => const CalzadoPage(),
       }
     );
   }
