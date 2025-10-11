@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:zapatito/components/widgets.dart';
+import 'package:zapatito/main-widgets/CALZADO/calzado_page.dart';
 import 'package:zapatito/services/local_storage.dart';
 
 class HomePage extends StatefulWidget {
@@ -11,6 +12,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   String? userName;
+  String? firstName;
 
   @override
   void initState() {
@@ -22,6 +24,7 @@ class _HomePageState extends State<HomePage> {
     final data = await LocalStorageService.getUserData();
     setState(() {
       userName = data['name'] ?? 'Invitado';
+      firstName = userName?.split(' ')[0];
     });
   }
 
@@ -49,11 +52,16 @@ class _HomePageState extends State<HomePage> {
             ),
             MaterialButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/calzado_page');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CalzadoPage(firstName: firstName), // 👈 aquí lo pasas directamente
+                  ),
+                );
               },
               color: const Color.fromARGB(255, 33, 47, 243),
               textColor: Colors.white,
-              child: const Text('Registrar Calzados'),
+              child: const Text('Calzados'),
             ),
           ],
         ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:zapatito/auth/service/google_auth.dart';
-import 'package:zapatito/main-widgets/welcome_page.dart';
+import 'package:zapatito/main-widgets/MAIN/welcome_page.dart';
 
 class Designwidgets {
 

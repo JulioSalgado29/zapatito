@@ -1,10 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:zapatito/main-widgets/home_page.dart';
-import 'package:zapatito/main-widgets/calzado_page.dart';
-import 'package:zapatito/main-widgets/ventas_page.dart';
-import 'package:zapatito/main-widgets/login_page.dart';
-import 'package:zapatito/main-widgets/welcome_page.dart';
+import 'package:zapatito/main-widgets/MAIN/home_page.dart';
+import 'package:zapatito/main-widgets/CALZADO/calzado_page.dart';
+import 'package:zapatito/main-widgets/MAIN/ventas_page.dart';
+import 'package:zapatito/main-widgets/MAIN/login_page.dart';
+import 'package:zapatito/main-widgets/MAIN/welcome_page.dart';
 import 'package:zapatito/components/SplashScreen/splash_screen_aut.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
