@@ -45,8 +45,11 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 30),
             MaterialButton(
               onPressed: () {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (context) => const VentasPage()),
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const VentasPage(), // 👈 aquí lo pasas directamente
+                  ),
                 );
               },
               color: const Color.fromARGB(255, 33, 47, 243),
