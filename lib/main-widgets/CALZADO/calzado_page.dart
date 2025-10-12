@@ -47,80 +47,91 @@ class _CalzadoPageState extends State<CalzadoPage> {
 
   // 🔹 Confirmación extravagante para eliminar
   void _confirmarEliminacion(BuildContext context, String id) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-        elevation: 20,
-        backgroundColor: Colors.black.withOpacity(0.85),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(25),
-            gradient: const LinearGradient(
-              colors: [
+  showDialog(
+    context: context,
+    builder: (ctx) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+      elevation: 20,
+      backgroundColor: Colors.black.withOpacity(0.85),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(25),
+          gradient: const LinearGradient(
+            colors: [
               Color.fromARGB(255, 33, 47, 243), // azul del appbar
               Color(0xFF4A5AF7), // tono más claro para el degradado
             ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.warning_amber_rounded, size: 60, color: Colors.white),
-              const SizedBox(height: 16),
-              const Text(
-                '¿Eliminar calzado?',
-                style: TextStyle(
-                  fontSize: 22,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Esta acción no se puede deshacer.',
-                style: TextStyle(color: Colors.white70, fontSize: 16),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[900],
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    ),
-                    onPressed: () => Navigator.pop(ctx),
-                    icon: const Icon(Icons.cancel, color: Colors.white),
-                    label: const Text('Cancelar', style: TextStyle(color: Colors.white)),
-                  ),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.redAccent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                    ),
-                    onPressed: () async {
-                      await FirebaseFirestore.instance.collection('calzado').doc(id).update({'activo': false});;
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Calzado eliminado correctamente 🗑️')),
-                      );
-                    },
-                    icon: const Icon(Icons.delete_forever, color: Colors.white),
-                    label: const Text('Eliminar', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.warning_amber_rounded, size: 60, color: Colors.white),
+            const SizedBox(height: 16),
+            const Text(
+              '¿Eliminar calzado?',
+              style: TextStyle(
+                fontSize: 22,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Esta acción no se puede deshacer.',
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[900],
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: const Icon(Icons.cancel, color: Colors.white),
+                  label: const Text('Cancelar', style: TextStyle(color: Colors.white)),
+                ),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  onPressed: () async {
+                    await FirebaseFirestore.instance
+                        .collection('calzado')
+                        .doc(id)
+                        .update({'activo': false});
+
+                    // Mostrar el SnackBar antes de cerrar el diálogo
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Calzado eliminado correctamente 🗑️'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+
+                    Navigator.pop(ctx);
+                  },
+                  icon: const Icon(Icons.delete_forever, color: Colors.white),
+                  label: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
