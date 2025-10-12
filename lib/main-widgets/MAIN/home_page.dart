@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:zapatito/main-widgets/CALZADO/calzado_page.dart';
+import 'package:zapatito/main-widgets/MAIN/ventas_page.dart';
 import 'package:zapatito/services/local_storage.dart';
 
 class HomePage extends StatefulWidget {
@@ -44,7 +45,9 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 30),
             MaterialButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/ventas_page');
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const VentasPage()),
+                );
               },
               color: const Color.fromARGB(255, 33, 47, 243),
               textColor: Colors.white,

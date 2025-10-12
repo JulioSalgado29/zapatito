@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:zapatito/components/widgets.dart';
 
-class FirstPage extends StatelessWidget {
-  const FirstPage({super.key});
+class VentasPage extends StatelessWidget {
+  const VentasPage({super.key});
 
   @override
   Widget build(BuildContext context) {

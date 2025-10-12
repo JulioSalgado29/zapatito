@@ -12,6 +12,7 @@ class LocalStorageService {
     if (photoUrl != null) {
       await prefs.setString('userPhoto', photoUrl);
     }
+    await prefs.reload(); // 🔹 asegura escritura inmediata en iOS
   }
 
   static Future<Map<String, String?>> getUserData() async {
