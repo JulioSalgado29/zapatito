@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:zapatito/main-widgets/CALZADO/calzado_form.dart';
+import 'package:zapatito/main-widgets/TIPO_CALZADO/tipo_calzado_form.dart';
 
-class CalzadoPage extends StatefulWidget {
+class TipoCalzadoPage extends StatefulWidget {
   final String? firstName;
 
-  const CalzadoPage({super.key, this.firstName});
+  const TipoCalzadoPage({super.key, this.firstName});
 
   @override
-  State<CalzadoPage> createState() => _CalzadoPageState();
+  State<TipoCalzadoPage> createState() => _TipoCalzadoPageState();
 }
 
-class _CalzadoPageState extends State<CalzadoPage> {
+class _TipoCalzadoPageState extends State<TipoCalzadoPage> {
   bool isOnline = true;
 
   @override
@@ -35,7 +35,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
       ),
       builder: (context) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: CalzadoForm(
+        child: TipoCalzadoForm(
           firstName: widget.firstName,
           isOnline: isOnline,
           doc: doc,
@@ -70,7 +70,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
               const Icon(Icons.warning_amber_rounded, size: 60, color: Colors.white),
               const SizedBox(height: 16),
               const Text(
-                '¿Eliminar calzado?',
+                '¿Eliminar tipo de calzado?',
                 style: TextStyle(
                   fontSize: 22,
                   color: Colors.white,
@@ -103,14 +103,14 @@ class _CalzadoPageState extends State<CalzadoPage> {
                     ),
                     onPressed: () async {
                       await FirebaseFirestore.instance
-                          .collection('calzado')
+                          .collection('tipo_calzado')
                           .doc(id)
                           .update({'activo': false});
 
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Calzado eliminado correctamente 🗑️'),
+                            content: Text('Tipo de calzado eliminado correctamente 🗑️'),
                             duration: Duration(seconds: 2),
                           ),
                         );
@@ -130,21 +130,15 @@ class _CalzadoPageState extends State<CalzadoPage> {
     );
   }
 
-  Future<String> _obtenerIconoTipo(String? tipoId) async {
-    if (tipoId == null) return "❓";
-    final doc = await FirebaseFirestore.instance.collection('tipo_calzado').doc(tipoId).get();
-    return (doc.data()?['icono'] ?? "❓").toString();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: Designwidgets().appBarMain("Registrar Calzados", isOnline: isOnline),
+      appBar: Designwidgets().appBarMain("Registrar Tipo de Calzado", isOnline: isOnline),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection('calzado')
+              .collection('tipo_calzado')
               .where('activo', isEqualTo: true)
               .orderBy('fecha_creacion', descending: true)
               .snapshots(),
@@ -153,7 +147,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
             final docs = snapshot.data!.docs;
 
             if (docs.isEmpty) {
-              return const Center(child: Text('No hay calzados aún'));
+              return const Center(child: Text('No hay tipos de calzado aún'));
             }
 
             return ListView.builder(
@@ -162,19 +156,14 @@ class _CalzadoPageState extends State<CalzadoPage> {
                 final doc = docs[index];
                 final data = doc.data() as Map<String, dynamic>;
                 final nombre = data['nombre'] ?? '';
-                final precio = (data['precio_real'] ?? 0.0).toDouble();
+                final icono = data['icono'] ?? '🥿';
                 final usuario = data['usuario_creacion'] ?? '';
-                final tipoId = data['tipo_calzado_id'];
 
-                return FutureBuilder<String>(
-                  future: _obtenerIconoTipo(tipoId),
-                  builder: (context, iconSnapshot) {
-                    final icono = iconSnapshot.data ?? "❓";
-                    return Card(
-                      elevation: 3,
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      child: ListTile(
-                        leading: (icono.toString().endsWith('.png') || icono.toString().endsWith('.jpg'))
+                return Card(
+                  elevation: 3,
+                  margin: const EdgeInsets.symmetric(vertical: 6),
+                  child: ListTile(
+                    leading: (icono.toString().endsWith('.png') || icono.toString().endsWith('.jpg'))
                         ? Image.asset(
                             icono,
                             width: 40,
@@ -185,24 +174,22 @@ class _CalzadoPageState extends State<CalzadoPage> {
                             icono,
                             style: const TextStyle(fontSize: 28),
                           ),
-                        title: Text(nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('S/ ${precio.toStringAsFixed(2)}  |  $usuario'),
-                        trailing: Wrap(
-                          spacing: 8,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                              onPressed: () => _mostrarFormulario(doc: doc),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
-                              onPressed: () => _confirmarEliminacion(context, doc.id),
-                            ),
-                          ],
+                    title: Text(nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text(usuario),
+                    trailing: Wrap(
+                      spacing: 8,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blueAccent),
+                          onPressed: () => _mostrarFormulario(doc: doc),
                         ),
-                      ),
-                    );
-                  },
+                        IconButton(
+                          icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+                          onPressed: () => _confirmarEliminacion(context, doc.id),
+                        ),
+                      ],
+                    ),
+                  ),
                 );
               },
             );

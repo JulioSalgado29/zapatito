@@ -7,6 +7,7 @@ import 'package:zapatito/main-widgets/MAIN/login_page.dart';
 import 'package:zapatito/main-widgets/MAIN/welcome_page.dart';
 import 'package:zapatito/components/SplashScreen/splash_screen_aut.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:zapatito/main-widgets/TIPO_CALZADO/tipo_calzado_page.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -40,6 +41,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/ventas_page': (context) => const VentasPage(),
         '/calzado_page': (context) => const CalzadoPage(),
+        '/tipo_calzado': (context) => const TipoCalzadoPage(),
       }
     );
   }
