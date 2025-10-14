@@ -26,6 +26,9 @@ class _CalzadoFormState extends State<CalzadoForm> {
   String? _selectedTipoCalzadoId;
   bool get isEditing => widget.doc != null;
 
+  // ✅ nueva variable: para saber si el usuario intentó guardar
+  bool _intentoGuardar = false;
+
   @override
   void initState() {
     super.initState();
@@ -48,10 +51,28 @@ class _CalzadoFormState extends State<CalzadoForm> {
   }
 
   Future<void> _guardarCalzado() async {
+    setState(() => _intentoGuardar = true); // ✅ marca intento de envío
+
     if (!_formKey.currentState!.validate()) return;
     if (_selectedTipoCalzadoId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Seleccione un tipo de calzado')),
+      );
+      return;
+    }
+
+    // ✅ verificar si el tipo existe y está activo
+    final tipoSnap = await FirebaseFirestore.instance
+        .collection('tipo_calzado')
+        .doc(_selectedTipoCalzadoId)
+        .get();
+
+    if (!tipoSnap.exists || !(tipoSnap.data()?['activo'] ?? false)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content:
+              Text('El tipo de calzado seleccionado ya no está disponible.'),
+        ),
       );
       return;
     }
@@ -162,7 +183,37 @@ class _CalzadoFormState extends State<CalzadoForm> {
                   }
 
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Text('No hay tipos de calzado disponibles.');
+                    // ✅ muestra mensaje principal y mensaje adicional si intenta guardar
+                    final bool mostrarAdvertencia = _intentoGuardar;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0, bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'No hay tipos de calzado disponibles.',
+                            style: TextStyle(
+                              color: mostrarAdvertencia ? Colors.red : Colors.black87,
+                              fontSize: 16,
+                              fontWeight:
+                                  mostrarAdvertencia ? FontWeight.bold : FontWeight.w500,
+                            ),
+                          ),
+                          if (mostrarAdvertencia)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Text(
+                                '(Debe agregar uno primero)',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    );
                   }
 
                   final tipos = snapshot.data!.docs;
@@ -220,7 +271,7 @@ class _CalzadoFormState extends State<CalzadoForm> {
                       );
                     }).toList(),
                     onChanged: (val) =>
-                        setState(() => _selectedTipoCalzadoId = val),
+                    setState(() => _selectedTipoCalzadoId = val),
                     validator: (v) =>
                         v == null ? 'Seleccione un tipo de calzado' : null,
                   );
