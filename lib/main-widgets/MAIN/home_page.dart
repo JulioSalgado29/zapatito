@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:zapatito/main-widgets/CALZADO/calzado_page.dart';
-import 'package:zapatito/main-widgets/MAIN/ventas_page.dart';
+//import 'package:zapatito/main-widgets/MAIN/ventas_page.dart';
 import 'package:zapatito/main-widgets/TIPO_CALZADO/tipo_calzado_page.dart';
 import 'package:zapatito/services/local_storage.dart';
 
