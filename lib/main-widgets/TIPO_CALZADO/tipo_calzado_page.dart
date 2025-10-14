@@ -133,7 +133,7 @@ class _TipoCalzadoPageState extends State<TipoCalzadoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: Designwidgets().appBarMain("Registrar Tipo de Calzado", isOnline: isOnline),
+      appBar: Designwidgets().appBarMain("Tipo de Calzado", isOnline: isOnline),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: StreamBuilder<QuerySnapshot>(

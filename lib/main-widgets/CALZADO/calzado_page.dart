@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:zapatito/main-widgets/CALZADO/calzado_form.dart';
+import 'package:zapatito/main-widgets/CALZADO/calzado_form_page.dart';
 
 class CalzadoPage extends StatefulWidget {
   final String? firstName;
@@ -20,22 +20,19 @@ class _CalzadoPageState extends State<CalzadoPage> {
   void initState() {
     super.initState();
     Connectivity().onConnectivityChanged.listen((status) {
-      setState(() {
-        isOnline = status != ConnectivityResult.none;
-      });
+      if (mounted) {
+        setState(() {
+          isOnline = status != ConnectivityResult.none;
+        });
+      }
     });
   }
 
-  void _mostrarFormulario({DocumentSnapshot? doc}) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: CalzadoForm(
+  void _navegarFormulario({DocumentSnapshot? doc}) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CalzadoFormPage(
           firstName: widget.firstName,
           isOnline: isOnline,
           doc: doc,
@@ -139,7 +136,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: Designwidgets().appBarMain("Registrar Calzados", isOnline: isOnline),
+      appBar: Designwidgets().appBarMain("Calzados", isOnline: isOnline),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: StreamBuilder<QuerySnapshot>(
@@ -175,16 +172,8 @@ class _CalzadoPageState extends State<CalzadoPage> {
                       margin: const EdgeInsets.symmetric(vertical: 6),
                       child: ListTile(
                         leading: (icono.toString().endsWith('.png') || icono.toString().endsWith('.jpg'))
-                        ? Image.asset(
-                            icono,
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.contain,
-                          )
-                        : Text(
-                            icono,
-                            style: const TextStyle(fontSize: 28),
-                          ),
+                            ? Image.asset(icono, width: 40, height: 40, fit: BoxFit.contain)
+                            : Text(icono, style: const TextStyle(fontSize: 28)),
                         title: Text(nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
                         subtitle: Text('S/ ${precio.toStringAsFixed(2)}  |  $usuario'),
                         trailing: Wrap(
@@ -192,7 +181,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
                           children: [
                             IconButton(
                               icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                              onPressed: () => _mostrarFormulario(doc: doc),
+                              onPressed: () => _navegarFormulario(doc: doc),
                             ),
                             IconButton(
                               icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
@@ -210,7 +199,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _mostrarFormulario(),
+        onPressed: () => _navegarFormulario(),
         backgroundColor: const Color.fromARGB(255, 33, 47, 243),
         child: const Icon(Icons.add, color: Colors.white),
       ),

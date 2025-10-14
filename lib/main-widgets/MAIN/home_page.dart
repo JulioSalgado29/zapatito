@@ -44,7 +44,7 @@ class _HomePageState extends State<HomePage> {
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 30),
-            MaterialButton(
+            /*MaterialButton(
               onPressed: () {
                 Navigator.push(
                   context,
@@ -56,7 +56,7 @@ class _HomePageState extends State<HomePage> {
               color: const Color.fromARGB(255, 33, 47, 243),
               textColor: Colors.white,
               child: const Text('Ventas'),
-            ),
+            ),*/
             MaterialButton(
               onPressed: () {
                 Navigator.push(
