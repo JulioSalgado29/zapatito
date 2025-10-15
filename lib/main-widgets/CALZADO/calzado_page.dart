@@ -167,6 +167,16 @@ class _CalzadoPageState extends State<CalzadoPage> {
                   future: _obtenerIconoTipo(tipoId),
                   builder: (context, iconSnapshot) {
                     final icono = iconSnapshot.data ?? "❓";
+                    if(icono == "❓"){
+                      return const ListTile(
+                        leading: SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                        title: Text('Cargando...'),
+                      );
+                    }
                     return Card(
                       elevation: 3,
                       margin: const EdgeInsets.symmetric(vertical: 6),
