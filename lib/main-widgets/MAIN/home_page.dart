@@ -57,31 +57,38 @@ class _HomePageState extends State<HomePage> {
               textColor: Colors.white,
               child: const Text('Ventas'),
             ),*/
-            MaterialButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CalzadoPage(firstName: firstName), // 👈 aquí lo pasas directamente
-                  ),
-                );
-              },
-              color: const Color.fromARGB(255, 33, 47, 243),
-              textColor: Colors.white,
-              child: const Text('Calzados'),
+            SizedBox(
+              width: 200, // 🔹 mismo ancho para ambos
+              child: MaterialButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          TipoCalzadoPage(firstName: firstName),
+                    ),
+                  );
+                },
+                color: const Color.fromARGB(255, 33, 47, 243),
+                textColor: Colors.white,
+                child: const Text('Tipos de Calzados'),
+              ),
             ),
-            MaterialButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TipoCalzadoPage(firstName: firstName), // 👈 aquí lo pasas directamente
-                  ),
-                );
-              },
-              color: const Color.fromARGB(255, 33, 47, 243),
-              textColor: Colors.white,
-              child: const Text('Tipos de Calzados'),
+            SizedBox(
+              width: 200,
+              child: MaterialButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CalzadoPage(firstName: firstName),
+                    ),
+                  );
+                },
+                color: const Color.fromARGB(255, 33, 47, 243),
+                textColor: Colors.white,
+                child: const Text('Calzados'),
+              ),
             ),
           ],
         ),

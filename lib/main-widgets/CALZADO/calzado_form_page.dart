@@ -143,33 +143,6 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
               children: [
                 const SizedBox(height: 16),
 
-                // Nombre
-                TextFormField(
-                  controller: _nombreController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) => v == null || v.isEmpty ? 'Ingrese un nombre' : null,
-                ),
-                const SizedBox(height: 16),
-
-                // Precio
-                TextFormField(
-                  controller: _precioController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}$')),
-                  ],
-                  decoration: const InputDecoration(
-                    labelText: 'Precio real',
-                    prefixText: 'S/ ',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: validarPrecio,
-                ),
-                const SizedBox(height: 16),
-
                 // Tipo de calzado
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
@@ -205,14 +178,13 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                                     : FontWeight.w500,
                               ),
                             ),
-                            if (mostrarAdvertencia)
-                              const Padding(
-                                padding: EdgeInsets.only(top: 2),
-                                child: Text(
-                                  '(Debe agregar uno primero)',
-                                  style: TextStyle(color: Colors.red, fontSize: 13),
-                                ),
+                            const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Text(
+                                '(Debe agregar uno primero)',
+                                style: TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w900),
                               ),
+                            ),
                           ],
                         ),
                       );
@@ -275,7 +247,38 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                     );
                   },
                 ),
+
                 const SizedBox(height: 24),
+
+                // Nombre
+                TextFormField(
+                  controller: _nombreController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) => v == null || v.isEmpty ? 'Ingrese un nombre' : null,
+                ),
+                const SizedBox(height: 16),
+
+                // Precio
+                TextFormField(
+                  controller: _precioController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}$')),
+                  ],
+                  decoration: const InputDecoration(
+                    labelText: 'Precio real',
+                    prefixText: 'S/ ',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: validarPrecio,
+                ),
+                const SizedBox(height: 16),
+
+                
+                
 
                 // Botón Guardar / Actualizar
                 SizedBox(
