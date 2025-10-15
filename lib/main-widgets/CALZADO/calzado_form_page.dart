@@ -20,6 +20,7 @@ class CalzadoFormPage extends StatefulWidget {
 }
 
 class _CalzadoFormPageState extends State<CalzadoFormPage> {
+  bool _primerCargaCompletada = false;
   final _formKey = GlobalKey<FormState>();
   final _nombreController = TextEditingController();
   final _precioController = TextEditingController();
@@ -140,21 +141,6 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 5,
-                    margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                Text(
-                  isEditing ? "Editar Calzado" : "Agregar Calzado",
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
                 const SizedBox(height: 16),
 
                 // Nombre
@@ -192,8 +178,14 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                       .orderBy('fecha_creacion', descending: true)
                       .snapshots(),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
+                    // 👇 Mostrar loader solo la primera vez
+                    if (!_primerCargaCompletada &&
+                        snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasData) {
+                      _primerCargaCompletada = true; // Marcar que ya cargó una vez
                     }
 
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
