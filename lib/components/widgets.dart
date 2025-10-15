@@ -13,11 +13,11 @@ class Designwidgets {
         title,
         style: const TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Georgia'),
       ),
-      actions: [
+      /*actions: [
           Icon(isOnline ? Icons.wifi : Icons.wifi_off,
               color: isOnline ? Colors.green : Colors.red),
           const SizedBox(width: 16),
-        ],
+        ],*/
     );
   }
 
