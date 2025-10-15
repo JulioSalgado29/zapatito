@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 class TipoCalzadoForm extends StatefulWidget {
   final String? firstName;
@@ -24,15 +26,8 @@ class _TipoCalzadoFormState extends State<TipoCalzadoForm> {
 
   bool get isEditing => widget.doc != null;
 
-  // Lista de íconos disponibles (desde assets)
-  final List<String> _iconos = [
-    'lib/assets/calzados/botin.png',
-    'lib/assets/calzados/escolar.png',
-    'lib/assets/calzados/mocasin.png',
-    'lib/assets/calzados/sandalia.png',
-    'lib/assets/calzados/taco.png',
-    'lib/assets/calzados/zapatilla.png',
-  ];
+  List<String> _iconos = [];
+  bool _loadingIconos = true;
 
   @override
   void initState() {
@@ -42,6 +37,23 @@ class _TipoCalzadoFormState extends State<TipoCalzadoForm> {
       _nombreController.text = data['nombre'] ?? '';
       _iconoSeleccionado = data['icono']; // ruta guardada
     }
+    _cargarIconos();
+  }
+
+  Future<void> _cargarIconos() async {
+    final manifestContent = await rootBundle.loadString('AssetManifest.json');
+    final Map<String, dynamic> manifestMap = json.decode(manifestContent);
+
+    final iconos = manifestMap.keys
+        .where((key) =>
+            key.startsWith('lib/assets/calzados/') &&
+            (key.endsWith('.png') || key.endsWith('.jpg')))
+        .toList();
+
+    setState(() {
+      _iconos = iconos;
+      _loadingIconos = false;
+    });
   }
 
   Future<void> _guardarTipoCalzado() async {
@@ -117,43 +129,44 @@ class _TipoCalzadoFormState extends State<TipoCalzadoForm> {
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: _iconos.map((path) {
-                  final isSelected = _iconoSeleccionado == path;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() => _iconoSeleccionado = path);
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: isSelected ? Colors.blue : Colors.grey.shade300,
-                          width: isSelected ? 2.5 : 1,
+              if (_loadingIconos)
+                const Center(child: CircularProgressIndicator())
+              else
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: _iconos.map((path) {
+                    final isSelected = _iconoSeleccionado == path;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() => _iconoSeleccionado = path);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: isSelected ? Colors.blue : Colors.grey.shade300,
+                            width: isSelected ? 2.5 : 1,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: isSelected
+                              ? [BoxShadow(color: Colors.blue.withOpacity(0.2), blurRadius: 5)]
+                              : null,
                         ),
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: isSelected
-                            ? [BoxShadow(color: Colors.blue.withOpacity(0.2), blurRadius: 5)]
-                            : null,
+                        padding: const EdgeInsets.all(6),
+                        child: Image.asset(
+                          path,
+                          width: 48,
+                          height: 48,
+                        ),
                       ),
-                      padding: const EdgeInsets.all(6),
-                      child: Image.asset(
-                        path,
-                        width: 48,
-                        height: 48,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
+                    );
+                  }).toList(),
+                ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: _iconoSeleccionado == null
-                      ? null
-                      : _guardarTipoCalzado,
+                  onPressed: _iconoSeleccionado == null ? null : _guardarTipoCalzado,
                   icon: Icon(isEditing ? Icons.save_as : Icons.save),
                   label: Text(isEditing
                       ? 'Actualizar Tipo de Calzado'
