@@ -158,6 +158,8 @@ class _TipoCalzadoPageState extends State<TipoCalzadoPage> {
                 final nombre = data['nombre'] ?? '';
                 final icono = data['icono'] ?? '🥿';
                 final usuario = data['usuario_creacion'] ?? '';
+                final taco = data['taco'] ?? false;
+                final plataforma = data['plataforma'] ?? false;
 
                 return Card(
                   elevation: 3,
@@ -175,7 +177,14 @@ class _TipoCalzadoPageState extends State<TipoCalzadoPage> {
                             style: const TextStyle(fontSize: 28),
                           ),
                     title: Text(nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(usuario),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Creado por: $usuario'),
+                        Text(
+                            'Taco: ${taco ? "Sí" : "No"} • Plataforma: ${plataforma ? "Sí" : "No"}'),
+                      ],
+                    ),
                     trailing: Wrap(
                       spacing: 8,
                       children: [

@@ -23,6 +23,8 @@ class _TipoCalzadoFormState extends State<TipoCalzadoForm> {
   final _formKey = GlobalKey<FormState>();
   final _nombreController = TextEditingController();
   String? _iconoSeleccionado;
+  bool _taco = false;
+  bool _plataforma = false;
 
   bool get isEditing => widget.doc != null;
 
@@ -36,6 +38,8 @@ class _TipoCalzadoFormState extends State<TipoCalzadoForm> {
       final data = widget.doc!.data() as Map<String, dynamic>;
       _nombreController.text = data['nombre'] ?? '';
       _iconoSeleccionado = data['icono']; // ruta guardada
+      _taco = data['taco'] ?? false;
+      _plataforma = data['plataforma'] ?? false;
     }
     _cargarIconos();
   }
@@ -65,6 +69,8 @@ class _TipoCalzadoFormState extends State<TipoCalzadoForm> {
       'usuario_creacion': widget.firstName,
       'fecha_creacion': FieldValue.serverTimestamp(),
       'activo': true,
+      'taco': _taco,
+      'plataforma': _plataforma,
     };
 
     try {
@@ -94,86 +100,120 @@ class _TipoCalzadoFormState extends State<TipoCalzadoForm> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 20).copyWith(top: 24, bottom: 40),
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 5,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[400],
-                    borderRadius: BorderRadius.circular(10),
+      padding: const EdgeInsets.symmetric(horizontal: 20)
+          .copyWith(top: 24, bottom: 40),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height *
+            0.75, // Limita la altura del formulario al 75% de la pantalla
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 5,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[400],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
-              ),
-              Text(
-                isEditing ? "Editar Tipo de Calzado" : "Agregar Tipo de Calzado",
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _nombreController,
-                decoration: const InputDecoration(labelText: 'Nombre'),
-                validator: (v) => v == null || v.isEmpty ? 'Ingrese un nombre' : null,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "Seleccionar ícono:",
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 8),
-              if (_loadingIconos)
-                const Center(child: CircularProgressIndicator())
-              else
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: _iconos.map((path) {
-                    final isSelected = _iconoSeleccionado == path;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() => _iconoSeleccionado = path);
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: isSelected ? Colors.blue : Colors.grey.shade300,
-                            width: isSelected ? 2.5 : 1,
+                Text(
+                  isEditing
+                      ? "Editar Tipo de Calzado"
+                      : "Agregar Tipo de Calzado",
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _nombreController,
+                  decoration: const InputDecoration(labelText: 'Nombre'),
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Ingrese un nombre' : null,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Seleccionar ícono:",
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                if (_loadingIconos)
+                  const Center(child: CircularProgressIndicator())
+                else
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: _iconos.map((path) {
+                      final isSelected = _iconoSeleccionado == path;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => _iconoSeleccionado = path);
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.blue
+                                  : Colors.grey.shade300,
+                              width: isSelected ? 2.5 : 1,
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                        color: Colors.blue.withOpacity(0.2),
+                                        blurRadius: 5)
+                                  ]
+                                : null,
                           ),
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: isSelected
-                              ? [BoxShadow(color: Colors.blue.withOpacity(0.2), blurRadius: 5)]
-                              : null,
+                          padding: const EdgeInsets.all(6),
+                          child: Image.asset(
+                            path,
+                            width: 48,
+                            height: 48,
+                          ),
                         ),
-                        padding: const EdgeInsets.all(6),
-                        child: Image.asset(
-                          path,
-                          width: 48,
-                          height: 48,
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                      );
+                    }).toList(),
+                  ),
+                const SizedBox(height: 24),
+                SwitchListTile(
+                  title: const Text('¿Puede tener diferentes tacos?'),
+                  value: _taco,
+                  onChanged: (value) {
+                    setState(() {
+                      _taco = value;
+                    });
+                  },
                 ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _iconoSeleccionado == null ? null : _guardarTipoCalzado,
-                  icon: Icon(isEditing ? Icons.save_as : Icons.save),
-                  label: Text(isEditing
-                      ? 'Actualizar Tipo de Calzado'
-                      : 'Guardar Tipo de Calzado'),
+                SwitchListTile(
+                  title: const Text('¿Puede tener diferentes plataformas?'),
+                  value: _plataforma,
+                  onChanged: (value) {
+                    setState(() {
+                      _plataforma = value;
+                    });
+                  },
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed:
+                        _iconoSeleccionado == null ? null : _guardarTipoCalzado,
+                    icon: Icon(isEditing ? Icons.save_as : Icons.save),
+                    label: Text(isEditing
+                        ? 'Actualizar Tipo de Calzado'
+                        : 'Guardar Tipo de Calzado'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
