@@ -26,6 +26,13 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
   final _precioController = TextEditingController();
   String? _selectedTipoCalzadoId;
 
+  bool _taco = false;
+  bool _plataforma = false;
+  bool _tacoCheckbox = false; // Para marcar si queremos ingresar la talla
+  bool _plataformaCheckbox =
+      false; // Para marcar si queremos ingresar un valor de plataforma
+  int? _valorTaco; // Variable para ingresar talla
+
   bool get isEditing => widget.doc != null;
   bool _intentoGuardar = false;
   bool _isFormValid = false;
@@ -39,6 +46,9 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
       _nombreController.text = data['nombre'] ?? '';
       _precioController.text = (data['precio_real'] ?? 0.0).toStringAsFixed(2);
       _selectedTipoCalzadoId = data['tipo_calzado_id'];
+      _tacoCheckbox = data['taco'] ?? false;
+      _plataformaCheckbox = data['plataforma'] ?? false;
+      _valorTaco = data['valor_taco']; // Cargar el valor del taco si existe
     }
 
     _nombreController.addListener(_validarFormulario);
@@ -83,7 +93,8 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
     if (!tipoSnap.exists || !(tipoSnap.data()?['activo'] ?? false)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('El tipo de calzado seleccionado ya no está disponible.'),
+          content:
+              Text('El tipo de calzado seleccionado ya no está disponible.'),
         ),
       );
       return;
@@ -99,6 +110,10 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
       'fecha_creacion': FieldValue.serverTimestamp(),
       'tipo_calzado_id': _selectedTipoCalzadoId,
       'activo': true,
+      'taco': _tacoCheckbox,
+      'plataforma': _plataformaCheckbox,
+      if (_tacoCheckbox) 'valor_taco': _valorTaco else 'valor_taco': null,
+      'valor_plataforma': _plataformaCheckbox,
     };
 
     try {
@@ -132,7 +147,8 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
         isOnline: widget.isOnline,
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20).copyWith(top: 24, bottom: 40),
+        padding: const EdgeInsets.symmetric(horizontal: 20)
+            .copyWith(top: 24, bottom: 40),
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           child: Form(
@@ -151,14 +167,15 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                       .orderBy('fecha_creacion', descending: true)
                       .snapshots(),
                   builder: (context, snapshot) {
-                    // 👇 Mostrar loader solo la primera vez
+                    // Mostrar loader solo la primera vez
                     if (!_primerCargaCompletada &&
                         snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
 
                     if (snapshot.hasData) {
-                      _primerCargaCompletada = true; // Marcar que ya cargó una vez
+                      _primerCargaCompletada =
+                          true; // Marcar que ya cargó una vez
                     }
 
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -171,7 +188,9 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                             Text(
                               'No hay tipos de calzado disponibles.',
                               style: TextStyle(
-                                color: mostrarAdvertencia ? Colors.red : Colors.black87,
+                                color: mostrarAdvertencia
+                                    ? Colors.red
+                                    : Colors.black87,
                                 fontSize: 16,
                                 fontWeight: mostrarAdvertencia
                                     ? FontWeight.bold
@@ -182,7 +201,10 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                               padding: EdgeInsets.only(top: 2),
                               child: Text(
                                 '(Debe agregar uno primero)',
-                                style: TextStyle(color: Colors.red, fontSize: 13, fontWeight: FontWeight.w900),
+                                style: TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900),
                               ),
                             ),
                           ],
@@ -216,8 +238,10 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                                     width: 28,
                                     height: 28,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        const Icon(Icons.image, size: 24, color: Colors.grey),
+                                    errorBuilder: (_, __, ___) => const Icon(
+                                        Icons.image,
+                                        size: 24,
+                                        color: Colors.grey),
                                   ),
                                 )
                               else
@@ -243,12 +267,13 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                         setState(() => _selectedTipoCalzadoId = val);
                         _validarFormulario();
                       },
-                      validator: (v) => v == null ? 'Seleccione un tipo de calzado' : null,
+                      validator: (v) =>
+                          v == null ? 'Seleccione un tipo de calzado' : null,
                     );
                   },
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
                 // Nombre
                 TextFormField(
@@ -257,16 +282,19 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                     labelText: 'Nombre',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (v) => v == null || v.isEmpty ? 'Ingrese un nombre' : null,
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'Ingrese un nombre' : null,
                 ),
                 const SizedBox(height: 16),
 
                 // Precio
                 TextFormField(
                   controller: _precioController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}$')),
+                    FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d+\.?\d{0,2}$')),
                   ],
                   decoration: const InputDecoration(
                     labelText: 'Precio real',
@@ -277,8 +305,90 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                 ),
                 const SizedBox(height: 16),
 
-                
-                
+                // Mostrar los valores de Taco y Plataforma (no editables)
+                if (_selectedTipoCalzadoId != null)
+                  StreamBuilder<DocumentSnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('tipo_calzado')
+                        .doc(_selectedTipoCalzadoId)
+                        .snapshots(),
+                    builder: (context, tipoSnap) {
+                      if (!tipoSnap.hasData) return const SizedBox.shrink();
+                      final tipoData =
+                          tipoSnap.data!.data() as Map<String, dynamic>;
+
+                      // Cargamos los valores de taco y plataforma
+                      _taco = tipoData['taco'] ?? false;
+                      _plataforma = tipoData['plataforma'] ?? false;
+
+                      return Column(
+                        children: [
+                          if (_taco)
+                            Row(
+                              children: [
+                                const Text(
+                                  '¿Tiene Taco?',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                                Checkbox(
+                                  value: _tacoCheckbox,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _tacoCheckbox = val ?? false;
+                                      // Si se desmarca el checkbox, reseteamos el valor_taco
+                                      if (!_tacoCheckbox) {
+                                        _valorTaco = null;
+                                      }
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          if (_tacoCheckbox)
+                            TextFormField(
+                              keyboardType: TextInputType.number,
+                              initialValue: _valorTaco?.toString(),
+                              decoration: const InputDecoration(
+                                labelText: 'Número (0 a 15)',
+                                border: OutlineInputBorder(),
+                              ),
+                              onChanged: (val) {
+                                setState(() {
+                                  _valorTaco = int.tryParse(val);
+                                });
+                                _validarFormulario(); // Llamamos a la validación al cambiar el valor
+                              },
+                              validator: (val) {
+                                if (_valorTaco != null &&
+                                    (_valorTaco! < 0 || _valorTaco! > 15)) {
+                                  return 'El número debe estar entre 0 y 15';
+                                }
+                                return null;
+                              },
+                            ),
+                          if (_plataforma)
+                            Row(
+                              children: [
+                                const Text(
+                                  '¿Tiene Plataforma?',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                                Checkbox(
+                                  value: _plataformaCheckbox,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      _plataformaCheckbox = val ?? false;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                        ],
+                      );
+                    },
+                  ),
+
+                const SizedBox(height: 16),
 
                 // Botón Guardar / Actualizar
                 SizedBox(
@@ -286,9 +396,8 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                   child: ElevatedButton.icon(
                     onPressed: _isFormValid ? _guardarCalzado : null,
                     icon: Icon(isEditing ? Icons.save_as : Icons.save),
-                    label: Text(isEditing
-                        ? 'Actualizar Calzado'
-                        : 'Guardar Calzado'),
+                    label: Text(
+                        isEditing ? 'Actualizar Calzado' : 'Guardar Calzado'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
                           _isFormValid ? Colors.white : Colors.grey,

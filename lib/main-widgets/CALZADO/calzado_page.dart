@@ -162,12 +162,14 @@ class _CalzadoPageState extends State<CalzadoPage> {
                 final precio = (data['precio_real'] ?? 0.0).toDouble();
                 final usuario = data['usuario_creacion'] ?? '';
                 final tipoId = data['tipo_calzado_id'];
+                final taco = data['valor_taco'];  // Talla si existe
+                final plataforma = data['valor_plataforma'];  // Plataforma si existe
 
                 return FutureBuilder<String>(
                   future: _obtenerIconoTipo(tipoId),
                   builder: (context, iconSnapshot) {
                     final icono = iconSnapshot.data ?? "❓";
-                    if(icono == "❓"){
+                    if (icono == "❓") {
                       return const ListTile(
                         leading: SizedBox(
                           width: 40,
@@ -178,29 +180,66 @@ class _CalzadoPageState extends State<CalzadoPage> {
                       );
                     }
                     return Card(
-                      elevation: 3,
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      child: ListTile(
-                        leading: (icono.toString().endsWith('.png') || icono.toString().endsWith('.jpg'))
-                            ? Image.asset(icono, width: 40, height: 40, fit: BoxFit.contain)
-                            : Text(icono, style: const TextStyle(fontSize: 28)),
-                        title: Text(nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('S/ ${precio.toStringAsFixed(2)}  |  $usuario'),
-                        trailing: Wrap(
-                          spacing: 8,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blueAccent),
-                              onPressed: () => _navegarFormulario(doc: doc),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
-                              onPressed: () => _confirmarEliminacion(context, doc.id),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
+  elevation: 3,
+  margin: const EdgeInsets.symmetric(vertical: 6),
+  child: Padding(
+    padding: const EdgeInsets.all(16),
+    child: Row(
+      children: [
+        // Columna para el icono y nombre del calzado
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Mostrar el icono y el nombre
+              Row(
+                children: [
+                  (icono.toString().endsWith('.png') || icono.toString().endsWith('.jpg'))
+                      ? Image.asset(icono, width: 40, height: 40, fit: BoxFit.contain)
+                      : Text(icono, style: const TextStyle(fontSize: 28)),
+                  const SizedBox(width: 8),
+                  Text(nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text('S/ ${precio.toStringAsFixed(2)}  |  $usuario'),
+              
+              // Mostrar la talla si está disponible
+              if (taco != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text('Taco: $taco', style: const TextStyle(fontWeight: FontWeight.bold)),
+                ),
+
+              // Mostrar la plataforma si está disponible
+              if (plataforma != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(plataforma == true ? 'Plataforma: Sí' : 'Plataforma: No', style: const TextStyle(fontWeight: FontWeight.bold)),
+                ),
+            ],
+          ),
+        ),
+
+        // Columna para los botones de acción (editar y eliminar)
+        Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blueAccent),
+              onPressed: () => _navegarFormulario(doc: doc),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+              onPressed: () => _confirmarEliminacion(context, doc.id),
+            ),
+          ],
+        ),
+      ],
+    ),
+  ),
+);
+
                   },
                 );
               },
