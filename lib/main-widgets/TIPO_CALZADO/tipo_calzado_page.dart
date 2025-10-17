@@ -140,6 +140,7 @@ class _TipoCalzadoPageState extends State<TipoCalzadoPage> {
           stream: FirebaseFirestore.instance
               .collection('tipo_calzado')
               .where('activo', isEqualTo: true)
+              .where('usuario_creacion', isEqualTo: widget.firstName)
               .orderBy('fecha_creacion', descending: true)
               .snapshots(),
           builder: (context, snapshot) {
