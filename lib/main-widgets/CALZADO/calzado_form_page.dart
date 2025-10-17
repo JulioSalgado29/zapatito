@@ -29,9 +29,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
   bool _taco = false;
   bool _plataforma = false;
   bool _tacoCheckbox = false; // Para marcar si queremos ingresar la talla
-  bool _plataformaCheckbox =
-      false; // Para marcar si queremos ingresar un valor de plataforma
-  int? _valorTaco; // Variable para ingresar talla
+  bool _plataformaCheckbox = false; // Para marcar si queremos ingresar un valor de plataforma
 
   bool get isEditing => widget.doc != null;
   bool _intentoGuardar = false;
@@ -48,7 +46,6 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
       _selectedTipoCalzadoId = data['tipo_calzado_id'];
       _tacoCheckbox = data['taco'] ?? false;
       _plataformaCheckbox = data['plataforma'] ?? false;
-      _valorTaco = data['valor_taco']; // Cargar el valor del taco si existe
     }
 
     _nombreController.addListener(_validarFormulario);
@@ -112,8 +109,6 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
       'activo': true,
       'taco': _tacoCheckbox,
       'plataforma': _plataformaCheckbox,
-      if (_tacoCheckbox) 'valor_taco': _valorTaco else 'valor_taco': null,
-      'valor_plataforma': _plataformaCheckbox,
     };
 
     try {
@@ -335,36 +330,10 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                                   onChanged: (val) {
                                     setState(() {
                                       _tacoCheckbox = val ?? false;
-                                      // Si se desmarca el checkbox, reseteamos el valor_taco
-                                      if (!_tacoCheckbox) {
-                                        _valorTaco = null;
-                                      }
                                     });
                                   },
                                 ),
                               ],
-                            ),
-                          if (_tacoCheckbox)
-                            TextFormField(
-                              keyboardType: TextInputType.number,
-                              initialValue: _valorTaco?.toString(),
-                              decoration: const InputDecoration(
-                                labelText: 'Número (0 a 15)',
-                                border: OutlineInputBorder(),
-                              ),
-                              onChanged: (val) {
-                                setState(() {
-                                  _valorTaco = int.tryParse(val);
-                                });
-                                _validarFormulario(); // Llamamos a la validación al cambiar el valor
-                              },
-                              validator: (val) {
-                                if (_valorTaco != null &&
-                                    (_valorTaco! < 0 || _valorTaco! > 15)) {
-                                  return 'El número debe estar entre 0 y 15';
-                                }
-                                return null;
-                              },
                             ),
                           if (_plataforma)
                             Row(

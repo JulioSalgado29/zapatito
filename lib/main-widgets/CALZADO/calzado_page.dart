@@ -162,8 +162,8 @@ class _CalzadoPageState extends State<CalzadoPage> {
                 final precio = (data['precio_real'] ?? 0.0).toDouble();
                 final usuario = data['usuario_creacion'] ?? '';
                 final tipoId = data['tipo_calzado_id'];
-                final taco = data['valor_taco'];  // Talla si existe
-                final plataforma = data['valor_plataforma'];  // Plataforma si existe
+                final taco = data['taco'];  // Talla si existe
+                final plataforma = data['plataforma'];  // Plataforma si existe
 
                 return FutureBuilder<String>(
                   future: _obtenerIconoTipo(tipoId),
@@ -208,7 +208,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
               if (taco != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child: Text('Taco: $taco', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text(taco == true ? 'Taco: Sí' : 'Taco: No', style: const TextStyle(fontWeight: FontWeight.bold)),
                 ),
 
               // Mostrar la plataforma si está disponible
