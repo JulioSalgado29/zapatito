@@ -30,7 +30,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
   bool _plataforma = false;
   bool _tacoCheckbox = false;
   bool _plataformaCheckbox = false;
-  String? _iconoSeleccionado; // 🔹 Nuevo: icono seleccionado
+  String? _iconoSeleccionado;
 
   bool get isEditing => widget.doc != null;
   bool _intentoGuardar = false;
@@ -47,13 +47,29 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
       _selectedTipoCalzadoId = data['tipo_calzado_id'];
       _tacoCheckbox = data['taco'] ?? false;
       _plataformaCheckbox = data['plataforma'] ?? false;
-      _iconoSeleccionado = data['icono']; // 🔹 Cargar icono si existe
+      _iconoSeleccionado = data['icono'] ?? '';
     }
 
     _nombreController.addListener(_validarFormulario);
     _precioController.addListener(_validarFormulario);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => _validarFormulario());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _validarFormulario();
+      if (isEditing && _selectedTipoCalzadoId != null) {
+        final tipoSnap = await FirebaseFirestore.instance
+            .collection('tipo_calzado')
+            .doc(_selectedTipoCalzadoId)
+            .get();
+
+        if (tipoSnap.exists) {
+          final data = tipoSnap.data() ?? {};
+          setState(() {
+            _taco = data['taco'] ?? false;
+            _plataforma = data['plataforma'] ?? false;
+          });
+        }
+      }
+    });
   }
 
   void _validarFormulario() {
@@ -92,7 +108,8 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
     if (!tipoSnap.exists || !(tipoSnap.data()?['activo'] ?? false)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('El tipo de calzado seleccionado ya no está disponible.'),
+          content:
+              Text('El tipo de calzado seleccionado ya no está disponible.'),
         ),
       );
       return;
@@ -110,7 +127,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
       'usuario_creacion': widget.firstName,
       'fecha_creacion': FieldValue.serverTimestamp(),
       'tipo_calzado_id': _selectedTipoCalzadoId,
-      'icono': icono, // 🔹 Guardamos el icono
+      'icono': icono,
       'activo': true,
       'taco': _tacoCheckbox,
       'plataforma': _plataformaCheckbox,
@@ -132,7 +149,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
         );
       }
 
-      if (mounted) Navigator.pop(context, true); // 🔹 Enviar true para recargar
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
@@ -148,8 +165,8 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
         isOnline: widget.isOnline,
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20)
-            .copyWith(top: 24, bottom: 40),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 20).copyWith(top: 24, bottom: 40),
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           child: Form(
@@ -199,9 +216,10 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                               child: Text(
                                 '(Debe agregar uno primero)',
                                 style: TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w900),
+                                  color: Colors.red,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                             ),
                           ],
@@ -223,6 +241,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                         return DropdownMenuItem<String>(
                           value: doc.id,
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               if (icono.toString().endsWith('.png') ||
                                   icono.toString().endsWith('.jpg'))
@@ -240,15 +259,15 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                               else
                                 Padding(
                                   padding: const EdgeInsets.only(right: 8),
-                                  child: Text(icono.toString(),
-                                      style: const TextStyle(fontSize: 22)),
+                                  child: Text(
+                                    icono.toString(),
+                                    style: const TextStyle(fontSize: 22),
+                                  ),
                                 ),
-                              Flexible(
-                                child: Text(
-                                  nombre,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 16),
-                                ),
+                              Text(
+                                nombre,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 16),
                               ),
                             ],
                           ),
@@ -263,13 +282,16 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                               .get();
                           if (tipoSnap.exists) {
                             setState(() {
+                              final tipoData = tipoSnap.data() ?? {};
                               _iconoSeleccionado =
-                                  tipoSnap.data()?['icono'] ?? '';
-                              _taco =
-                                  tipoSnap.data()?['taco'] as bool? ?? false;
-                              _plataforma = tipoSnap.data()?['plataforma']
-                                      as bool? ??
-                                  false;
+                                  tipoData['icono'] ?? '';
+                              _taco = tipoData['taco'] ?? false;
+                              _plataforma =
+                                  tipoData['plataforma'] ?? false;
+
+                              // Si el tipo no soporta taco/plataforma, desmarcar
+                              if (!_taco) _tacoCheckbox = false;
+                              if (!_plataforma) _plataformaCheckbox = false;
                             });
                           }
                         }
@@ -301,8 +323,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d+\.?\d{0,2}$')),
+                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}$')),
                   ],
                   decoration: const InputDecoration(
                     labelText: 'Precio real',
@@ -314,7 +335,8 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                 const SizedBox(height: 16),
 
                 // Taco / Plataforma
-                if (_selectedTipoCalzadoId != null)
+                if (_selectedTipoCalzadoId != null &&
+                    (_taco || _plataforma))
                   Column(
                     children: [
                       if (_taco)
@@ -352,13 +374,9 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                   child: ElevatedButton.icon(
                     onPressed: _isFormValid ? _guardarCalzado : null,
                     icon: Icon(isEditing ? Icons.save_as : Icons.save),
-                    label: Text(
-                        isEditing ? 'Actualizar Calzado' : 'Guardar Calzado'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          _isFormValid ? Colors.white : Colors.grey,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
+                    label: Text(isEditing
+                        ? 'Actualizar Calzado'
+                        : 'Guardar Calzado'),
                   ),
                 ),
               ],
