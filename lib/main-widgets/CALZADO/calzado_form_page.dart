@@ -28,8 +28,9 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
 
   bool _taco = false;
   bool _plataforma = false;
-  bool _tacoCheckbox = false; // Para marcar si queremos ingresar la talla
-  bool _plataformaCheckbox = false; // Para marcar si queremos ingresar un valor de plataforma
+  bool _tacoCheckbox = false;
+  bool _plataformaCheckbox = false;
+  String? _iconoSeleccionado; // 🔹 Nuevo: icono seleccionado
 
   bool get isEditing => widget.doc != null;
   bool _intentoGuardar = false;
@@ -46,6 +47,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
       _selectedTipoCalzadoId = data['tipo_calzado_id'];
       _tacoCheckbox = data['taco'] ?? false;
       _plataformaCheckbox = data['plataforma'] ?? false;
+      _iconoSeleccionado = data['icono']; // 🔹 Cargar icono si existe
     }
 
     _nombreController.addListener(_validarFormulario);
@@ -90,12 +92,14 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
     if (!tipoSnap.exists || !(tipoSnap.data()?['activo'] ?? false)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content:
-              Text('El tipo de calzado seleccionado ya no está disponible.'),
+          content: Text('El tipo de calzado seleccionado ya no está disponible.'),
         ),
       );
       return;
     }
+
+    final tipoData = tipoSnap.data() ?? {};
+    final icono = tipoData['icono'] ?? _iconoSeleccionado ?? '';
 
     final precioText = _precioController.text.replaceAll("S/", "").trim();
     final precio = double.tryParse(precioText) ?? 0.0;
@@ -106,6 +110,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
       'usuario_creacion': widget.firstName,
       'fecha_creacion': FieldValue.serverTimestamp(),
       'tipo_calzado_id': _selectedTipoCalzadoId,
+      'icono': icono, // 🔹 Guardamos el icono
       'activo': true,
       'taco': _tacoCheckbox,
       'plataforma': _plataformaCheckbox,
@@ -127,10 +132,11 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
         );
       }
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context, true); // 🔹 Enviar true para recargar
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
   }
 
@@ -154,7 +160,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
               children: [
                 const SizedBox(height: 16),
 
-                // Tipo de calzado
+                // 🔸 Tipo de calzado
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('tipo_calzado')
@@ -162,16 +168,12 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                       .orderBy('fecha_creacion', descending: true)
                       .snapshots(),
                   builder: (context, snapshot) {
-                    // Mostrar loader solo la primera vez
                     if (!_primerCargaCompletada &&
                         snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    if (snapshot.hasData) {
-                      _primerCargaCompletada =
-                          true; // Marcar que ya cargó una vez
-                    }
+                    if (snapshot.hasData) _primerCargaCompletada = true;
 
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       final mostrarAdvertencia = _intentoGuardar;
@@ -221,11 +223,9 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                         return DropdownMenuItem<String>(
                           value: doc.id,
                           child: Row(
-                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (icono.toString().isNotEmpty &&
-                                  (icono.toString().endsWith('.png') ||
-                                      icono.toString().endsWith('.jpg')))
+                              if (icono.toString().endsWith('.png') ||
+                                  icono.toString().endsWith('.jpg'))
                                 Padding(
                                   padding: const EdgeInsets.only(right: 8),
                                   child: Image.asset(
@@ -233,19 +233,15 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                                     width: 28,
                                     height: 28,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(
-                                        Icons.image,
-                                        size: 24,
-                                        color: Colors.grey),
+                                    errorBuilder: (_, __, ___) =>
+                                        const Icon(Icons.image, size: 24),
                                   ),
                                 )
                               else
                                 Padding(
                                   padding: const EdgeInsets.only(right: 8),
-                                  child: Text(
-                                    icono.toString(),
-                                    style: const TextStyle(fontSize: 22),
-                                  ),
+                                  child: Text(icono.toString(),
+                                      style: const TextStyle(fontSize: 22)),
                                 ),
                               Flexible(
                                 child: Text(
@@ -258,8 +254,25 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                           ),
                         );
                       }).toList(),
-                      onChanged: (val) {
+                      onChanged: (val) async {
                         setState(() => _selectedTipoCalzadoId = val);
+                        if (val != null) {
+                          final tipoSnap = await FirebaseFirestore.instance
+                              .collection('tipo_calzado')
+                              .doc(val)
+                              .get();
+                          if (tipoSnap.exists) {
+                            setState(() {
+                              _iconoSeleccionado =
+                                  tipoSnap.data()?['icono'] ?? '';
+                              _taco =
+                                  tipoSnap.data()?['taco'] as bool? ?? false;
+                              _plataforma = tipoSnap.data()?['plataforma']
+                                      as bool? ??
+                                  false;
+                            });
+                          }
+                        }
                         _validarFormulario();
                       },
                       validator: (v) =>
@@ -300,61 +313,35 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Mostrar los valores de Taco y Plataforma (no editables)
+                // Taco / Plataforma
                 if (_selectedTipoCalzadoId != null)
-                  StreamBuilder<DocumentSnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('tipo_calzado')
-                        .doc(_selectedTipoCalzadoId)
-                        .snapshots(),
-                    builder: (context, tipoSnap) {
-                      if (!tipoSnap.hasData) return const SizedBox.shrink();
-                      final tipoData =
-                          tipoSnap.data!.data() as Map<String, dynamic>;
-
-                      // Cargamos los valores de taco y plataforma
-                      _taco = tipoData['taco'] ?? false;
-                      _plataforma = tipoData['plataforma'] ?? false;
-
-                      return Column(
-                        children: [
-                          if (_taco)
-                            Row(
-                              children: [
-                                const Text(
-                                  '¿Tiene Taco?',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                Checkbox(
-                                  value: _tacoCheckbox,
-                                  onChanged: (val) {
-                                    setState(() {
-                                      _tacoCheckbox = val ?? false;
-                                    });
-                                  },
-                                ),
-                              ],
+                  Column(
+                    children: [
+                      if (_taco)
+                        Row(
+                          children: [
+                            const Text('¿Tiene Taco?',
+                                style: TextStyle(fontSize: 16)),
+                            Checkbox(
+                              value: _tacoCheckbox,
+                              onChanged: (val) =>
+                                  setState(() => _tacoCheckbox = val ?? false),
                             ),
-                          if (_plataforma)
-                            Row(
-                              children: [
-                                const Text(
-                                  '¿Tiene Plataforma?',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                Checkbox(
-                                  value: _plataformaCheckbox,
-                                  onChanged: (val) {
-                                    setState(() {
-                                      _plataformaCheckbox = val ?? false;
-                                    });
-                                  },
-                                ),
-                              ],
+                          ],
+                        ),
+                      if (_plataforma)
+                        Row(
+                          children: [
+                            const Text('¿Tiene Plataforma?',
+                                style: TextStyle(fontSize: 16)),
+                            Checkbox(
+                              value: _plataformaCheckbox,
+                              onChanged: (val) => setState(
+                                  () => _plataformaCheckbox = val ?? false),
                             ),
-                        ],
-                      );
-                    },
+                          ],
+                        ),
+                    ],
                   ),
 
                 const SizedBox(height: 16),

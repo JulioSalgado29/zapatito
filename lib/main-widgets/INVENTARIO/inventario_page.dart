@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:zapatito/components/widgets.dart';
 import 'package:zapatito/main-widgets/MAIN/home_page.dart';
 import 'inventario_form_page.dart';
 
@@ -57,16 +58,42 @@ class _InventarioPageState extends State<InventarioPage> {
     return snapshot.docs;
   }
 
-  Future<String> _getNombreCalzado(String calzadoId) async {
-    final doc = await FirebaseFirestore.instance
+  /// 🔹 Obtiene nombre e icono del tipo de calzado asociado
+  Future<Map<String, dynamic>> _getDatosCalzado(String calzadoId) async {
+    final calzadoSnap = await FirebaseFirestore.instance
         .collection('calzado')
         .doc(calzadoId)
         .get();
-    return doc.exists ? (doc['nombre'] ?? 'Sin nombre') : 'Sin nombre';
+
+    if (!calzadoSnap.exists) {
+      return {'nombre': 'Sin nombre', 'icono': null};
+    }
+
+    final calzadoData = calzadoSnap.data();
+
+    final tipoId = calzadoData?['tipo_calzado_id'] as String?;
+
+    String? icono;
+    if (tipoId != null) {
+      final tipoSnap = await FirebaseFirestore.instance
+          .collection('tipo_calzado')
+          .doc(tipoId)
+          .get();
+
+      final tipoData = tipoSnap.data();
+      if (tipoData != null && tipoData['icono'] != null) {
+        icono = tipoData['icono'].toString();
+      }
+    }
+
+    return {
+      'nombre': calzadoData?['nombre'] ?? 'Sin nombre',
+      'icono': icono,
+    };
   }
 
+  /// 🔹 Eliminar fila y sus subfilas
   Future<void> _eliminarFila(String filaId) async {
-    // Eliminar subfilas asociadas
     final subfilas = await FirebaseFirestore.instance
         .collection('subfila_inventario')
         .where('fila_inventario_id', isEqualTo: filaId)
@@ -76,18 +103,19 @@ class _InventarioPageState extends State<InventarioPage> {
       await sub.reference.delete();
     }
 
-    // Eliminar fila principal
     await FirebaseFirestore.instance
         .collection('fila_inventario')
         .doc(filaId)
         .delete();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fila eliminada correctamente')),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Fila eliminada correctamente')),
+      );
+    }
   }
 
-  /// ✅ Método unificado para abrir formulario y recargar si se guardó
+  /// 🔹 Abre formulario y recarga al volver
   Future<void> _abrirFormulario({String? filaId}) async {
     final result = await Navigator.push(
       context,
@@ -100,10 +128,36 @@ class _InventarioPageState extends State<InventarioPage> {
       ),
     );
 
-    // 🔁 Si el formulario devuelve true, recargar la vista
     if (result == true) {
-      setState(() {});
+      setState(() {}); // 🔁 Recargar datos al volver
     }
+  }
+
+  /// 🔹 Construye icono (asset o URL)
+  Widget _buildIcon(String? icono) {
+    if (icono == null || icono.isEmpty) {
+      return const Icon(Icons.shopping_bag_outlined, size: 40, color: Colors.blueAccent);
+    }
+
+    final lower = icono.toLowerCase();
+
+    if (lower.startsWith('http://') || lower.startsWith('https://')) {
+      return Image.network(
+        icono,
+        width: 40,
+        height: 40,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, size: 40),
+      );
+    }
+
+    return Image.asset(
+      icono,
+      width: 40,
+      height: 40,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, size: 40),
+    );
   }
 
   @override
@@ -115,7 +169,7 @@ class _InventarioPageState extends State<InventarioPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Inventario - Filas')),
+      appBar: Designwidgets().appBarMain("Inventario"),
       body: StreamBuilder<QuerySnapshot>(
         stream: _getFilasInventario(),
         builder: (context, snapshot) {
@@ -138,17 +192,24 @@ class _InventarioPageState extends State<InventarioPage> {
               final calzadoId = fila['calzado_id'];
               final cantidad = fila['cantidad'];
 
-              return FutureBuilder<String>(
-                future: _getNombreCalzado(calzadoId),
+              return FutureBuilder<Map<String, dynamic>>(
+                future: _getDatosCalzado(calzadoId),
                 builder: (context, calzadoSnap) {
-                  final nombreCalzado =
-                      calzadoSnap.data ?? 'Cargando calzado...';
+                  if (!calzadoSnap.hasData) {
+                    return const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: LinearProgressIndicator(),
+                    );
+                  }
+
+                  final calzadoData = calzadoSnap.data!;
+                  final nombreCalzado = calzadoData['nombre'] ?? 'Sin nombre';
+                  final icono = calzadoData['icono'] as String?;
 
                   return FutureBuilder<List<QueryDocumentSnapshot>>(
                     future: _getSubfilas(fila.id),
                     builder: (context, subfilaSnap) {
-                      if (subfilaSnap.connectionState ==
-                          ConnectionState.waiting) {
+                      if (subfilaSnap.connectionState == ConnectionState.waiting) {
                         return const Padding(
                           padding: EdgeInsets.all(12),
                           child: LinearProgressIndicator(),
@@ -158,13 +219,14 @@ class _InventarioPageState extends State<InventarioPage> {
                       final subfilas = subfilaSnap.data ?? [];
 
                       return Card(
-                        margin: const EdgeInsets.symmetric(
-                            vertical: 8, horizontal: 12),
+                        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                         elevation: 3,
                         child: ExpansionTile(
-                          title: Text(nombreCalzado,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold)),
+                          leading: _buildIcon(icono),
+                          title: Text(
+                            nombreCalzado,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           subtitle: Text('Cantidad total: $cantidad'),
                           trailing: PopupMenuButton<String>(
                             onSelected: (value) async {
@@ -174,22 +236,20 @@ class _InventarioPageState extends State<InventarioPage> {
                                 await _eliminarFila(fila.id);
                               }
                             },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                  value: 'editar', child: Text('Editar')),
-                              const PopupMenuItem(
-                                  value: 'eliminar', child: Text('Eliminar')),
+                            itemBuilder: (context) => const [
+                              PopupMenuItem(value: 'editar', child: Text('Editar')),
+                              PopupMenuItem(value: 'eliminar', child: Text('Eliminar')),
                             ],
                           ),
                           children: subfilas.isEmpty
-                              ? [
-                                  const Padding(
+                              ? const [
+                                  Padding(
                                     padding: EdgeInsets.all(12.0),
                                     child: Text(
                                       'Sin subfilas registradas.',
                                       style: TextStyle(color: Colors.grey),
                                     ),
-                                  )
+                                  ),
                                 ]
                               : subfilas.map((sub) {
                                   final cantidad = sub['cantidad'];
@@ -198,12 +258,11 @@ class _InventarioPageState extends State<InventarioPage> {
                                   final plataforma = sub['plataforma'];
 
                                   return ListTile(
-                                    leading:
-                                        const Icon(Icons.label_outline),
-                                    title: Text(
-                                        'Cantidad: $cantidad  |  Talla: $talla'),
+                                    leading: const Icon(Icons.label_outline),
+                                    title: Text('Cantidad: $cantidad  |  Talla: $talla'),
                                     subtitle: Text(
-                                        'Taco: $taco  |  Plataforma: ${plataforma ? 'Sí' : 'No'}'),
+                                      'Taco: $taco  |  Plataforma: ${plataforma ? 'Sí' : 'No'}',
+                                    ),
                                   );
                                 }).toList(),
                         ),
