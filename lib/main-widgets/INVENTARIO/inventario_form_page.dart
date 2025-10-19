@@ -20,9 +20,8 @@ class InventarioFormPage extends StatefulWidget {
 
 class _InventarioFormPageState extends State<InventarioFormPage> {
   String? _calzadoId;
-  String? _tipoCalzadoId;
-  bool _tipoTienePlataforma = true;
-  bool _tipoTieneTaco = true;
+  bool _tipoTienePlataforma = false;
+  bool _tipoTieneTaco = false;
 
   int _cantidadFila = 0;
   final List<Map<String, dynamic>> _subfilas = [];
@@ -51,15 +50,16 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
       _calzadoId = data['calzado_id'];
       _cantidadFila = data['cantidad'] ?? 0;
 
-      // Obtener tipo de calzado para saber si tiene taco/plataforma
+      // 🔹 Cargar directamente desde colección CALZADO
       final calzadoDoc = await FirebaseFirestore.instance
           .collection('calzado')
           .doc(_calzadoId)
           .get();
 
       if (calzadoDoc.exists) {
-        _tipoCalzadoId = calzadoDoc['tipo_calzado_id'];
-        await _cargarTipoCalzado();
+        final calzadoData = calzadoDoc.data()!;
+        _tipoTieneTaco = calzadoData['taco'] ?? true;
+        _tipoTienePlataforma = calzadoData['plataforma'] ?? true;
       }
 
       final subSnap = await FirebaseFirestore.instance
@@ -85,20 +85,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
     setState(() => _cargandoDatos = false);
   }
 
-  Future<void> _cargarTipoCalzado() async {
-    if (_tipoCalzadoId == null) return;
-    final tipoSnap = await FirebaseFirestore.instance
-        .collection('tipo_calzado')
-        .doc(_tipoCalzadoId)
-        .get();
-
-    if (tipoSnap.exists) {
-      final data = tipoSnap.data()!;
-      _tipoTienePlataforma = data['plataforma'] ?? true;
-      _tipoTieneTaco = data['taco'] ?? true;
-    }
-  }
-
+  // 🔹 Ya no se usa tipo_calzado, pero dejamos para compatibilidad con iconos
   Future<String?> _obtenerIconoTipo(String tipoCalzadoId) async {
     if (_iconCache.containsKey(tipoCalzadoId)) return _iconCache[tipoCalzadoId];
 
@@ -358,13 +345,13 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
       onChanged: (v) async {
         setState(() {
           _calzadoId = v;
-          _tipoCalzadoId = null;
         });
         if (v != null) {
           final calzadoDoc = await FirebaseFirestore.instance.collection('calzado').doc(v).get();
           if (calzadoDoc.exists) {
-            _tipoCalzadoId = calzadoDoc['tipo_calzado_id'];
-            await _cargarTipoCalzado();
+            final calzadoData = calzadoDoc.data()!;
+            _tipoTieneTaco = calzadoData['taco'] ?? true;
+            _tipoTienePlataforma = calzadoData['plataforma'] ?? true;
             setState(() {}); // refrescar vista
           }
         }
@@ -380,7 +367,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
 
     return Scaffold(
       appBar: Designwidgets().appBarMain(
-        widget.filaId != null ? "Editar Calzado" : "Agregar Calzado"
+        widget.filaId != null ? "Editar Calzado" : "Agregar Calzado",
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
