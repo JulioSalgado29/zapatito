@@ -277,7 +277,8 @@ class _InventarioPageState extends State<InventarioPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _abrirFormulario,
-        child: const Icon(Icons.add),
+        backgroundColor: const Color.fromARGB(255, 33, 47, 243),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

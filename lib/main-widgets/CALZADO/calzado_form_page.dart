@@ -326,7 +326,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                     FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}$')),
                   ],
                   decoration: const InputDecoration(
-                    labelText: 'Precio real',
+                    labelText: 'Precio proveedor',
                     prefixText: 'S/ ',
                     border: OutlineInputBorder(),
                   ),

@@ -258,62 +258,97 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
 
   /// ---------- UI ----------
   Widget _buildSubfilaItem(int index) {
-    final sub = _subfilas[index];
-    final tallas = List.generate(15, (i) => i + 1);
-    final tacos = List.generate(15, (i) => i + 1);
+  final sub = _subfilas[index];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                initialValue: sub['cantidad'].toString(),
-                decoration: const InputDecoration(labelText: 'Cantidad'),
-                keyboardType: TextInputType.number,
-                onChanged: (v) {
-                  final val = int.tryParse(v) ?? 0;
-                  setState(() => _subfilas[index]['cantidad'] = val);
-                },
-              ),
+  // Genera tallas de 25 al 42
+  final tallas = List.generate(18, (i) => i + 25);
+  final tacos = List.generate(15, (i) => i + 1);
+
+  // Validar que los valores actuales sean válidos dentro de los rangos
+  final tallaActual = (sub['talla'] != null && tallas.contains(sub['talla']))
+      ? sub['talla']
+      : null;
+
+  final tacoActual = (sub['taco'] != null && tacos.contains(sub['taco']))
+      ? sub['taco']
+      : null;
+
+  final cantidadActual = (sub['cantidad'] ?? 0) > 0 ? sub['cantidad'] : 0;
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          // Campo de cantidad
+          Expanded(
+            child: TextFormField(
+              decoration: const InputDecoration(labelText: 'Cantidad'),
+              keyboardType: TextInputType.number,
+              initialValue: cantidadActual > 0 ? cantidadActual.toString() : '',
+              onChanged: (val) {
+                final parsed = int.tryParse(val) ?? 0;
+                setState(() => _subfilas[index]['cantidad'] = parsed);
+              },
             ),
+          ),
+          // Dropdown de Talla
+          Expanded(
+            child: DropdownButtonFormField<int>(
+              decoration: const InputDecoration(labelText: 'Talla'),
+              value: tallaActual,
+              items: tallas
+                  .map((talla) => DropdownMenuItem<int>(
+                        value: talla,
+                        child: Text(talla.toString()),
+                      ))
+                  .toList(),
+              onChanged: (val) => setState(() => sub['talla'] = val),
+            ),
+          ),
+
+          // Solo mostrar Taco si aplica
+          if (_tipoTieneTaco) ...[
             const SizedBox(width: 8),
             Expanded(
               child: DropdownButtonFormField<int>(
-                decoration: const InputDecoration(labelText: 'Talla'),
-                value: sub['talla'],
-                items: tallas.map((t) => DropdownMenuItem(value: t, child: Text(t.toString()))).toList(),
-                onChanged: (v) => setState(() => _subfilas[index]['talla'] = v ?? 1),
+                decoration: const InputDecoration(labelText: 'Taco'),
+                value: tacoActual,
+                items: tacos
+                    .map((t) =>
+                        DropdownMenuItem(value: t, child: Text(t.toString())))
+                    .toList(),
+                onChanged: (v) =>
+                    setState(() => _subfilas[index]['taco'] = v ?? 0),
               ),
             ),
-            if (_tipoTieneTaco) ...[
-              const SizedBox(width: 8),
-              Expanded(
-                child: DropdownButtonFormField<int>(
-                  decoration: const InputDecoration(labelText: 'Taco'),
-                  value: sub['taco'],
-                  items: tacos.map((t) => DropdownMenuItem(value: t, child: Text(t.toString()))).toList(),
-                  onChanged: (v) => setState(() => _subfilas[index]['taco'] = v ?? 0),
-                ),
-              ),
-            ],
           ],
-        ),
-        if (_tipoTienePlataforma)
-          Row(
+
+          const SizedBox(width: 8),
+          
+        ],
+      ),
+
+      // Checkbox de plataforma (si aplica)
+      if (_tipoTienePlataforma)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
             children: [
               const Text('Plataforma'),
               Checkbox(
-                value: sub['plataforma'],
-                onChanged: (v) => setState(() => _subfilas[index]['plataforma'] = v ?? false),
+                value: sub['plataforma'] ?? false,
+                onChanged: (v) =>
+                    setState(() => _subfilas[index]['plataforma'] = v ?? false),
               ),
             ],
           ),
-        const Divider(),
-      ],
-    );
-  }
+        ),
+
+      const Divider(),
+    ],
+  );
+}
 
   Widget _buildDropdownConIconos(AsyncSnapshot<QuerySnapshot> snapshot) {
     final calzados = snapshot.data!.docs;
