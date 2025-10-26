@@ -58,7 +58,7 @@ class _InventarioPageState extends State<InventarioPage> {
     return snapshot.docs;
   }
 
-  /// 🔹 Obtiene nombre e icono del tipo de calzado asociado
+  /// 🔹 Obtiene datos del calzado directamente (sin tipo_calzado)
   Future<Map<String, dynamic>> _getDatosCalzado(String calzadoId) async {
     final calzadoSnap = await FirebaseFirestore.instance
         .collection('calzado')
@@ -66,29 +66,21 @@ class _InventarioPageState extends State<InventarioPage> {
         .get();
 
     if (!calzadoSnap.exists) {
-      return {'nombre': 'Sin nombre', 'icono': null};
+      return {
+        'nombre': 'Sin nombre',
+        'icono': null,
+        'taco': true,
+        'plataforma': true,
+      };
     }
 
     final calzadoData = calzadoSnap.data();
 
-    final tipoId = calzadoData?['tipo_calzado_id'] as String?;
-
-    String? icono;
-    if (tipoId != null) {
-      final tipoSnap = await FirebaseFirestore.instance
-          .collection('tipo_calzado')
-          .doc(tipoId)
-          .get();
-
-      final tipoData = tipoSnap.data();
-      if (tipoData != null && tipoData['icono'] != null) {
-        icono = tipoData['icono'].toString();
-      }
-    }
-
     return {
       'nombre': calzadoData?['nombre'] ?? 'Sin nombre',
-      'icono': icono,
+      'icono': calzadoData?['icono'],
+      'taco': calzadoData?['taco'] ?? true,
+      'plataforma': calzadoData?['plataforma'] ?? true,
     };
   }
 
@@ -129,7 +121,7 @@ class _InventarioPageState extends State<InventarioPage> {
     );
 
     if (result == true) {
-      setState(() {}); // 🔁 Recargar datos al volver
+      setState(() {});
     }
   }
 
@@ -205,6 +197,8 @@ class _InventarioPageState extends State<InventarioPage> {
                   final calzadoData = calzadoSnap.data!;
                   final nombreCalzado = calzadoData['nombre'] ?? 'Sin nombre';
                   final icono = calzadoData['icono'] as String?;
+                  final tieneTaco = calzadoData['taco'] ?? true;
+                  final tienePlataforma = calzadoData['plataforma'] ?? true;
 
                   return FutureBuilder<List<QueryDocumentSnapshot>>(
                     future: _getSubfilas(fila.id),
@@ -217,6 +211,11 @@ class _InventarioPageState extends State<InventarioPage> {
                       }
 
                       final subfilas = subfilaSnap.data ?? [];
+
+                      // 🔹 Si ambos campos son falsos, no mostrar esta fila
+                      //if (!tieneTaco && !tienePlataforma) {
+                        //return const SizedBox.shrink();
+                      //}
 
                       return Card(
                         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -257,12 +256,31 @@ class _InventarioPageState extends State<InventarioPage> {
                                   final taco = sub['taco'];
                                   final plataforma = sub['plataforma'];
 
+                                  Text? mostrarSubtitulo;
+                                  if(tieneTaco && tienePlataforma){
+                                    mostrarSubtitulo = Text('Taco: $taco  |  Plataforma: ${plataforma ? 'Sí' : 'No'}');
+                                  }
+                                  else if(tieneTaco){
+                                    mostrarSubtitulo = Text('Taco: $taco');
+                                  }
+                                  else if(tienePlataforma){
+                                    mostrarSubtitulo = Text('Plataforma: ${plataforma ? 'Sí' : 'No'}');
+                                  }
+
+                                  Text? subtitle;
+                                  if (tieneTaco || tienePlataforma){
+                                    subtitle = mostrarSubtitulo;
+                                  }else{
+                                    subtitle = null;
+                                  }
+
                                   return ListTile(
                                     leading: const Icon(Icons.label_outline),
-                                    title: Text('Cantidad: $cantidad  |  Talla: $talla'),
-                                    subtitle: Text(
-                                      'Taco: $taco  |  Plataforma: ${plataforma ? 'Sí' : 'No'}',
-                                    ),
+                                    title: Text(
+                                      'Cantidad: $cantidad  |  Talla: $talla',
+                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4E4E4E)),
+                                      ),
+                                    subtitle: subtitle,
                                   );
                                 }).toList(),
                         ),
