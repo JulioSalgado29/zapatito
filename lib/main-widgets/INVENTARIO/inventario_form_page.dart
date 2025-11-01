@@ -220,30 +220,30 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
           'cantidad': _cantidadFila,
         });
 
+        // 🔹 1. Eliminar todas las subfilas anteriores
+        final subExistentes = await FirebaseFirestore.instance
+            .collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: widget.filaId)
+            .get();
+
+        for (var doc in subExistentes.docs) {
+          await doc.reference.delete();
+        }
+
+        // 🔹 2. Insertar todas las subfilas actuales (nuevas)
         for (var sub in _subfilas) {
-          if (sub['id'] != null) {
-            await FirebaseFirestore.instance
-                .collection('subfila_inventario')
-                .doc(sub['id'])
-                .update({
-              'cantidad': sub['cantidad'],
-              'talla': sub['talla'],
-              'taco': _tipoTieneTaco ? sub['taco'] : 0,
-              'plataforma': _tipoTienePlataforma ? sub['plataforma'] : false,
-            });
-          } else {
-            await FirebaseFirestore.instance.collection('subfila_inventario').add({
-              'fila_inventario_id': widget.filaId,
-              'cantidad': sub['cantidad'],
-              'talla': sub['talla'],
-              'taco': _tipoTieneTaco ? sub['taco'] : 0,
-              'plataforma': _tipoTienePlataforma ? sub['plataforma'] : false,
-              'fecha_creacion': Timestamp.now(),
-              'usuario_creacion': widget.firstName ?? 'anon',
-            });
-          }
+          await FirebaseFirestore.instance.collection('subfila_inventario').add({
+            'fila_inventario_id': widget.filaId,
+            'cantidad': sub['cantidad'],
+            'talla': sub['talla'],
+            'taco': _tipoTieneTaco ? sub['taco'] : 0,
+            'plataforma': _tipoTienePlataforma ? sub['plataforma'] : false,
+            'fecha_creacion': Timestamp.now(),
+            'usuario_creacion': widget.firstName ?? 'anon',
+          });
         }
       }
+
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Inventario guardado correctamente')),
@@ -260,19 +260,15 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
   Widget _buildSubfilaItem(int index) {
   final sub = _subfilas[index];
 
-  // Genera tallas de 25 al 42
   final tallas = List.generate(18, (i) => i + 25);
   final tacos = List.generate(15, (i) => i + 1);
 
-  // Validar que los valores actuales sean válidos dentro de los rangos
   final tallaActual = (sub['talla'] != null && tallas.contains(sub['talla']))
       ? sub['talla']
       : null;
-
   final tacoActual = (sub['taco'] != null && tacos.contains(sub['taco']))
       ? sub['taco']
       : null;
-
   final cantidadActual = (sub['cantidad'] ?? 0) > 0 ? sub['cantidad'] : 0;
 
   return Column(
@@ -280,7 +276,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
     children: [
       Row(
         children: [
-          // Campo de cantidad
+          // Cantidad
           Expanded(
             child: TextFormField(
               decoration: const InputDecoration(labelText: 'Cantidad'),
@@ -292,7 +288,8 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
               },
             ),
           ),
-          // Dropdown de Talla
+
+          // Talla
           Expanded(
             child: DropdownButtonFormField<int>(
               decoration: const InputDecoration(labelText: 'Talla'),
@@ -307,7 +304,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
             ),
           ),
 
-          // Solo mostrar Taco si aplica
+          // Taco (si aplica)
           if (_tipoTieneTaco) ...[
             const SizedBox(width: 8),
             Expanded(
@@ -324,12 +321,19 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
             ),
           ],
 
-          const SizedBox(width: 8),
-          
+          // ❌ Botón para eliminar subfila (solo UI)
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            onPressed: () {
+              setState(() {
+                _subfilas.removeAt(index);
+              });
+            },
+          ),
         ],
       ),
 
-      // Checkbox de plataforma (si aplica)
+      // Checkbox plataforma
       if (_tipoTienePlataforma)
         Padding(
           padding: const EdgeInsets.only(top: 4),
