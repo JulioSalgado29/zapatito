@@ -182,6 +182,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                   stream: FirebaseFirestore.instance
                       .collection('tipo_calzado')
                       .where('activo', isEqualTo: true)
+                      .where('usuario_creacion', isEqualTo: widget.firstName ?? 'Invitado')
                       .orderBy('fecha_creacion', descending: true)
                       .snapshots(),
                   builder: (context, snapshot) {
