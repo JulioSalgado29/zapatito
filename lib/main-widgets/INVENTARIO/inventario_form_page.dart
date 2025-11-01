@@ -34,7 +34,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
     if (widget.filaId != null) {
       _cargarDatosExistentes();
     } else {
-      _subfilas.add({'cantidad': 0, 'talla': 1, 'taco': 1, 'plataforma': false});
+      _subfilas.add({'cantidad': 0, 'talla': 0, 'taco': 0, 'plataforma': false});
     }
   }
 
