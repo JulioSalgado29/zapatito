@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
 
 class InventarioFormPage extends StatefulWidget {
@@ -401,7 +402,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
   @override
   Widget build(BuildContext context) {
     if (_cargandoDatos) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const SplashScreen02();
     }
 
     return Scaffold(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:zapatito/main-widgets/MAIN/home_page.dart';
 import 'inventario_form_page.dart';
@@ -158,9 +159,7 @@ class _InventarioPageState extends State<InventarioPage> {
   @override
   Widget build(BuildContext context) {
     if (inventarioId == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const SplashScreen02();
     }
 
     return Scaffold(
