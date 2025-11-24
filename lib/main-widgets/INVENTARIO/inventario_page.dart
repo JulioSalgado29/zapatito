@@ -320,6 +320,7 @@ class _InventarioPageState extends State<InventarioPage> {
                     style: TextStyle(color: Colors.white)),
               ),
             )),
+        
         const SizedBox(height: 12),
         SizedBox(
           width: 150, // 👌 Mismo ancho
@@ -332,7 +333,9 @@ class _InventarioPageState extends State<InventarioPage> {
               heroTag: "btn2",
               backgroundColor: Colors.transparent,
               elevation: 0,
-              onPressed: _abrirFormulario,
+              onPressed: () {
+                print("Agregar serie");
+              },
               icon: const Icon(Icons.add, color: Colors.white),
               label: const Text(
                 "Agregar serie     ",
