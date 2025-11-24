@@ -72,14 +72,14 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
         _subfilas.add({
           'id': doc.id,
           'cantidad': doc['cantidad'] ?? 0,
-          'talla': doc['talla'] ?? 1,
+          'talla': doc['talla'] ?? 0,
           'taco': doc['taco'] ?? 0,
           'plataforma': doc['plataforma'] ?? false,
         });
       }
 
       if (_subfilas.isEmpty) {
-        _subfilas.add({'cantidad': 0, 'talla': 1, 'taco': 0, 'plataforma': false});
+        _subfilas.add({'cantidad': 0, 'talla': 0, 'taco': 0, 'plataforma': false});
       }
     }
     setState(() => _cargandoDatos = false);
@@ -439,18 +439,30 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: () {
+                  if (_cantidadFila <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Primero ingresa una cantidad total')),
+                    );
+                    return;
+                  }
+                  if (_subfilas.length >= _cantidadFila) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('La cantidad de sufilas no puede exceder la cantidad total')),
+                    );
+                    return;
+                  }
                   final totalActual = _subfilas.fold<int>(
                     0,
                     (suma, item) => suma + (item['cantidad'] ?? 0) as int,
                   );
                   if (totalActual >= _cantidadFila) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Ya no puedes agregar más subfilas')),
+                      const SnackBar(content: Text('Las cantidades de las subfilas ya suman la cantidad total')),
                     );
                     return;
                   }
                   setState(() {
-                    _subfilas.add({'cantidad': 0, 'talla': 1, 'taco': 0, 'plataforma': false});
+                    _subfilas.add({'cantidad': 0, 'talla': 0, 'taco': 0, 'plataforma': false});
                   });
                 },
                 icon: const Icon(Icons.add),
