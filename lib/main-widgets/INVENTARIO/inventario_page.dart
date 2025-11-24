@@ -128,7 +128,8 @@ class _InventarioPageState extends State<InventarioPage> {
   /// 🔹 Construye icono (asset o URL)
   Widget _buildIcon(String? icono) {
     if (icono == null || icono.isEmpty) {
-      return const Icon(Icons.shopping_bag_outlined, size: 40, color: Colors.blueAccent);
+      return const Icon(Icons.shopping_bag_outlined,
+          size: 40, color: Colors.blueAccent);
     }
 
     final lower = icono.toLowerCase();
@@ -139,7 +140,8 @@ class _InventarioPageState extends State<InventarioPage> {
         width: 40,
         height: 40,
         fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, size: 40),
+        errorBuilder: (_, __, ___) =>
+            const Icon(Icons.image_not_supported, size: 40),
       );
     }
 
@@ -148,7 +150,8 @@ class _InventarioPageState extends State<InventarioPage> {
       width: 40,
       height: 40,
       fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported, size: 40),
+      errorBuilder: (_, __, ___) =>
+          const Icon(Icons.image_not_supported, size: 40),
     );
   }
 
@@ -203,7 +206,8 @@ class _InventarioPageState extends State<InventarioPage> {
                   return FutureBuilder<List<QueryDocumentSnapshot>>(
                     future: _getSubfilas(fila.id),
                     builder: (context, subfilaSnap) {
-                      if (subfilaSnap.connectionState == ConnectionState.waiting) {
+                      if (subfilaSnap.connectionState ==
+                          ConnectionState.waiting) {
                         return const Padding(
                           padding: EdgeInsets.all(12),
                           child: LinearProgressIndicator(),
@@ -214,11 +218,12 @@ class _InventarioPageState extends State<InventarioPage> {
 
                       // 🔹 Si ambos campos son falsos, no mostrar esta fila
                       //if (!tieneTaco && !tienePlataforma) {
-                        //return const SizedBox.shrink();
+                      //return const SizedBox.shrink();
                       //}
 
                       return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        margin: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 12),
                         elevation: 3,
                         child: ExpansionTile(
                           leading: _buildIcon(icono),
@@ -236,8 +241,10 @@ class _InventarioPageState extends State<InventarioPage> {
                               }
                             },
                             itemBuilder: (context) => const [
-                              PopupMenuItem(value: 'editar', child: Text('Editar')),
-                              PopupMenuItem(value: 'eliminar', child: Text('Eliminar')),
+                              PopupMenuItem(
+                                  value: 'editar', child: Text('Editar')),
+                              PopupMenuItem(
+                                  value: 'eliminar', child: Text('Eliminar')),
                             ],
                           ),
                           children: subfilas.isEmpty
@@ -257,20 +264,20 @@ class _InventarioPageState extends State<InventarioPage> {
                                   final plataforma = sub['plataforma'];
 
                                   Text? mostrarSubtitulo;
-                                  if(tieneTaco && tienePlataforma){
-                                    mostrarSubtitulo = Text('Taco: $taco  |  Plataforma: ${plataforma ? 'Sí' : 'No'}');
-                                  }
-                                  else if(tieneTaco){
+                                  if (tieneTaco && tienePlataforma) {
+                                    mostrarSubtitulo = Text(
+                                        'Taco: $taco  |  Plataforma: ${plataforma ? 'Sí' : 'No'}');
+                                  } else if (tieneTaco) {
                                     mostrarSubtitulo = Text('Taco: $taco');
-                                  }
-                                  else if(tienePlataforma){
-                                    mostrarSubtitulo = Text('Plataforma: ${plataforma ? 'Sí' : 'No'}');
+                                  } else if (tienePlataforma) {
+                                    mostrarSubtitulo = Text(
+                                        'Plataforma: ${plataforma ? 'Sí' : 'No'}');
                                   }
 
                                   Text? subtitle;
-                                  if (tieneTaco || tienePlataforma){
+                                  if (tieneTaco || tienePlataforma) {
                                     subtitle = mostrarSubtitulo;
-                                  }else{
+                                  } else {
                                     subtitle = null;
                                   }
 
@@ -278,8 +285,10 @@ class _InventarioPageState extends State<InventarioPage> {
                                     leading: const Icon(Icons.label_outline),
                                     title: Text(
                                       'Cantidad: $cantidad  |  Talla: $talla',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4E4E4E)),
-                                      ),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF4E4E4E)),
+                                    ),
                                     subtitle: subtitle,
                                   );
                                 }).toList(),
@@ -293,11 +302,46 @@ class _InventarioPageState extends State<InventarioPage> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _abrirFormulario,
-        backgroundColor: const Color.fromARGB(255, 33, 47, 243),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      floatingActionButton: Column(mainAxisSize: MainAxisSize.min, children: [
+        SizedBox(
+            width: 150, // 👌 Ambos iguales
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: Designwidgets().linearGradientBlue(context),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: FloatingActionButton.extended(
+                heroTag: "btn1",
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                onPressed: _abrirFormulario,
+                icon: const Icon(Icons.add, color: Colors.white),
+                label: const Text("Agregar calzado",
+                    style: TextStyle(color: Colors.white)),
+              ),
+            )),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: 150, // 👌 Mismo ancho
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: Designwidgets().linearGradientFire(context),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: FloatingActionButton.extended(
+              heroTag: "btn2",
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              onPressed: _abrirFormulario,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text(
+                "Agregar serie     ",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+        ),
+      ]),
     );
   }
 }
