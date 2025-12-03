@@ -119,6 +119,12 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
         );
         return;
       }
+      if ((sub['talla'] ?? 0) <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Todas las subfilas deben tener una talla seleccionada')),
+        );
+        return;
+      }
     }
 
     // Validación de duplicados
@@ -273,6 +279,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
   final cantidadActual = (sub['cantidad'] ?? 0) > 0 ? sub['cantidad'] : 0;
 
   return Column(
+    key: ValueKey('subfila_$index'),
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       Row(
@@ -280,6 +287,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
           // Cantidad
           Expanded(
             child: TextFormField(
+              key: ValueKey('cantidad_${index}_${_subfilas[index]['id'] ?? ''}'),
               decoration: const InputDecoration(labelText: 'Cantidad'),
               keyboardType: TextInputType.number,
               initialValue: cantidadActual > 0 ? cantidadActual.toString() : '',
