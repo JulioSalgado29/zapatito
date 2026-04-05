@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
+import 'package:zapatito/main-widgets/INVENTARIO/inventario_form_page_serie.dart';
 import 'package:zapatito/main-widgets/MAIN/home_page.dart';
 import 'inventario_form_page.dart';
 
@@ -117,6 +118,22 @@ class _InventarioPageState extends State<InventarioPage> {
           firstName: widget.firstName,
           inventarioId: inventarioId!,
           filaId: filaId,
+        ),
+      ),
+    );
+
+    if (result == true) {
+      setState(() {});
+    }
+  }
+
+  Future<void> _abrirFormularioSerie() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => InventarioSerieFormPage(
+          firstName: widget.firstName,
+          inventarioId: inventarioId!
         ),
       ),
     );
@@ -333,7 +350,7 @@ class _InventarioPageState extends State<InventarioPage> {
               backgroundColor: Colors.transparent,
               elevation: 0,
               onPressed: () {
-                print("Agregar serie");
+                _abrirFormularioSerie();
               },
               icon: const Icon(Icons.add, color: Colors.white),
               label: const Text(

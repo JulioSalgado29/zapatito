@@ -1,0 +1,341 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:zapatito/components/SplashScreen/splash_screen.dart';
+import 'package:zapatito/components/widgets.dart';
+
+class InventarioSerieFormPage extends StatefulWidget {
+  final String? firstName;
+  final String inventarioId;
+
+  const InventarioSerieFormPage({
+    super.key,
+    required this.firstName,
+    required this.inventarioId,
+  });
+
+  @override
+  State<InventarioSerieFormPage> createState() => _InventarioSerieFormPageState();
+}
+
+class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
+  String? _calzadoId;
+  bool _tipoTienePlataforma = false;
+  bool _tipoTieneTaco = false;
+
+  int _cantidadSeriesTotal = 0;
+
+  final List<Map<String, dynamic>> _subfilas = [];
+
+  final bool _cargandoDatos = false;
+
+  /// SERIES
+  final Map<String, List<int>> seriesMap = {
+    '27-32': [27, 28, 29, 30, 31, 32],
+    '33-36 (Especial)': [33, 33, 34, 34, 35, 36],
+    '35-39': [35, 36, 37, 38, 39],
+    '39-43': [39, 40, 41, 42, 43],
+  };
+
+  /// CALCULAR TOTAL PARES
+  int _calcularTotalPares() {
+    int total = 0;
+    for (var sub in _subfilas) {
+      String serie = sub['serie'];
+      int cantidadSerie = sub['cantidad'] ?? 0;
+      total += (seriesMap[serie]!.length * cantidadSerie);
+    }
+    return total;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+      _subfilas.add({'cantidad': 0, 'talla': 0, 'taco': 0, 'plataforma': false});
+  }
+
+  /// GUARDAR
+  Future<void> _guardarInventarioSerie() async {
+    if (_calzadoId == null || _cantidadSeriesTotal <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona calzado y cantidad de series')),
+      );
+      return;
+    }
+
+    int totalSeriesIngresadas = _subfilas.fold(
+        0, (suma, item) => suma + (item['cantidad'] ?? 0) as int);
+
+    if (totalSeriesIngresadas != _cantidadSeriesTotal) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La suma de subfilas debe ser igual al total de series')),
+      );
+      return;
+    }
+    
+    for (var sub in _subfilas) {
+      if ((sub['cantidad'] ?? 0) <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Todas las subfilas deben tener cantidad mayor a 0')),
+        );
+        return;
+      }
+      if (sub['serie'] == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Todas las subfilas deben tener una serie seleccionada')),
+        );
+        return;
+      }
+    }
+
+    int totalPares = _calcularTotalPares();
+
+    try {
+      final filaRef = await FirebaseFirestore.instance.collection('fila_inventario').add({
+        'inventario_id': widget.inventarioId,
+        'calzado_id': _calzadoId,
+        'cantidad': totalPares,
+        'fecha_creacion': Timestamp.now(),
+        'usuario_creacion': widget.firstName ?? 'anon',
+      });
+
+      /// CONVERTIR SERIES → TALLAS
+      Map<String, int> acumulado = {};
+
+      for (var sub in _subfilas) {
+        String serie = sub['serie'];
+        int cantidadSerie = sub['cantidad'];
+        int taco = sub['taco'] ?? 0;
+        bool plataforma = sub['plataforma'] ?? false;
+
+        List<int> tallas = seriesMap[serie]!;
+
+        for (var talla in tallas) {
+          String key = '${talla}_${taco}_$plataforma';
+
+          if (!acumulado.containsKey(key)) {
+            acumulado[key] = 0;
+          }
+          acumulado[key] = acumulado[key]! + cantidadSerie;
+        }
+      }
+
+      /// GUARDAR SUBFILAS
+      for (var entry in acumulado.entries) {
+        var partes = entry.key.split('_');
+        int talla = int.parse(partes[0]);
+        int taco = int.parse(partes[1]);
+        bool plataforma = partes[2] == 'true';
+
+        await FirebaseFirestore.instance.collection('subfila_inventario').add({
+          'fila_inventario_id': filaRef.id,
+          'cantidad': entry.value,
+          'talla': talla,
+          'taco': _tipoTieneTaco ? taco : 0,
+          'plataforma': _tipoTienePlataforma ? plataforma : false,
+          'fecha_creacion': Timestamp.now(),
+          'usuario_creacion': widget.firstName ?? 'anon',
+        });
+      }
+      
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Inventario seriado guardado')),
+      );
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  /// UI SUBFILA SERIE
+  Widget _buildSubfilaSerie(int index) {
+    final sub = _subfilas[index];
+
+    return Column(
+      children: [
+        Row(
+  children: [
+    Flexible(
+      flex: 2,
+      child: TextFormField(
+        decoration: const InputDecoration(labelText: 'Cantidad'),
+        keyboardType: TextInputType.number,
+        onChanged: (v) =>
+            _subfilas[index]['cantidad'] = int.tryParse(v) ?? 0,
+      ),
+    ),
+    const SizedBox(width: 8),
+    Flexible(
+      flex: 3,
+      child: DropdownButtonFormField<String>(
+        decoration: const InputDecoration(labelText: 'Serie'),
+        value: sub['serie'],
+        isExpanded: true, // MUY IMPORTANTE
+        items: seriesMap.keys.map((serie) {
+          return DropdownMenuItem(
+            value: serie,
+            child: Text(
+              serie,
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        }).toList(),
+        onChanged: (v) {
+          setState(() {
+            _subfilas[index]['serie'] = v;
+          });
+        },
+      ),
+    ),
+    SizedBox(
+      width: 40,
+      child: // ❌ Botón para eliminar subfila (solo UI)
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.red),
+            onPressed: () {
+              setState(() {
+                _subfilas.removeAt(index);
+              });
+            },
+          ),
+    ),
+  ],
+),
+        if (_tipoTieneTaco)
+          DropdownButtonFormField<int>(
+            decoration: const InputDecoration(labelText: 'Taco'),
+            items: List.generate(15, (i) => i + 1)
+                .map((t) => DropdownMenuItem(value: t, child: Text('$t')))
+                .toList(),
+            onChanged: (v) => _subfilas[index]['taco'] = v ?? 0,
+          ),
+
+        if (_tipoTienePlataforma)
+          CheckboxListTile(
+            title: const Text('Plataforma'),
+            value: sub['plataforma'] ?? false,
+            onChanged: (v) =>
+                setState(() => _subfilas[index]['plataforma'] = v),
+          ),
+
+        const Divider(),
+      ],
+    );
+  }
+
+  /// UI
+  @override
+  Widget build(BuildContext context) {
+    if (_cargandoDatos) return const SplashScreen02();
+
+    return Scaffold(
+      appBar: Designwidgets().appBarMain("Inventario por series"),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            /// CALZADO
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('calzado')
+                  .where('usuario_creacion', isEqualTo: widget.firstName)
+                  .where('activo', isEqualTo: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return Container();
+
+                return DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(labelText: 'Calzado'),
+                  items: snapshot.data!.docs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return DropdownMenuItem(
+                      value: doc.id,
+                      child: Text(data['nombre']),
+                    );
+                  }).toList(),
+                  onChanged: (v) async {
+                    _calzadoId = v;
+
+                    final calzadoDoc = await FirebaseFirestore.instance
+                        .collection('calzado')
+                        .doc(v)
+                        .get();
+
+                    final data = calzadoDoc.data()!;
+                    _tipoTieneTaco = data['taco'] ?? true;
+                    _tipoTienePlataforma = data['plataforma'] ?? true;
+
+                    setState(() {});
+                  },
+                );
+              },
+            ),
+
+            /// TOTAL SERIES
+            TextFormField(
+              decoration: const InputDecoration(labelText: 'Cantidad total de series'),
+              keyboardType: TextInputType.number,
+              onChanged: (v) =>
+                  _cantidadSeriesTotal = int.tryParse(v) ?? 0,
+            ),
+
+            const SizedBox(height: 10),
+
+            Expanded(
+              child: ListView(
+                children: _subfilas
+                    .asMap()
+                    .entries
+                    .map((e) => _buildSubfilaSerie(e.key))
+                    .toList(),
+              ),
+            ),
+
+            ElevatedButton(
+              onPressed: () {
+                if (_cantidadSeriesTotal <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Primero ingresa una cantidad total')),
+                    );
+                    return;
+                  }
+                  if (_subfilas.length >= _cantidadSeriesTotal) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('La cantidad de sufilas no puede exceder la cantidad total')),
+                    );
+                    return;
+                  }
+                  final totalActual = _subfilas.fold<int>(
+                    0,
+                    (suma, item) => suma + (item['cantidad'] ?? 0) as int,
+                  );
+                  if (totalActual >= _cantidadSeriesTotal) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Las cantidades de las subfilas ya suman la cantidad total')),
+                    );
+                    return;
+                  }
+                setState(() {
+                  _subfilas.add({
+                    'cantidad': 0,
+                    'taco': 0,
+                    'plataforma': false
+                  });
+                });
+              },
+              child: const Text('Agregar subfila de serie'),
+            ),
+
+            ElevatedButton(
+              onPressed: _guardarInventarioSerie,
+              child: const Text('Guardar inventario seriado'),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
