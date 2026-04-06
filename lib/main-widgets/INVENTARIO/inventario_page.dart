@@ -56,6 +56,10 @@ class _InventarioPageState extends State<InventarioPage> {
     final snapshot = await FirebaseFirestore.instance
         .collection('subfila_inventario')
         .where('fila_inventario_id', isEqualTo: filaId)
+        .orderBy('fila_inventario_id')
+        .orderBy('talla')
+        .orderBy('plataforma')
+        .orderBy('taco')
         .get();
     return snapshot.docs;
   }
@@ -300,7 +304,7 @@ class _InventarioPageState extends State<InventarioPage> {
                                   return ListTile(
                                     leading: const Icon(Icons.label_outline),
                                     title: Text(
-                                      'Cantidad: $cantidad  |  Talla: $talla',
+                                      'Talla: $talla  |  Cantidad: $cantidad',
                                       style: const TextStyle(
                                           fontWeight: FontWeight.bold,
                                           color: Color(0xFF4E4E4E)),

@@ -90,64 +90,107 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
     int totalPares = _calcularTotalPares();
 
     try {
-      final filaRef = await FirebaseFirestore.instance.collection('fila_inventario').add({
-        'inventario_id': widget.inventarioId,
-        'calzado_id': _calzadoId,
-        'cantidad': totalPares,
+  /// BUSCAR SI YA EXISTE FILA (MISMO INVENTARIO + MISMO CALZADO)
+  final filaExistenteSnap = await FirebaseFirestore.instance
+      .collection('fila_inventario')
+      .where('inventario_id', isEqualTo: widget.inventarioId)
+      .where('calzado_id', isEqualTo: _calzadoId)
+      .limit(1)
+      .get();
+
+  DocumentReference filaRef;
+
+  if (filaExistenteSnap.docs.isNotEmpty) {
+    /// FUSIÓN FILA
+    final filaDoc = filaExistenteSnap.docs.first;
+    filaRef = filaDoc.reference;
+
+    final cantidadActual = filaDoc['cantidad'] ?? 0;
+
+    await filaRef.update({
+      'cantidad': cantidadActual + totalPares,
+    });
+  } else {
+    /// CREAR FILA NUEVA
+    filaRef = await FirebaseFirestore.instance.collection('fila_inventario').add({
+      'inventario_id': widget.inventarioId,
+      'calzado_id': _calzadoId,
+      'cantidad': totalPares,
+      'fecha_creacion': Timestamp.now(),
+      'usuario_creacion': widget.firstName ?? 'anon',
+    });
+  }
+
+  /// CONVERTIR SERIES → TALLAS
+  Map<String, int> acumulado = {};
+
+  for (var sub in _subfilas) {
+    String serie = sub['serie'];
+    int cantidadSerie = sub['cantidad'];
+    int taco = sub['taco'] ?? 0;
+    bool plataforma = sub['plataforma'] ?? false;
+
+    List<int> tallas = seriesMap[serie]!;
+
+    for (var talla in tallas) {
+      String key = '${talla}_${taco}_$plataforma';
+
+      if (!acumulado.containsKey(key)) {
+        acumulado[key] = 0;
+      }
+      acumulado[key] = acumulado[key]! + cantidadSerie;
+    }
+  }
+
+  /// GUARDAR / FUSIONAR SUBFILAS
+  for (var entry in acumulado.entries) {
+    var partes = entry.key.split('_');
+    int talla = int.parse(partes[0]);
+    int taco = int.parse(partes[1]);
+    bool plataforma = partes[2] == 'true';
+    int cantidadNueva = entry.value;
+
+    final subExistente = await FirebaseFirestore.instance
+        .collection('subfila_inventario')
+        .where('fila_inventario_id', isEqualTo: filaRef.id)
+        .where('talla', isEqualTo: talla)
+        .where('taco', isEqualTo: taco)
+        .where('plataforma', isEqualTo: plataforma)
+        .limit(1)
+        .get();
+
+    if (subExistente.docs.isNotEmpty) {
+      /// SUMAR (FUSIÓN)
+      final doc = subExistente.docs.first;
+      final cantidadActual = doc['cantidad'] ?? 0;
+
+      await doc.reference.update({
+        'cantidad': cantidadActual + cantidadNueva
+      });
+    } else {
+      /// CREAR
+      await FirebaseFirestore.instance.collection('subfila_inventario').add({
+        'fila_inventario_id': filaRef.id,
+        'cantidad': cantidadNueva,
+        'talla': talla,
+        'taco': _tipoTieneTaco ? taco : 0,
+        'plataforma': _tipoTienePlataforma ? plataforma : false,
         'fecha_creacion': Timestamp.now(),
         'usuario_creacion': widget.firstName ?? 'anon',
       });
-
-      /// CONVERTIR SERIES → TALLAS
-      Map<String, int> acumulado = {};
-
-      for (var sub in _subfilas) {
-        String serie = sub['serie'];
-        int cantidadSerie = sub['cantidad'];
-        int taco = sub['taco'] ?? 0;
-        bool plataforma = sub['plataforma'] ?? false;
-
-        List<int> tallas = seriesMap[serie]!;
-
-        for (var talla in tallas) {
-          String key = '${talla}_${taco}_$plataforma';
-
-          if (!acumulado.containsKey(key)) {
-            acumulado[key] = 0;
-          }
-          acumulado[key] = acumulado[key]! + cantidadSerie;
-        }
-      }
-
-      /// GUARDAR SUBFILAS
-      for (var entry in acumulado.entries) {
-        var partes = entry.key.split('_');
-        int talla = int.parse(partes[0]);
-        int taco = int.parse(partes[1]);
-        bool plataforma = partes[2] == 'true';
-
-        await FirebaseFirestore.instance.collection('subfila_inventario').add({
-          'fila_inventario_id': filaRef.id,
-          'cantidad': entry.value,
-          'talla': talla,
-          'taco': _tipoTieneTaco ? taco : 0,
-          'plataforma': _tipoTienePlataforma ? plataforma : false,
-          'fecha_creacion': Timestamp.now(),
-          'usuario_creacion': widget.firstName ?? 'anon',
-        });
-      }
-      
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Inventario seriado guardado')),
-      );
-
-      Navigator.pop(context, true);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
     }
+  }
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Inventario seriado guardado')),
+  );
+
+  Navigator.pop(context, true);
+} catch (e) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Error: $e')),
+  );
+}
   }
 
   /// UI SUBFILA SERIE
