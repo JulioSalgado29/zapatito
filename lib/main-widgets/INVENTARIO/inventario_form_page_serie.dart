@@ -33,7 +33,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
   /// SERIES
   final Map<String, List<int>> seriesMap = {
     '27-28-29-30-31-32': [27, 28, 29, 30, 31, 32],
-    '33-33-34-34-35-36 (Especial)': [33, 33, 34, 34, 35, 36],
+    '33-33-34-34-35-36': [33, 33, 34, 34, 35, 36],
     '35-36-37-37-38-39': [35, 36, 37, 37, 38, 39],
     '39-40-40-41-42-43': [39, 40, 40, 41, 42, 43],
   };
@@ -213,7 +213,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
         Row(
           children: [
             Flexible(
-              flex: 2,
+              flex: 1,
               child: TextFormField(
                 decoration: const InputDecoration(labelText: 'Cantidad'),
                 keyboardType: TextInputType.number,
@@ -346,7 +346,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
     if (_cargandoDatos) return const SplashScreen02();
 
     return Scaffold(
-      appBar: Designwidgets().appBarMain("Agregar Calzado por Series"),
+      appBar: Designwidgets().appBarMain("Agregar Serie"),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
@@ -421,7 +421,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
                         .add({'cantidad': 0, 'taco': 0, 'plataforma': false});
                   });
                 },
-                child: const Text('Agregar subfila de serie'),
+                child: const Text('Agregar subfila'),
               ),
 
               const SizedBox(height: 16),

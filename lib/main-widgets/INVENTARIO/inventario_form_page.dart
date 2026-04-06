@@ -474,7 +474,6 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
                     _subfilas.add({'cantidad': 0, 'talla': 0, 'taco': 0, 'plataforma': false});
                   });
                 },
-                icon: const Icon(Icons.add),
                 label: const Text('Agregar subfila'),
               ),
               const SizedBox(height: 24),
