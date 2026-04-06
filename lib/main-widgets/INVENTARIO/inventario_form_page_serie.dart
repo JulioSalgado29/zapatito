@@ -26,6 +26,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
   int _cantidadSeriesTotal = 0;
 
   final List<Map<String, dynamic>> _subfilas = [];
+  final Map<String, String?> _iconCache = {};
 
   final bool _cargandoDatos = false;
 
@@ -277,13 +278,75 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
     );
   }
 
+  Future<String?> _obtenerIconoTipo(String tipoCalzadoId) async {
+    if (_iconCache.containsKey(tipoCalzadoId)) return _iconCache[tipoCalzadoId];
+
+    final tipoSnap = await FirebaseFirestore.instance
+        .collection('tipo_calzado')
+        .doc(tipoCalzadoId)
+        .get();
+
+    String? icono;
+    final data = tipoSnap.data();
+    if (data != null && data['icono'] != null) {
+      icono = data['icono'].toString();
+    }
+    _iconCache[tipoCalzadoId] = icono;
+    return icono;
+  }
+
+  Widget _buildDropdownConIconos(AsyncSnapshot<QuerySnapshot> snapshot) {
+    final calzados = snapshot.data!.docs;
+    return DropdownButtonFormField<String>(
+      decoration: const InputDecoration(labelText: 'Seleccionar calzado'),
+      value: _calzadoId,
+      items: calzados.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final tipoCalzadoId = data['tipo_calzado_id'];
+        final nombre = data['nombre'] ?? 'Sin nombre';
+        return DropdownMenuItem(
+          value: doc.id,
+          child: FutureBuilder<String?>(
+            future: _obtenerIconoTipo(tipoCalzadoId),
+            builder: (context, iconSnapshot) {
+              final icono = iconSnapshot.data;
+              return Row(
+                children: [
+                  if (icono != null && icono.isNotEmpty)
+                    Image.asset(icono, width: 32, height: 32),
+                  const SizedBox(width: 8),
+                  Text(nombre),
+                ],
+              );
+            },
+          ),
+        );
+      }).toList(),
+      onChanged: (v) async {
+        setState(() {
+          _calzadoId = v;
+        });
+        if (v != null) {
+          final calzadoDoc = await FirebaseFirestore.instance.collection('calzado').doc(v).get();
+          if (calzadoDoc.exists) {
+            final calzadoData = calzadoDoc.data()!;
+            _tipoTieneTaco = calzadoData['taco'] ?? true;
+            _tipoTienePlataforma = calzadoData['plataforma'] ?? true;
+            setState(() {}); // refrescar vista
+          }
+        }
+      },
+    );
+  }
+
+
   /// UI
   @override
   Widget build(BuildContext context) {
     if (_cargandoDatos) return const SplashScreen02();
 
     return Scaffold(
-      appBar: Designwidgets().appBarMain("Inventario por series"),
+      appBar: Designwidgets().appBarMain("Agregar Calzado por Series"),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
@@ -297,32 +360,10 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
                     .where('activo', isEqualTo: true)
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) return Container();
-
-                  return DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(labelText: 'Calzado'),
-                    items: snapshot.data!.docs.map((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      return DropdownMenuItem(
-                        value: doc.id,
-                        child: Text(data['nombre']),
-                      );
-                    }).toList(),
-                    onChanged: (v) async {
-                      _calzadoId = v;
-
-                      final calzadoDoc = await FirebaseFirestore.instance
-                          .collection('calzado')
-                          .doc(v)
-                          .get();
-
-                      final data = calzadoDoc.data()!;
-                      _tipoTieneTaco = data['taco'] ?? true;
-                      _tipoTienePlataforma = data['plataforma'] ?? true;
-
-                      setState(() {});
-                    },
-                  );
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Text('No tienes calzados registrados.');
+                  }
+                  return _buildDropdownConIconos(snapshot);
                 },
               ),
 
