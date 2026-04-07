@@ -305,7 +305,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
           Expanded(
             child: TextFormField(
               key: ValueKey('cantidad_${index}_${_subfilas[index]['id'] ?? ''}'),
-              decoration: const InputDecoration(labelText: 'Cantidad'),
+              decoration: const InputDecoration(labelText: 'Cantidad',border: OutlineInputBorder()),
               keyboardType: TextInputType.number,
               initialValue: cantidadActual > 0 ? cantidadActual.toString() : '',
               onChanged: (val) {
@@ -316,9 +316,10 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
           ),
 
           // Talla
+          const SizedBox(width: 8),
           Expanded(
             child: DropdownButtonFormField<int>(
-              decoration: const InputDecoration(labelText: 'Talla'),
+              decoration: const InputDecoration(labelText: 'Talla', border: OutlineInputBorder()),
               value: tallaActual,
               items: tallas
                   .map((talla) => DropdownMenuItem<int>(
@@ -335,7 +336,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
             const SizedBox(width: 8),
             Expanded(
               child: DropdownButtonFormField<int>(
-                decoration: const InputDecoration(labelText: 'Taco'),
+                decoration: const InputDecoration(labelText: 'Taco', border: OutlineInputBorder()),
                 value: tacoActual,
                 items: tacos
                     .map((t) =>
@@ -388,6 +389,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
     child: DropdownButtonFormField<String>(
       decoration: InputDecoration(
         labelText: 'Seleccionar calzado',
+        border: const OutlineInputBorder(),
 
         // 👇 COLOR CUANDO ESTÁ BLOQUEADO
         filled: true,
@@ -484,7 +486,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
               const SizedBox(height: 12),
               TextFormField(
                 initialValue: _cantidadFila > 0 ? '$_cantidadFila' : '',
-                decoration: const InputDecoration(labelText: 'Cantidad total'),
+                decoration: const InputDecoration(labelText: 'Cantidad total', border: OutlineInputBorder(),), 
                 keyboardType: TextInputType.number,
                 onChanged: (v) => _cantidadFila = int.tryParse(v) ?? 0,
               ),

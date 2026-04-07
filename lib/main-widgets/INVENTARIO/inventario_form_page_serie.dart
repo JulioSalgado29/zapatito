@@ -247,7 +247,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
             Flexible(
               flex: 1,
               child: TextFormField(
-                decoration: const InputDecoration(labelText: 'Cantidad'),
+                decoration: const InputDecoration(labelText: 'Cantidad', border: OutlineInputBorder()),
                 keyboardType: TextInputType.number,
                 onChanged: (v) =>
                     _subfilas[index]['cantidad'] = int.tryParse(v) ?? 0,
@@ -257,7 +257,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
             Flexible(
               flex: 3,
               child: DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Serie'),
+                decoration: const InputDecoration(labelText: 'Serie', border: OutlineInputBorder()),
                 value: sub['serie'],
                 isExpanded: true, // MUY IMPORTANTE
                 items: seriesMap.keys.map((serie) {
@@ -290,9 +290,10 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
             ),
           ],
         ),
+        const SizedBox(height: 12),
         if (_tipoTieneTaco)
           DropdownButtonFormField<int>(
-            decoration: const InputDecoration(labelText: 'Taco'),
+            decoration: const InputDecoration(labelText: 'Taco', border: OutlineInputBorder()),
             items: List.generate(15, (i) => i + 1)
                 .map((t) => DropdownMenuItem(value: t, child: Text('$t')))
                 .toList(),
@@ -330,7 +331,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
   Widget _buildDropdownConIconos(AsyncSnapshot<QuerySnapshot> snapshot) {
     final calzados = snapshot.data!.docs;
     return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(labelText: 'Seleccionar calzado'),
+      decoration: const InputDecoration(labelText: 'Seleccionar calzado', border: OutlineInputBorder()),
       value: _calzadoId,
       items: calzados.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
@@ -402,9 +403,10 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
               ),
 
               /// TOTAL SERIES
+              const SizedBox(height: 12),
               TextFormField(
                 decoration: const InputDecoration(
-                    labelText: 'Cantidad total de series'),
+                    labelText: 'Cantidad total de series', border: OutlineInputBorder()),
                 keyboardType: TextInputType.number,
                 onChanged: (v) => _cantidadSeriesTotal = int.tryParse(v) ?? 0,
               ),
