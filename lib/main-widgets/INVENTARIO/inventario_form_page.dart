@@ -127,7 +127,9 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
       return;
     }
 
+    final combinaciones = <String>{};
     for (var sub in _subfilas) {
+      final key = '${sub['talla']}_${sub['taco']}_${sub['plataforma']}';
       if ((sub['cantidad'] ?? 0) <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Todas las subfilas deben tener cantidad mayor a 0')),
@@ -140,15 +142,9 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
         );
         return;
       }
-    }
-
-    // Validación de duplicados
-    final combinaciones = <String>{};
-    for (var sub in _subfilas) {
-      final key = '${sub['talla']}_${sub['taco']}_${sub['plataforma']}';
       if (combinaciones.contains(key)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pueden repetir subfilas con misma talla, taco y plataforma')),
+          const SnackBar(content: Text('No se pueden repetir subfilas con misma talla y/o taco y/o plataforma')),
         );
         return;
       }

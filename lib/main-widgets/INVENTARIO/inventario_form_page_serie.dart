@@ -92,7 +92,9 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
       return;
     }
 
+    final combinaciones = <String>{};
     for (var sub in _subfilas) {
+      final key = '${sub['serie']}_${sub['taco']}_${sub['plataforma']}';
       if ((sub['cantidad'] ?? 0) <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -109,6 +111,13 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
         );
         return;
       }
+      if (combinaciones.contains(key)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pueden repetir subfilas con misma serie y/o taco y/o plataforma')),
+        );
+        return;
+      }
+      combinaciones.add(key);
     }
 
     _mostrarSplashScreen();
