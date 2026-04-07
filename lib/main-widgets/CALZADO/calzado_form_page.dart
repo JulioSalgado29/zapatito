@@ -187,8 +187,8 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
         isOnline: widget.isOnline,
       ),
       body: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 20).copyWith(top: 24, bottom: 40),
+        padding: const EdgeInsets.symmetric(horizontal: 20)
+            .copyWith(top: 24, bottom: 40),
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           child: Form(
@@ -201,12 +201,20 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
 
                 // 🔸 Tipo de calzado
                 StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('tipo_calzado')
-                      .where('activo', isEqualTo: true)
-                      .where('usuario_creacion', isEqualTo: widget.firstName ?? 'Invitado')
-                      .orderBy('fecha_creacion', descending: true)
-                      .snapshots(),
+                  stream: !isEditing
+                      ? FirebaseFirestore.instance
+                          .collection('tipo_calzado')
+                          .where('activo', isEqualTo: true)
+                          .where('usuario_creacion',
+                              isEqualTo: widget.firstName ?? 'Invitado')
+                          .orderBy('fecha_creacion', descending: true)
+                          .snapshots()
+                      : FirebaseFirestore.instance
+                          .collection('tipo_calzado')
+                          .where('usuario_creacion',
+                              isEqualTo: widget.firstName ?? 'Invitado')
+                          .orderBy('fecha_creacion', descending: true)
+                          .snapshots(),
                   builder: (context, snapshot) {
                     if (!_primerCargaCompletada &&
                         snapshot.connectionState == ConnectionState.waiting) {
@@ -251,78 +259,84 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                     }
 
                     final tipos = snapshot.data!.docs;
-                    return DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Tipo de Calzado',
-                        border: OutlineInputBorder(),
-                      ),
-                      value: _selectedTipoCalzadoId,
-                      items: tipos.map((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        final icono = data['icono'] ?? '';
-                        final nombre = data['nombre'] ?? '';
-                        return DropdownMenuItem<String>(
-                          value: doc.id,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (icono.toString().endsWith('.png') ||
-                                  icono.toString().endsWith('.jpg'))
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: Image.asset(
-                                    icono,
-                                    width: 28,
-                                    height: 28,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        const Icon(Icons.image, size: 24),
-                                  ),
-                                )
-                              else
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: Text(
-                                    icono.toString(),
-                                    style: const TextStyle(fontSize: 22),
-                                  ),
-                                ),
-                              Text(
-                                nombre,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (val) async {
-                        setState(() => _selectedTipoCalzadoId = val);
-                        if (val != null) {
-                          final tipoSnap = await FirebaseFirestore.instance
-                              .collection('tipo_calzado')
-                              .doc(val)
-                              .get();
-                          if (tipoSnap.exists) {
-                            setState(() {
-                              final tipoData = tipoSnap.data() ?? {};
-                              _iconoSeleccionado =
-                                  tipoData['icono'] ?? '';
-                              _taco = tipoData['taco'] ?? false;
-                              _plataforma =
-                                  tipoData['plataforma'] ?? false;
+                    return IgnorePointer(
+                        ignoring: isEditing,
+                        child: DropdownButtonFormField<String>(
+                          decoration: InputDecoration(
+                            labelText: 'Tipo de Calzado',
+                            border: const OutlineInputBorder(),
 
-                              // Si el tipo no soporta taco/plataforma, desmarcar
-                              if (!_taco) _tacoCheckbox = false;
-                              if (!_plataforma) _plataformaCheckbox = false;
-                            });
-                          }
-                        }
-                        _validarFormulario();
-                      },
-                      validator: (v) =>
-                          v == null ? 'Seleccione un tipo de calzado' : null,
-                    );
+                            // 👇 COLOR CUANDO ESTÁ BLOQUEADO
+                            filled: true,
+                            fillColor:
+                                isEditing ? Colors.grey.shade200 : Colors.white,
+                          ),
+                          value: _selectedTipoCalzadoId,
+                          items: tipos.map((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final icono = data['icono'] ?? '';
+                            final nombre = data['nombre'] ?? '';
+                            return DropdownMenuItem<String>(
+                              value: doc.id,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (icono.toString().endsWith('.png') ||
+                                      icono.toString().endsWith('.jpg'))
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: Image.asset(
+                                        icono,
+                                        width: 28,
+                                        height: 28,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) =>
+                                            const Icon(Icons.image, size: 24),
+                                      ),
+                                    )
+                                  else
+                                    Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: Text(
+                                        icono.toString(),
+                                        style: const TextStyle(fontSize: 22),
+                                      ),
+                                    ),
+                                  Text(
+                                    nombre,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) async {
+                            setState(() => _selectedTipoCalzadoId = val);
+                            if (val != null) {
+                              final tipoSnap = await FirebaseFirestore.instance
+                                  .collection('tipo_calzado')
+                                  .doc(val)
+                                  .get();
+                              if (tipoSnap.exists) {
+                                setState(() {
+                                  final tipoData = tipoSnap.data() ?? {};
+                                  _iconoSeleccionado = tipoData['icono'] ?? '';
+                                  _taco = tipoData['taco'] ?? false;
+                                  _plataforma = tipoData['plataforma'] ?? false;
+
+                                  // Si el tipo no soporta taco/plataforma, desmarcar
+                                  if (!_taco) _tacoCheckbox = false;
+                                  if (!_plataforma) _plataformaCheckbox = false;
+                                });
+                              }
+                            }
+                            _validarFormulario();
+                          },
+                          validator: (v) => v == null
+                              ? 'Seleccione un tipo de calzado'
+                              : null,
+                        ));
                   },
                 ),
 
@@ -346,7 +360,8 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}$')),
+                    FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d+\.?\d{0,2}$')),
                   ],
                   decoration: const InputDecoration(
                     labelText: 'Precio proveedor',
@@ -358,8 +373,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                 const SizedBox(height: 16),
 
                 // Taco / Plataforma
-                if (_selectedTipoCalzadoId != null &&
-                    (_taco || _plataforma))
+                if (_selectedTipoCalzadoId != null && (_taco || _plataforma))
                   Column(
                     children: [
                       if (_taco)
@@ -397,9 +411,8 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                   child: ElevatedButton.icon(
                     onPressed: _isFormValid ? _guardarCalzado : null,
                     icon: Icon(isEditing ? Icons.save_as : Icons.save),
-                    label: Text(isEditing
-                        ? 'Actualizar Calzado'
-                        : 'Guardar Calzado'),
+                    label: Text(
+                        isEditing ? 'Actualizar Calzado' : 'Guardar Calzado'),
                   ),
                 ),
               ],
