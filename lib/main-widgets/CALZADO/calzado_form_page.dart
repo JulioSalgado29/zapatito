@@ -123,16 +123,6 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
         .doc(_selectedTipoCalzadoId)
         .get();
 
-    if (!tipoSnap.exists || !(tipoSnap.data()?['activo'] ?? false)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content:
-              Text('El tipo de calzado seleccionado ya no está disponible.'),
-        ),
-      );
-      return;
-    }
-
     final tipoData = tipoSnap.data() ?? {};
     final icono = tipoData['icono'] ?? _iconoSeleccionado ?? '';
 
