@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:zapatito/main-widgets/CALZADO/calzado_page.dart';
 import 'package:zapatito/main-widgets/INVENTARIO/inventario_page.dart';
-//import 'package:zapatito/main-widgets/MAIN/ventas_page.dart';
 import 'package:zapatito/main-widgets/TIPO_CALZADO/tipo_calzado_page.dart';
+import 'package:zapatito/main-widgets/VENTA/venta_page.dart';
 import 'package:zapatito/services/local_storage.dart';
 
 class HomePage extends StatefulWidget {
@@ -106,6 +106,23 @@ class _HomePageState extends State<HomePage> {
                 color: const Color.fromARGB(255, 33, 47, 243),
                 textColor: Colors.white,
                 child: const Text('Inventario'),
+              ),
+            ),
+            SizedBox(
+              width: 200, // 🔹 mismo ancho para ambos
+              child: MaterialButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          VentaPage(firstName: firstName),
+                    ),
+                  );
+                },
+                color: const Color.fromARGB(255, 33, 47, 243),
+                textColor: Colors.white,
+                child: const Text('Ventas'),
               ),
             ),
           ],

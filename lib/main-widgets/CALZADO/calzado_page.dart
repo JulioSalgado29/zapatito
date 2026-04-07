@@ -80,7 +80,8 @@ class _CalzadoPageState extends State<CalzadoPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.warning_amber_rounded, size: 60, color: Colors.white),
+              const Icon(Icons.warning_amber_rounded,
+                  size: 60, color: Colors.white),
               const SizedBox(height: 16),
               const Text(
                 '¿Eliminar código?',
@@ -103,25 +104,28 @@ class _CalzadoPageState extends State<CalzadoPage> {
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.grey[900],
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
                     ),
                     onPressed: () => Navigator.pop(ctx),
                     icon: const Icon(Icons.cancel, color: Colors.white),
-                    label: const Text('Cancelar', style: TextStyle(color: Colors.white)),
+                    label: const Text('Cancelar',
+                        style: TextStyle(color: Colors.white)),
                   ),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.redAccent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
                     ),
                     onPressed: () async {
                       _mostrarSplashScreen();
-                      
+
                       await FirebaseFirestore.instance
                           .collection('calzado')
                           .doc(id)
                           .update({'activo': false});
-                      
+
                       _ocultarSplashScreen();
 
                       await Future.delayed(const Duration(milliseconds: 150));
@@ -138,7 +142,8 @@ class _CalzadoPageState extends State<CalzadoPage> {
                       Navigator.pop(ctx);
                     },
                     icon: const Icon(Icons.delete_forever, color: Colors.white),
-                    label: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+                    label: const Text('Eliminar',
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
@@ -151,7 +156,10 @@ class _CalzadoPageState extends State<CalzadoPage> {
 
   Future<String> _obtenerIconoTipo(String? tipoId) async {
     if (tipoId == null) return "❓";
-    final doc = await FirebaseFirestore.instance.collection('tipo_calzado').doc(tipoId).get();
+    final doc = await FirebaseFirestore.instance
+        .collection('tipo_calzado')
+        .doc(tipoId)
+        .get();
     return (doc.data()?['icono'] ?? "❓").toString();
   }
 
@@ -169,7 +177,9 @@ class _CalzadoPageState extends State<CalzadoPage> {
               .orderBy('fecha_creacion', descending: true)
               .snapshots(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
             final docs = snapshot.data!.docs;
 
             if (docs.isEmpty) {
@@ -185,8 +195,8 @@ class _CalzadoPageState extends State<CalzadoPage> {
                 final precio = (data['precio_real'] ?? 0.0).toDouble();
                 final usuario = data['usuario_creacion'] ?? '';
                 final tipoId = data['tipo_calzado_id'];
-                final taco = data['taco'];  // Talla si existe
-                final plataforma = data['plataforma'];  // Plataforma si existe
+                final taco = data['taco']; // Talla si existe
+                final plataforma = data['plataforma']; // Plataforma si existe
 
                 return FutureBuilder<String>(
                   future: _obtenerIconoTipo(tipoId),
@@ -203,66 +213,87 @@ class _CalzadoPageState extends State<CalzadoPage> {
                       );
                     }
                     return Card(
-  elevation: 3,
-  margin: const EdgeInsets.symmetric(vertical: 6),
-  child: Padding(
-    padding: const EdgeInsets.all(16),
-    child: Row(
-      children: [
-        // Columna para el icono y nombre del calzado
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Mostrar el icono y el nombre
-              Row(
-                children: [
-                  (icono.toString().endsWith('.png') || icono.toString().endsWith('.jpg'))
-                      ? Image.asset(icono, width: 40, height: 40, fit: BoxFit.contain)
-                      : Text(icono, style: const TextStyle(fontSize: 28)),
-                  const SizedBox(width: 8),
-                  Text(nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text('S/ ${precio.toStringAsFixed(2)}  |  $usuario'),
-              
-              // Mostrar la talla si está disponible
-              if (taco != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(taco == true ? 'Taco: Sí' : 'Taco: No', style: const TextStyle(fontWeight: FontWeight.bold)),
-                ),
+                      elevation: 3,
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            // Columna para el icono y nombre del calzado
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Mostrar el icono y el nombre
+                                  Row(
+                                    children: [
+                                      (icono.toString().endsWith('.png') ||
+                                              icono.toString().endsWith('.jpg'))
+                                          ? Image.asset(icono,
+                                              width: 40,
+                                              height: 40,
+                                              fit: BoxFit.contain)
+                                          : Text(icono,
+                                              style: const TextStyle(
+                                                  fontSize: 28)),
+                                      const SizedBox(width: 8),
+                                      Text(nombre,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                      'S/ ${precio.toStringAsFixed(2)}  |  $usuario'),
 
-              // Mostrar la plataforma si está disponible
-              if (plataforma != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(plataforma == true ? 'Plataforma: Sí' : 'Plataforma: No', style: const TextStyle(fontWeight: FontWeight.bold)),
-                ),
-            ],
-          ),
-        ),
+                                  // Mostrar la talla si está disponible
+                                  if (taco != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
+                                      child: Text(
+                                          taco == true
+                                              ? 'Taco: Sí'
+                                              : 'Taco: No',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold)),
+                                    ),
 
-        // Columna para los botones de acción (editar y eliminar)
-        Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blueAccent),
-              onPressed: () => _navegarFormulario(doc: doc),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
-              onPressed: () => _confirmarEliminacion(context, doc.id),
-            ),
-          ],
-        ),
-      ],
-    ),
-  ),
-);
+                                  // Mostrar la plataforma si está disponible
+                                  if (plataforma != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
+                                      child: Text(
+                                          plataforma == true
+                                              ? 'Plataforma: Sí'
+                                              : 'Plataforma: No',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold)),
+                                    ),
+                                ],
+                              ),
+                            ),
 
+                            // Columna para los botones de acción (editar y eliminar)
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit,
+                                      color: Colors.blueAccent),
+                                  onPressed: () => _navegarFormulario(doc: doc),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_forever,
+                                      color: Colors.redAccent),
+                                  onPressed: () =>
+                                      _confirmarEliminacion(context, doc.id),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
                   },
                 );
               },
