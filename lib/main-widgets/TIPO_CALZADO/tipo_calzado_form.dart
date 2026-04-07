@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 
 class TipoCalzadoForm extends StatefulWidget {
   final String? firstName;
@@ -60,9 +61,26 @@ class _TipoCalzadoFormState extends State<TipoCalzadoForm> {
     });
   }
 
+  void _mostrarSplashScreen() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => const SplashScreen02(),
+    );
+  }
+
+  void _ocultarSplashScreen() {
+    if (Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+  }
+
   Future<void> _guardarTipoCalzado() async {
     if (!_formKey.currentState!.validate()) return;
 
+    _mostrarSplashScreen(); 
+    
     final data = {
       'nombre': _nombreController.text.trim(),
       'icono': _iconoSeleccionado,
@@ -88,6 +106,12 @@ class _TipoCalzadoFormState extends State<TipoCalzadoForm> {
           const SnackBar(content: Text('Tipo de calzado agregado ✅')),
         );
       }
+
+      _ocultarSplashScreen(); // 👈 CERRAR LOADER
+
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      if (!mounted) return;
 
       Navigator.pop(context);
     } catch (e) {

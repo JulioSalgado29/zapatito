@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -39,6 +40,21 @@ class _CalzadoPageState extends State<CalzadoPage> {
         ),
       ),
     );
+  }
+
+  void _mostrarSplashScreen() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => const SplashScreen02(),
+    );
+  }
+
+  void _ocultarSplashScreen() {
+    if (Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
   }
 
   void _confirmarEliminacion(BuildContext context, String id) {
@@ -99,10 +115,16 @@ class _CalzadoPageState extends State<CalzadoPage> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
                     onPressed: () async {
+                      _mostrarSplashScreen();
+                      
                       await FirebaseFirestore.instance
                           .collection('calzado')
                           .doc(id)
                           .update({'activo': false});
+                      
+                      _ocultarSplashScreen();
+
+                      await Future.delayed(const Duration(milliseconds: 150));
 
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(

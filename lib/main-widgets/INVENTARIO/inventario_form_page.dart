@@ -104,6 +104,21 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
     return icono;
   }
 
+  void _mostrarSplashScreen() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => const SplashScreen02(),
+    );
+  }
+
+  void _ocultarSplashScreen() {
+    if (Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+  }
+
   Future<void> _guardarFilaInventario() async {
     if (_calzadoId == null || _cantidadFila <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -152,6 +167,8 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
       );
       return;
     }
+
+    _mostrarSplashScreen();
 
     try {
       if (widget.filaId == null) {
@@ -250,10 +267,14 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
           });
         }
       }
+      _ocultarSplashScreen(); // 👈 CERRAR LOADER
 
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Inventario guardado correctamente')),
+        const SnackBar(content: Text('Codigo de inventario guardado correctamente')),
       );
       Navigator.pop(context, true);
     } catch (e) {

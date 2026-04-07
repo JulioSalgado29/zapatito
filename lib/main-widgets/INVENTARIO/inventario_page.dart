@@ -90,6 +90,21 @@ class _InventarioPageState extends State<InventarioPage> {
     };
   }
 
+  void _mostrarSplashScreen() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => const SplashScreen02(),
+    );
+  }
+
+  void _ocultarSplashScreen() {
+    if (Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+  }
+
   /// 🔹 Eliminar fila y sus subfilas
   Future<void> _eliminarFila(String filaId) async {
     final subfilas = await FirebaseFirestore.instance
@@ -106,10 +121,20 @@ class _InventarioPageState extends State<InventarioPage> {
         .doc(filaId)
         .delete();
 
+    _ocultarSplashScreen();
+    _ocultarSplashScreen();
+
+    await Future.delayed(const Duration(milliseconds: 150));
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Fila eliminada correctamente')),
+        const SnackBar(
+          content: Text('Codigo de inventario eliminado correctamente 🗑️'),
+          duration: Duration(seconds: 2),
+        ),
       );
+    } else {
+      return;
     }
   }
 
@@ -136,9 +161,7 @@ class _InventarioPageState extends State<InventarioPage> {
       context,
       MaterialPageRoute(
         builder: (_) => InventarioSerieFormPage(
-          firstName: widget.firstName,
-          inventarioId: inventarioId!
-        ),
+            firstName: widget.firstName, inventarioId: inventarioId!),
       ),
     );
 
@@ -174,6 +197,84 @@ class _InventarioPageState extends State<InventarioPage> {
       fit: BoxFit.contain,
       errorBuilder: (_, __, ___) =>
           const Icon(Icons.image_not_supported, size: 40),
+    );
+  }
+
+  void _confirmarEliminacion(BuildContext context, String id) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+        elevation: 20,
+        backgroundColor: Colors.black.withOpacity(0.85),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(25),
+            gradient: const LinearGradient(
+              colors: [
+                Color.fromARGB(255, 33, 47, 243),
+                Color(0xFF4A5AF7),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  size: 60, color: Colors.white),
+              const SizedBox(height: 16),
+              const Text(
+                '¿Eliminar codigo de inventario?',
+                style: TextStyle(
+                  fontSize: 22,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'Esta acción no se puede deshacer.',
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[900],
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.cancel, color: Colors.white),
+                    label: const Text('Cancelar',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                    ),
+                    onPressed: () async {
+                      _mostrarSplashScreen();
+                      await _eliminarFila(id);
+                    },
+                    icon: const Icon(Icons.delete_forever, color: Colors.white),
+                    label: const Text('Eliminar',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -257,7 +358,7 @@ class _InventarioPageState extends State<InventarioPage> {
                               if (value == 'editar') {
                                 await _abrirFormulario(filaId: fila.id);
                               } else if (value == 'eliminar') {
-                                await _eliminarFila(fila.id);
+                                _confirmarEliminacion(context, fila.id);
                               }
                             },
                             itemBuilder: (context) => const [
@@ -340,7 +441,6 @@ class _InventarioPageState extends State<InventarioPage> {
                     style: TextStyle(color: Colors.white)),
               ),
             )),
-        
         const SizedBox(height: 12),
         SizedBox(
           width: 150, // 👌 Mismo ancho

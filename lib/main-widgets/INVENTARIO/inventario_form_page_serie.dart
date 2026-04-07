@@ -55,6 +55,21 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
     _subfilas.add({'cantidad': 0, 'talla': 0, 'taco': 0, 'plataforma': false});
   }
 
+  void _mostrarSplashScreen() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => const SplashScreen02(),
+    );
+  }
+
+  void _ocultarSplashScreen() {
+    if (Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+  }
+
   /// GUARDAR
   Future<void> _guardarInventarioSerie() async {
     if (_calzadoId == null || _cantidadSeriesTotal <= 0) {
@@ -95,6 +110,8 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
         return;
       }
     }
+
+    _mostrarSplashScreen();
 
     int totalPares = _calcularTotalPares();
 
@@ -192,8 +209,14 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
         }
       }
 
+      _ocultarSplashScreen(); // 👈 CERRAR LOADER
+
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Inventario seriado guardado')),
+        const SnackBar(content: Text('Codigo de inventario seriado guardado')),
       );
 
       Navigator.pop(context, true);
@@ -327,7 +350,10 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
           _calzadoId = v;
         });
         if (v != null) {
-          final calzadoDoc = await FirebaseFirestore.instance.collection('calzado').doc(v).get();
+          final calzadoDoc = await FirebaseFirestore.instance
+              .collection('calzado')
+              .doc(v)
+              .get();
           if (calzadoDoc.exists) {
             final calzadoData = calzadoDoc.data()!;
             _tipoTieneTaco = calzadoData['taco'] ?? true;
@@ -338,7 +364,6 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
       },
     );
   }
-
 
   /// UI
   @override

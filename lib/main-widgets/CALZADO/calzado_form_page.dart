@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
 
 class CalzadoFormPage extends StatefulWidget {
@@ -95,10 +96,27 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
     return null;
   }
 
+  void _mostrarSplashScreen() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => const SplashScreen02(),
+    );
+  }
+
+  void _ocultarSplashScreen() {
+    if (Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+  }
+
   Future<void> _guardarCalzado() async {
     setState(() => _intentoGuardar = true);
 
     if (!_formKey.currentState!.validate() || !_isFormValid) return;
+
+    _mostrarSplashScreen();
 
     final tipoSnap = await FirebaseFirestore.instance
         .collection('tipo_calzado')
@@ -148,6 +166,10 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
           const SnackBar(content: Text('Calzado agregado correctamente ✅')),
         );
       }
+
+      _ocultarSplashScreen(); // 👈 CERRAR LOADER
+
+      await Future.delayed(const Duration(milliseconds: 150));
 
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
