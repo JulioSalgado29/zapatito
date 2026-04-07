@@ -437,7 +437,7 @@ class _InventarioPageState extends State<InventarioPage> {
                 elevation: 0,
                 onPressed: _abrirFormulario,
                 icon: const Icon(Icons.add, color: Colors.white),
-                label: const Text("Agregar calzado",
+                label: const Text("Manual",
                     style: TextStyle(color: Colors.white)),
               ),
             )),
@@ -458,7 +458,7 @@ class _InventarioPageState extends State<InventarioPage> {
               },
               icon: const Icon(Icons.add, color: Colors.white),
               label: const Text(
-                "Agregar serie     ",
+                "Por serie",
                 style: TextStyle(color: Colors.white),
               ),
             ),

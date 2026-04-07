@@ -380,10 +380,20 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
   );
 }
 
-  Widget _buildDropdownConIconos(AsyncSnapshot<QuerySnapshot> snapshot) {
-    final calzados = snapshot.data!.docs;
-    return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(labelText: 'Seleccionar calzado'),
+  Widget _buildDropdownConIconos(AsyncSnapshot<QuerySnapshot> snapshot, bool esEdicion) {
+  final calzados = snapshot.data!.docs;
+
+  return IgnorePointer(
+    ignoring: esEdicion,
+    child: DropdownButtonFormField<String>(
+      decoration: InputDecoration(
+        labelText: 'Seleccionar calzado',
+
+        // 👇 COLOR CUANDO ESTÁ BLOQUEADO
+        filled: true,
+        fillColor: esEdicion ? Colors.grey.shade200 : Colors.white,
+      ),
+
       value: _calzadoId,
       items: calzados.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
@@ -400,7 +410,12 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
                   if (icono != null && icono.isNotEmpty)
                     Image.asset(icono, width: 32, height: 32),
                   const SizedBox(width: 8),
-                  Text(nombre),
+                  Text(
+                    nombre,
+                    style: TextStyle(
+                      color: esEdicion ? Colors.grey : Colors.black,
+                    ),
+                  ),
                 ],
               );
             },
@@ -412,17 +427,24 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
           _calzadoId = v;
         });
         if (v != null) {
-          final calzadoDoc = await FirebaseFirestore.instance.collection('calzado').doc(v).get();
+          final calzadoDoc = await FirebaseFirestore.instance
+              .collection('calzado')
+              .doc(v)
+              .get();
+
           if (calzadoDoc.exists) {
             final calzadoData = calzadoDoc.data()!;
-            _tipoTieneTaco = calzadoData['taco'] ?? true;
-            _tipoTienePlataforma = calzadoData['plataforma'] ?? true;
-            setState(() {}); // refrescar vista
+
+            setState(() {
+              _tipoTieneTaco = calzadoData['taco'] ?? true;
+              _tipoTienePlataforma = calzadoData['plataforma'] ?? true;
+            });
           }
         }
       },
-    );
-  }
+    ),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -431,27 +453,34 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
     }
 
     return Scaffold(
-      appBar: Designwidgets().appBarMain(
-        widget.filaId != null ? "Editar Calzado" : "Agregar Calzado",
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
+  appBar: Designwidgets().appBarMain(
+    widget.filaId != null ? "Editar Inventario" : "Agregado Manual",
+  ),
+  body: Padding(
+    padding: const EdgeInsets.all(16),
+    child: SingleChildScrollView(
+      child: Column(
+        children: [
+          StreamBuilder<QuerySnapshot>(
+            stream: widget.filaId != null
+                ? FirebaseFirestore.instance
+                    .collection('calzado')
+                    .where('usuario_creacion', isEqualTo: widget.firstName)
+                    .snapshots() // 👈 EDITAR: trae todos
+                : FirebaseFirestore.instance
                     .collection('calzado')
                     .where('usuario_creacion', isEqualTo: widget.firstName)
                     .where('activo', isEqualTo: true)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Text('No tienes calzados registrados.');
-                  }
-                  return _buildDropdownConIconos(snapshot);
-                },
-              ),
+                    .snapshots(), // 👈 NUEVO: solo activos
+
+            builder: (context, snapshot) {
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Text('No tienes calzados registrados.');
+              }
+              
+              return _buildDropdownConIconos(snapshot, widget.filaId != null);
+            },
+          ),
               const SizedBox(height: 12),
               TextFormField(
                 initialValue: _cantidadFila > 0 ? '$_cantidadFila' : '',
