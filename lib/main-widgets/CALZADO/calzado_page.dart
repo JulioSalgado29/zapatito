@@ -83,7 +83,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
               const Icon(Icons.warning_amber_rounded, size: 60, color: Colors.white),
               const SizedBox(height: 16),
               const Text(
-                '¿Eliminar calzado?',
+                '¿Eliminar código?',
                 style: TextStyle(
                   fontSize: 22,
                   color: Colors.white,
@@ -129,7 +129,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Calzado eliminado correctamente 🗑️'),
+                            content: Text('Código eliminado correctamente 🗑️'),
                             duration: Duration(seconds: 2),
                           ),
                         );
@@ -158,7 +158,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: Designwidgets().appBarMain("Calzados", isOnline: isOnline),
+      appBar: Designwidgets().appBarMain("Códigos", isOnline: isOnline),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: StreamBuilder<QuerySnapshot>(
@@ -173,7 +173,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
             final docs = snapshot.data!.docs;
 
             if (docs.isEmpty) {
-              return const Center(child: Text('No hay calzados aún'));
+              return const Center(child: Text('No hay códigos aún'));
             }
 
             return ListView.builder(

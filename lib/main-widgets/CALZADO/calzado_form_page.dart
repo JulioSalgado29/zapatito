@@ -148,12 +148,12 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
             .doc(widget.doc!.id)
             .update(data);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Calzado actualizado correctamente ✏️')),
+          const SnackBar(content: Text('Código actualizado correctamente ✏️')),
         );
       } else {
         await FirebaseFirestore.instance.collection('calzado').add(data);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Calzado agregado correctamente ✅')),
+          const SnackBar(content: Text('Código agregado correctamente ✅')),
         );
       }
 
@@ -173,7 +173,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: Designwidgets().appBarMain(
-        isEditing ? "Editar Calzado" : "Agregar Calzado",
+        isEditing ? "Editar Código" : "Agregar Código",
         isOnline: widget.isOnline,
       ),
       body: Padding(
@@ -409,7 +409,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                     onPressed: _isFormValid ? _guardarCalzado : null,
                     icon: Icon(isEditing ? Icons.save_as : Icons.save),
                     label: Text(
-                        isEditing ? 'Actualizar Calzado' : 'Guardar Calzado'),
+                        isEditing ? 'Actualizar Código' : 'Guardar Código'),
                   ),
                 ),
               ],

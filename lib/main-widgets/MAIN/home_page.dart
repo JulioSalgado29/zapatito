@@ -88,7 +88,7 @@ class _HomePageState extends State<HomePage> {
                 },
                 color: const Color.fromARGB(255, 33, 47, 243),
                 textColor: Colors.white,
-                child: const Text('Calzados'),
+                child: const Text('Códigos'),
               ),
             ),
             SizedBox(
