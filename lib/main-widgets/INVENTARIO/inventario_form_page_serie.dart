@@ -113,7 +113,9 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
       }
       if (combinaciones.contains(key)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pueden repetir subfilas con misma serie y/o taco y/o plataforma')),
+          const SnackBar(
+              content: Text(
+                  'No se pueden repetir subfilas con misma serie y/o taco y/o plataforma')),
         );
         return;
       }
@@ -242,12 +244,14 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
 
     return Column(
       children: [
+        const SizedBox(height: 12),
         Row(
           children: [
             Flexible(
               flex: 1,
               child: TextFormField(
-                decoration: const InputDecoration(labelText: 'Cantidad', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                    labelText: 'Cantidad', border: OutlineInputBorder()),
                 keyboardType: TextInputType.number,
                 onChanged: (v) =>
                     _subfilas[index]['cantidad'] = int.tryParse(v) ?? 0,
@@ -257,7 +261,8 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
             Flexible(
               flex: 3,
               child: DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'Serie', border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                    labelText: 'Serie', border: OutlineInputBorder()),
                 value: sub['serie'],
                 isExpanded: true, // MUY IMPORTANTE
                 items: seriesMap.keys.map((serie) {
@@ -293,7 +298,8 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
         const SizedBox(height: 12),
         if (_tipoTieneTaco)
           DropdownButtonFormField<int>(
-            decoration: const InputDecoration(labelText: 'Taco', border: OutlineInputBorder()),
+            decoration: const InputDecoration(
+                labelText: 'Taco', border: OutlineInputBorder()),
             items: List.generate(15, (i) => i + 1)
                 .map((t) => DropdownMenuItem(value: t, child: Text('$t')))
                 .toList(),
@@ -331,7 +337,8 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
   Widget _buildDropdownConIconos(AsyncSnapshot<QuerySnapshot> snapshot) {
     final calzados = snapshot.data!.docs;
     return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(labelText: 'Seleccionar calzado', border: OutlineInputBorder()),
+      decoration: const InputDecoration(
+          labelText: 'Seleccionar calzado', border: OutlineInputBorder()),
       value: _calzadoId,
       items: calzados.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
@@ -406,66 +413,73 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
               const SizedBox(height: 12),
               TextFormField(
                 decoration: const InputDecoration(
-                    labelText: 'Cantidad total de series', border: OutlineInputBorder()),
+                    labelText: 'Cantidad total de series',
+                    border: OutlineInputBorder()),
                 keyboardType: TextInputType.number,
                 onChanged: (v) => _cantidadSeriesTotal = int.tryParse(v) ?? 0,
               ),
 
-              const SizedBox(height: 10),
-
-              /// SUBFILAS
+              const Divider(height: 32),
+              const Text('Subfilas de inventario',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
               ..._subfilas
                   .asMap()
                   .entries
                   .map((e) => _buildSubfilaSerie(e.key)),
-
               const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.add),
+                  onPressed: () {
+                    if (_cantidadSeriesTotal <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content:
+                                Text('Primero ingresa una cantidad total')),
+                      );
+                      return;
+                    }
+                    if (_subfilas.length >= _cantidadSeriesTotal) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'La cantidad de subfilas no puede exceder la cantidad total')),
+                      );
+                      return;
+                    }
+                    final totalActual = _subfilas.fold<int>(
+                      0,
+                      (suma, item) => suma + (item['cantidad'] ?? 0) as int,
+                    );
+                    if (totalActual >= _cantidadSeriesTotal) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Las cantidades de las subfilas ya suman la cantidad total')),
+                      );
+                      return;
+                    }
 
-              /// BOTÓN AGREGAR
-              ElevatedButton(
-                onPressed: () {
-                  if (_cantidadSeriesTotal <= 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Primero ingresa una cantidad total')),
-                    );
-                    return;
-                  }
-                  if (_subfilas.length >= _cantidadSeriesTotal) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text(
-                              'La cantidad de subfilas no puede exceder la cantidad total')),
-                    );
-                    return;
-                  }
-                  final totalActual = _subfilas.fold<int>(
-                    0,
-                    (suma, item) => suma + (item['cantidad'] ?? 0) as int,
-                  );
-                  if (totalActual >= _cantidadSeriesTotal) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text(
-                              'Las cantidades de las subfilas ya suman la cantidad total')),
-                    );
-                    return;
-                  }
-
-                  setState(() {
-                    _subfilas
-                        .add({'cantidad': 0, 'taco': 0, 'plataforma': false});
-                  });
-                },
-                child: const Text('Agregar subfila'),
+                    setState(() {
+                      _subfilas
+                          .add({'cantidad': 0, 'taco': 0, 'plataforma': false});
+                    });
+                  },
+                  label: const Text('Agregar subfila'),
+                ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 6),
 
-              /// BOTÓN GUARDAR
-              ElevatedButton(
-                onPressed: _guardarInventarioSerie,
-                child: const Text('Guardar inventario seriado'),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _guardarInventarioSerie,
+                  icon: const Icon(Icons.save),
+                  label: const Text('Guardar inventario seriado'),
+                ),
               ),
 
               const SizedBox(height: 20),
