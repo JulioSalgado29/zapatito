@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:zapatito/main-widgets/INVENTARIO/inventario_page.dart';
 import 'package:zapatito/main-widgets/MAIN/home_page.dart';
 import 'package:zapatito/main-widgets/CALZADO/calzado_page.dart';
-import 'package:zapatito/main-widgets/MAIN/ventas_page.dart';
 import 'package:zapatito/main-widgets/MAIN/login_page.dart';
 import 'package:zapatito/main-widgets/MAIN/welcome_page.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -38,7 +37,6 @@ class MyApp extends StatelessWidget {
         '/welcome_page': (context) => const WelcomePage(),
         '/home': (context) => const HomePage(),
         '/login': (context) => const LoginPage(),
-        '/ventas_page': (context) => const VentasPage(),
         '/calzado_page': (context) => const CalzadoPage(),
         '/tipo_calzado': (context) => const TipoCalzadoPage(),
         '/inventario_page': (context) => const InventarioPage(),
