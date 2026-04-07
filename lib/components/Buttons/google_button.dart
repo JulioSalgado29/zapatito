@@ -27,8 +27,8 @@ class GoogleButton extends StatelessWidget {
           final silentResult = await GoogleAuthService().trySilentSignIn();
 
           if (silentResult != null) {
+            //Navigator.of(context).pop(); // 👈 cerrar splash
             print('Sesión silenciosa exitosa');
-            print(silentResult);
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (context) => const HomePage()),
             );
@@ -39,6 +39,7 @@ class GoogleButton extends StatelessWidget {
           final result = await GoogleAuthService().signInWithGoogle();
 
           if (result != null) {
+            //Navigator.of(context).pop(); 
             print('Usuario autenticado con Google');
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (context) => const HomePage()),

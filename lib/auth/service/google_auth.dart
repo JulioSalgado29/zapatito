@@ -47,6 +47,8 @@ class GoogleAuthService {
 
       final userCredential = await auth.signInWithCredential(credential);
 
+      print("USER AFTER LOGIN: ${auth.currentUser}");
+
       // 🔹 Guardar datos del usuario localmente
       final user = userCredential.user;
       if (user != null) {

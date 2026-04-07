@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "458935581305-css5mtum3fnvjldqlviqlonflcgjke40.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.zapatito",
+            "certificate_hash": "c22aa0b25847b782b96663be623943c391111d93"
+          }
+        },
+        {
           "client_id": "458935581305-j1k81iju2n33g6h6m1e2ambp99m4057q.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
