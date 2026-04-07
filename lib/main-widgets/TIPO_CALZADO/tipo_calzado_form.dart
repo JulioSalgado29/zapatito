@@ -79,8 +79,8 @@ class _TipoCalzadoFormState extends State<TipoCalzadoForm> {
   Future<void> _guardarTipoCalzado() async {
     if (!_formKey.currentState!.validate()) return;
 
-    _mostrarSplashScreen(); 
-    
+    _mostrarSplashScreen();
+
     final data = {
       'nombre': _nombreController.text.trim(),
       'icono': _iconoSeleccionado,
@@ -154,11 +154,20 @@ class _TipoCalzadoFormState extends State<TipoCalzadoForm> {
                       fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _nombreController,
-                  decoration: const InputDecoration(labelText: 'Nombre'),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Ingrese un nombre' : null,
+                IgnorePointer(
+                  ignoring: isEditing,
+                  child: TextFormField(
+                    controller: _nombreController,
+                    decoration: InputDecoration(
+                      labelText: 'Nombre',
+                      border: const OutlineInputBorder(),
+                      filled: true,
+                      fillColor:
+                          isEditing ? Colors.grey.shade200 : Colors.white,
+                    ),
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Ingrese un nombre' : null,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 const Text(

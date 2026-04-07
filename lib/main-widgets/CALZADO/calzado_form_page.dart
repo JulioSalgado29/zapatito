@@ -333,15 +333,22 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                 const SizedBox(height: 16),
 
                 // Nombre
-                TextFormField(
-                  controller: _nombreController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre',
-                    border: OutlineInputBorder(),
+                IgnorePointer(
+                  ignoring: isEditing,
+                  child: TextFormField(
+                    controller: _nombreController,
+                    decoration: InputDecoration(
+                      labelText: 'Nombre',
+                      border: const OutlineInputBorder(),
+                      filled: true,
+                            fillColor:
+                                isEditing ? Colors.grey.shade200 : Colors.white,
+                    ),
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Ingrese un nombre' : null,
                   ),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? 'Ingrese un nombre' : null,
                 ),
+
                 const SizedBox(height: 16),
 
                 // Precio
