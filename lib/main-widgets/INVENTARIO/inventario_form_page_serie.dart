@@ -338,7 +338,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
     final calzados = snapshot.data!.docs;
     return DropdownButtonFormField<String>(
       decoration: const InputDecoration(
-          labelText: 'Seleccionar calzado', border: OutlineInputBorder()),
+          labelText: 'Seleccionar código', border: OutlineInputBorder()),
       value: _calzadoId,
       items: calzados.map((doc) {
         final data = doc.data() as Map<String, dynamic>;

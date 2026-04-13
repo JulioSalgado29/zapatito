@@ -20,7 +20,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
   String? _calzadoId;
   int? _tallaSeleccionada;
   int? _tacoSeleccionado;
-  bool _plataformaSeleccionada = false;
+  bool? _plataformaSeleccionada = false;
 
   // --- Flags del calzado seleccionado ---
   bool _tipoTieneTaco = false;
@@ -57,11 +57,9 @@ class _VentaFormPageState extends State<VentaFormPage> {
   // CALCULOS DE STOCK
   // -------------------------------------------------------
 
-  /// Stock total de todos los calzados del usuario
   Future<void> _calcularStockTotal() async {
     setState(() => _cargandoStock = true);
     try {
-      // 1. Obtener todos los calzados del usuario
       final calzadosSnap = await FirebaseFirestore.instance
           .collection('calzado')
           .where('usuario_creacion', isEqualTo: widget.firstName)
@@ -77,9 +75,8 @@ class _VentaFormPageState extends State<VentaFormPage> {
       }
 
       final calzadoIds = calzadosSnap.docs.map((d) => d.id).toList();
-
-      // 2. Obtener todas las filas de inventario de esos calzados
       int total = 0;
+
       for (final calzadoId in calzadoIds) {
         final filasSnap = await FirebaseFirestore.instance
             .collection('fila_inventario')
@@ -100,7 +97,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
     }
   }
 
-  /// Stock filtrado por calzado seleccionado
   Future<void> _calcularStockPorCalzado(String calzadoId) async {
     setState(() => _cargandoStock = true);
     try {
@@ -115,7 +111,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
       for (final fila in filasSnap.docs) {
         total += (fila['cantidad'] ?? 0) as int;
 
-        // Obtener tallas disponibles desde subfilas
         final subfilasSnap = await FirebaseFirestore.instance
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: fila.id)
@@ -143,7 +138,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
     }
   }
 
-  /// Stock filtrado por calzado + talla
   Future<void> _calcularStockPorTalla(int talla) async {
     if (_calzadoId == null) return;
     setState(() => _cargandoStock = true);
@@ -184,7 +178,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
     }
   }
 
-  /// Stock filtrado por calzado + talla + taco
   Future<void> _calcularStockPorTaco(int taco) async {
     if (_calzadoId == null || _tallaSeleccionada == null) return;
     setState(() => _cargandoStock = true);
@@ -218,7 +211,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
     }
   }
 
-  /// Stock filtrado por calzado + talla + plataforma (cuando no hay taco)
   Future<void> _calcularStockPorPlataforma(bool plataforma) async {
     if (_calzadoId == null || _tallaSeleccionada == null) return;
     setState(() => _cargandoStock = true);
@@ -251,7 +243,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
     }
   }
 
-  /// Stock filtrado por calzado + talla + taco + plataforma (filtro completo)
   Future<void> _calcularStockCompleto() async {
     if (_calzadoId == null || _tallaSeleccionada == null) return;
     if (!_tipoTieneTaco || _tacoSeleccionado == null) return;
@@ -287,7 +278,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
   }
 
   // -------------------------------------------------------
-  // VALIDACION DEL BOTON
+  // VALIDACION
   // -------------------------------------------------------
 
   bool get _puedeVender {
@@ -329,7 +320,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
   }
 
   // -------------------------------------------------------
-  // ICONO TIPO
+  // ICONO
   // -------------------------------------------------------
 
   Future<String?> _obtenerIconoTipo(String tipoCalzadoId) async {
@@ -370,7 +361,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
         'usuario_creacion': widget.firstName ?? 'anon',
       });
 
-      // 2. Crear fila_venta
+      // 2. Crear fila_venta con todos los datos necesarios para mostrarlos
       await db.collection('fila_venta').add({
         'venta_id': ventaRef.id,
         'calzado_id': _calzadoId,
@@ -418,10 +409,8 @@ class _VentaFormPageState extends State<VentaFormPage> {
           final nuevaCantidad = cantidadActual - descuento;
 
           if (nuevaCantidad <= 0) {
-            // Eliminar subfila
             await subDoc.reference.delete();
           } else {
-            // Actualizar subfila
             await subDoc.reference.update({'cantidad': nuevaCantidad});
           }
         }
@@ -433,7 +422,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
             .get();
 
         if (subfilasRestantes.docs.isEmpty) {
-          // Si no quedan subfilas, eliminar la fila
           await fila.reference.delete();
         } else {
           final nuevaCantidadFila = subfilasRestantes.docs
@@ -510,7 +498,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
   Widget _buildDropdownCalzado(List<QueryDocumentSnapshot> calzados) {
     return DropdownButtonFormField<String>(
       decoration: const InputDecoration(
-        labelText: 'Seleccionar calzado',
+        labelText: 'Seleccionar código',
         border: OutlineInputBorder(),
       ),
       value: _calzadoId,
@@ -539,7 +527,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
       onChanged: (v) async {
         if (v == null) return;
 
-        // Cargar flags del calzado
         final calzadoDoc = await FirebaseFirestore.instance
             .collection('calzado')
             .doc(v)
@@ -634,7 +621,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
   }
 
   Widget _buildCheckboxPlataforma() {
-    // Mostrar plataforma solo si aplica y ya se selecciono lo anterior
     final mostrar = _tipoTienePlataforma &&
         _tallaSeleccionada != null &&
         (!_tipoTieneTaco || _tacoSeleccionado != null);
@@ -668,8 +654,12 @@ class _VentaFormPageState extends State<VentaFormPage> {
   }
 
   Widget _buildCantidadVenta() {
-    // Solo mostrar cuando ya hay algun filtro relevante seleccionado
-    if (_calzadoId == null) return const SizedBox();
+    if (_calzadoId == null ||
+    _tallaSeleccionada == null ||
+    (_tipoTieneTaco && _tacoSeleccionado == null) ||
+    (_tipoTienePlataforma && _plataformaSeleccionada == null)) {
+  return const SizedBox();
+}
 
     return Column(
       children: [
@@ -715,11 +705,9 @@ class _VentaFormPageState extends State<VentaFormPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- Stock Label ---
               _buildStockLabel(),
               const SizedBox(height: 16),
 
-              // --- Dropdown Calzado ---
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('calzado')
@@ -734,23 +722,15 @@ class _VentaFormPageState extends State<VentaFormPage> {
                 },
               ),
 
-              // --- Dropdown Talla ---
               _buildDropdownTalla(),
-
-              // --- Dropdown Taco ---
               _buildDropdownTaco(),
-
-              // --- Checkbox Plataforma ---
               _buildCheckboxPlataforma(),
-
-              // --- Campo Cantidad ---
               _buildCantidadVenta(),
 
               const SizedBox(height: 24),
               const Divider(),
               const SizedBox(height: 12),
 
-              // --- Boton Vender ---
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(

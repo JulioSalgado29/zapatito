@@ -418,7 +418,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
       ignoring: esEdicion,
       child: DropdownButtonFormField<String>(
         decoration: InputDecoration(
-          labelText: 'Seleccionar calzado',
+          labelText: 'Seleccionar código',
           border: const OutlineInputBorder(),
 
           // 👇 COLOR CUANDO ESTÁ BLOQUEADO
