@@ -5,12 +5,10 @@ import 'package:zapatito/components/widgets.dart';
 
 class VentaFormPage extends StatefulWidget {
   final String? firstName;
-  final String inventarioId;
 
   const VentaFormPage({
     super.key,
     required this.firstName,
-    required this.inventarioId,
   });
 
   @override
@@ -18,317 +16,763 @@ class VentaFormPage extends StatefulWidget {
 }
 
 class _VentaFormPageState extends State<VentaFormPage> {
+  // --- Selecciones del usuario ---
   String? _calzadoId;
-  String? _filaInventarioId;
+  int? _tallaSeleccionada;
+  int? _tacoSeleccionado;
+  bool _plataformaSeleccionada = false;
+
+  // --- Flags del calzado seleccionado ---
   bool _tipoTieneTaco = false;
   bool _tipoTienePlataforma = false;
 
-  int _cantidadDisponible = 0;
+  // --- Stock y cantidad ---
+  int _stockDisponible = 0;
+  int _cantidadVenta = 0;
+  bool _cargandoStock = false;
 
-  final List<Map<String, dynamic>> _subfilas = [];
+  // --- Opciones disponibles según filtros ---
+  List<int> _tallasDisponibles = [];
+  List<int> _tacosDisponibles = [];
 
-  bool _cargando = false;
+  // --- Cache de iconos ---
+  final Map<String, String?> _iconCache = {};
 
-  /// 🔹 Splash
-  void _mostrarSplash() {
+  // --- Controller para el campo cantidad ---
+  final TextEditingController _cantidadController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _calcularStockTotal();
+  }
+
+  @override
+  void dispose() {
+    _cantidadController.dispose();
+    super.dispose();
+  }
+
+  // -------------------------------------------------------
+  // CALCULOS DE STOCK
+  // -------------------------------------------------------
+
+  /// Stock total de todos los calzados del usuario
+  Future<void> _calcularStockTotal() async {
+    setState(() => _cargandoStock = true);
+    try {
+      // 1. Obtener todos los calzados del usuario
+      final calzadosSnap = await FirebaseFirestore.instance
+          .collection('calzado')
+          .where('usuario_creacion', isEqualTo: widget.firstName)
+          .where('activo', isEqualTo: true)
+          .get();
+
+      if (calzadosSnap.docs.isEmpty) {
+        setState(() {
+          _stockDisponible = 0;
+          _cargandoStock = false;
+        });
+        return;
+      }
+
+      final calzadoIds = calzadosSnap.docs.map((d) => d.id).toList();
+
+      // 2. Obtener todas las filas de inventario de esos calzados
+      int total = 0;
+      for (final calzadoId in calzadoIds) {
+        final filasSnap = await FirebaseFirestore.instance
+            .collection('fila_inventario')
+            .where('calzado_id', isEqualTo: calzadoId)
+            .get();
+
+        for (final fila in filasSnap.docs) {
+          total += (fila['cantidad'] ?? 0) as int;
+        }
+      }
+
+      setState(() {
+        _stockDisponible = total;
+        _cargandoStock = false;
+      });
+    } catch (e) {
+      setState(() => _cargandoStock = false);
+    }
+  }
+
+  /// Stock filtrado por calzado seleccionado
+  Future<void> _calcularStockPorCalzado(String calzadoId) async {
+    setState(() => _cargandoStock = true);
+    try {
+      final filasSnap = await FirebaseFirestore.instance
+          .collection('fila_inventario')
+          .where('calzado_id', isEqualTo: calzadoId)
+          .get();
+
+      int total = 0;
+      final Set<int> tallasSet = {};
+
+      for (final fila in filasSnap.docs) {
+        total += (fila['cantidad'] ?? 0) as int;
+
+        // Obtener tallas disponibles desde subfilas
+        final subfilasSnap = await FirebaseFirestore.instance
+            .collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: fila.id)
+            .get();
+
+        for (final sub in subfilasSnap.docs) {
+          final talla = sub['talla'] ?? 0;
+          if (talla > 0) tallasSet.add(talla as int);
+        }
+      }
+
+      final tallasSorted = tallasSet.toList()..sort();
+
+      setState(() {
+        _stockDisponible = total;
+        _tallasDisponibles = tallasSorted;
+        _tallaSeleccionada = null;
+        _tacoSeleccionado = null;
+        _plataformaSeleccionada = false;
+        _tacosDisponibles = [];
+        _cargandoStock = false;
+      });
+    } catch (e) {
+      setState(() => _cargandoStock = false);
+    }
+  }
+
+  /// Stock filtrado por calzado + talla
+  Future<void> _calcularStockPorTalla(int talla) async {
+    if (_calzadoId == null) return;
+    setState(() => _cargandoStock = true);
+    try {
+      final filasSnap = await FirebaseFirestore.instance
+          .collection('fila_inventario')
+          .where('calzado_id', isEqualTo: _calzadoId)
+          .get();
+
+      int total = 0;
+      final Set<int> tacosSet = {};
+
+      for (final fila in filasSnap.docs) {
+        final subfilasSnap = await FirebaseFirestore.instance
+            .collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: fila.id)
+            .where('talla', isEqualTo: talla)
+            .get();
+
+        for (final sub in subfilasSnap.docs) {
+          total += (sub['cantidad'] ?? 0) as int;
+          final taco = sub['taco'] ?? 0;
+          if (_tipoTieneTaco && taco > 0) tacosSet.add(taco as int);
+        }
+      }
+
+      final tacosSorted = tacosSet.toList()..sort();
+
+      setState(() {
+        _stockDisponible = total;
+        _tacosDisponibles = tacosSorted;
+        _tacoSeleccionado = null;
+        _plataformaSeleccionada = false;
+        _cargandoStock = false;
+      });
+    } catch (e) {
+      setState(() => _cargandoStock = false);
+    }
+  }
+
+  /// Stock filtrado por calzado + talla + taco
+  Future<void> _calcularStockPorTaco(int taco) async {
+    if (_calzadoId == null || _tallaSeleccionada == null) return;
+    setState(() => _cargandoStock = true);
+    try {
+      final filasSnap = await FirebaseFirestore.instance
+          .collection('fila_inventario')
+          .where('calzado_id', isEqualTo: _calzadoId)
+          .get();
+
+      int total = 0;
+      for (final fila in filasSnap.docs) {
+        final subfilasSnap = await FirebaseFirestore.instance
+            .collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: fila.id)
+            .where('talla', isEqualTo: _tallaSeleccionada)
+            .where('taco', isEqualTo: taco)
+            .get();
+
+        for (final sub in subfilasSnap.docs) {
+          total += (sub['cantidad'] ?? 0) as int;
+        }
+      }
+
+      setState(() {
+        _stockDisponible = total;
+        _plataformaSeleccionada = false;
+        _cargandoStock = false;
+      });
+    } catch (e) {
+      setState(() => _cargandoStock = false);
+    }
+  }
+
+  /// Stock filtrado por calzado + talla + plataforma (cuando no hay taco)
+  Future<void> _calcularStockPorPlataforma(bool plataforma) async {
+    if (_calzadoId == null || _tallaSeleccionada == null) return;
+    setState(() => _cargandoStock = true);
+    try {
+      final filasSnap = await FirebaseFirestore.instance
+          .collection('fila_inventario')
+          .where('calzado_id', isEqualTo: _calzadoId)
+          .get();
+
+      int total = 0;
+      for (final fila in filasSnap.docs) {
+        final subfilasSnap = await FirebaseFirestore.instance
+            .collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: fila.id)
+            .where('talla', isEqualTo: _tallaSeleccionada)
+            .where('plataforma', isEqualTo: plataforma)
+            .get();
+
+        for (final sub in subfilasSnap.docs) {
+          total += (sub['cantidad'] ?? 0) as int;
+        }
+      }
+
+      setState(() {
+        _stockDisponible = total;
+        _cargandoStock = false;
+      });
+    } catch (e) {
+      setState(() => _cargandoStock = false);
+    }
+  }
+
+  /// Stock filtrado por calzado + talla + taco + plataforma (filtro completo)
+  Future<void> _calcularStockCompleto() async {
+    if (_calzadoId == null || _tallaSeleccionada == null) return;
+    if (!_tipoTieneTaco || _tacoSeleccionado == null) return;
+    setState(() => _cargandoStock = true);
+    try {
+      final filasSnap = await FirebaseFirestore.instance
+          .collection('fila_inventario')
+          .where('calzado_id', isEqualTo: _calzadoId)
+          .get();
+
+      int total = 0;
+      for (final fila in filasSnap.docs) {
+        final subfilasSnap = await FirebaseFirestore.instance
+            .collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: fila.id)
+            .where('talla', isEqualTo: _tallaSeleccionada)
+            .where('taco', isEqualTo: _tacoSeleccionado)
+            .where('plataforma', isEqualTo: _plataformaSeleccionada)
+            .get();
+
+        for (final sub in subfilasSnap.docs) {
+          total += (sub['cantidad'] ?? 0) as int;
+        }
+      }
+
+      setState(() {
+        _stockDisponible = total;
+        _cargandoStock = false;
+      });
+    } catch (e) {
+      setState(() => _cargandoStock = false);
+    }
+  }
+
+  // -------------------------------------------------------
+  // VALIDACION DEL BOTON
+  // -------------------------------------------------------
+
+  bool get _puedeVender {
+    if (_calzadoId == null) return false;
+    if (_tallaSeleccionada == null) return false;
+    if (_cantidadVenta <= 0) return false;
+    if (_stockDisponible <= 0) return false;
+    if (_cantidadVenta > _stockDisponible) return false;
+    return true;
+  }
+
+  String? get _mensajeBloqueo {
+    if (_calzadoId == null) return null;
+    if (_tallaSeleccionada == null) return null;
+    if (_stockDisponible == 0) return 'Sin stock disponible para esta seleccion';
+    if (_cantidadVenta > 0 && _cantidadVenta > _stockDisponible) {
+      return 'No hay suficiente stock (disponible: $_stockDisponible)';
+    }
+    return null;
+  }
+
+  // -------------------------------------------------------
+  // SPLASH
+  // -------------------------------------------------------
+
+  void _mostrarSplashScreen() {
     showDialog(
       context: context,
       barrierDismissible: false,
+      useRootNavigator: true,
       builder: (_) => const SplashScreen02(),
     );
   }
 
-  void _ocultarSplash() {
-    if (Navigator.canPop(context)) Navigator.pop(context);
+  void _ocultarSplashScreen() {
+    if (Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
   }
 
-  /// 🔹 Cargar inventario del calzado seleccionado
-  Future<void> _cargarStock(String calzadoId) async {
-    setState(() => _cargando = true);
+  // -------------------------------------------------------
+  // ICONO TIPO
+  // -------------------------------------------------------
 
-    final filaSnap = await FirebaseFirestore.instance
-        .collection('fila_inventario')
-        .where('inventario_id', isEqualTo: widget.inventarioId)
-        .where('calzado_id', isEqualTo: calzadoId)
-        .limit(1)
+  Future<String?> _obtenerIconoTipo(String tipoCalzadoId) async {
+    if (_iconCache.containsKey(tipoCalzadoId)) return _iconCache[tipoCalzadoId];
+    final tipoSnap = await FirebaseFirestore.instance
+        .collection('tipo_calzado')
+        .doc(tipoCalzadoId)
         .get();
-
-    if (filaSnap.docs.isEmpty) {
-      setState(() {
-        _cantidadDisponible = 0;
-        _subfilas.clear();
-      });
-      return;
+    String? icono;
+    final data = tipoSnap.data();
+    if (data != null && data['icono'] != null) {
+      icono = data['icono'].toString();
     }
-
-    final fila = filaSnap.docs.first;
-
-    _filaInventarioId = fila.id;
-    _cantidadDisponible = fila['cantidad'] ?? 0;
-
-    // 🔹 Obtener datos del calzado
-    final calzadoDoc = await FirebaseFirestore.instance
-        .collection('calzado')
-        .doc(calzadoId)
-        .get();
-
-    if (calzadoDoc.exists) {}
-
-    // 🔹 Subfilas
-    final subSnap = await FirebaseFirestore.instance
-        .collection('subfila_inventario')
-        .where('fila_inventario_id', isEqualTo: fila.id)
-        .get();
-
-    _subfilas.clear();
-
-    for (var doc in subSnap.docs) {
-      _subfilas.add({
-        'subfila_id': doc.id,
-        'stock': doc['cantidad'] ?? 0,
-        'cantidad': 0,
-        'talla': doc['talla'],
-        'taco': doc['taco'],
-        'plataforma': doc['plataforma'],
-      });
-    }
-
-    setState(() => _cargando = false);
+    _iconCache[tipoCalzadoId] = icono;
+    return icono;
   }
 
-  /// 🔹 Guardar venta
-  Future<void> _guardarVenta() async {
-    if (_calzadoId == null || _filaInventarioId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona un calzado')),
-      );
-      return;
-    }
+  // -------------------------------------------------------
+  // GUARDAR VENTA
+  // -------------------------------------------------------
 
-    final totalVenta = _subfilas.fold<int>(
-      0,
-      (suma, item) => suma + (item['cantidad'] ?? 0) as int,
-    );
+  Future<void> _realizarVenta() async {
+    if (!_puedeVender) return;
 
-    print(totalVenta);
-
-    if (totalVenta <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingresa cantidades a vender')),
-      );
-      return;
-    }
-
-    if (totalVenta > _cantidadDisponible) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Supera el stock disponible')),
-      );
-      return;
-    }
-
-    _mostrarSplash();
+    _mostrarSplashScreen();
 
     try {
       final db = FirebaseFirestore.instance;
 
-      /// 🔹 1. Crear fila_venta
-      final ventaRef = await db.collection('fila_venta').add({
-        'inventario_id': widget.inventarioId,
+      // 1. Crear documento en coleccion "venta"
+      final ventaRef = await db.collection('venta').add({
         'calzado_id': _calzadoId,
-        'cantidad': totalVenta,
+        'talla': _tallaSeleccionada,
+        'taco': _tipoTieneTaco ? _tacoSeleccionado ?? 0 : 0,
+        'plataforma': _tipoTienePlataforma ? _plataformaSeleccionada : false,
+        'cantidad': _cantidadVenta,
+        'fecha_venta': Timestamp.now(),
+        'usuario_creacion': widget.firstName ?? 'anon',
+      });
+
+      // 2. Crear fila_venta
+      await db.collection('fila_venta').add({
+        'venta_id': ventaRef.id,
+        'calzado_id': _calzadoId,
+        'talla': _tallaSeleccionada,
+        'taco': _tipoTieneTaco ? _tacoSeleccionado ?? 0 : 0,
+        'plataforma': _tipoTienePlataforma ? _plataformaSeleccionada : false,
+        'cantidad': _cantidadVenta,
         'fecha_creacion': Timestamp.now(),
         'usuario_creacion': widget.firstName ?? 'anon',
       });
 
-      /// 🔹 2. Insertar subfilas venta
-      for (var sub in _subfilas) {
-        final vender = (sub['cantidad'] ?? 0) as int;
-        if (vender <= 0) continue;
+      // 3. Actualizar subfila_inventario (restar o eliminar)
+      int cantidadPorDescontar = _cantidadVenta;
 
-        await db.collection('subfila_venta').add({
-          'fila_venta_id': ventaRef.id,
-          'subfila_inventario_id': sub['subfila_id'],
-          'cantidad': vender,
-          'talla': sub['talla'],
-          'taco': sub['taco'],
-          'plataforma': sub['plataforma'],
-          'fecha_creacion': Timestamp.now(),
-          'usuario_creacion': widget.firstName ?? 'anon',
-        });
-      }
+      final filasSnap = await db
+          .collection('fila_inventario')
+          .where('calzado_id', isEqualTo: _calzadoId)
+          .get();
 
-      /// 🔹 3. ACTUALIZAR STOCK (SIN tx.get 💥)
-      await db.runTransaction((tx) async {
-        for (var sub in _subfilas) {
-          final vender = (sub['cantidad'] ?? 0) as int;
-          if (vender <= 0) continue;
+      for (final fila in filasSnap.docs) {
+        if (cantidadPorDescontar <= 0) break;
 
-          final stockActual = sub['stock'] as int;
+        Query subQuery = db
+            .collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: fila.id)
+            .where('talla', isEqualTo: _tallaSeleccionada);
 
-          if (stockActual < vender) {
-            throw Exception('Stock insuficiente');
-          }
-
-          final ref =
-              db.collection('subfila_inventario').doc(sub['subfila_id']);
-
-          tx.update(ref, {
-            'cantidad': stockActual - vender,
-          });
+        if (_tipoTieneTaco && _tacoSeleccionado != null) {
+          subQuery = subQuery.where('taco', isEqualTo: _tacoSeleccionado);
+        }
+        if (_tipoTienePlataforma) {
+          subQuery = subQuery.where('plataforma', isEqualTo: _plataformaSeleccionada);
         }
 
-        /// 🔹 actualizar fila inventario total
-        final filaRef = db.collection('fila_inventario').doc(_filaInventarioId);
+        final subfilasSnap = await subQuery.get();
 
-        tx.update(filaRef, {
-          'cantidad': _cantidadDisponible - totalVenta,
-        });
-      });
+        for (final subDoc in subfilasSnap.docs) {
+          if (cantidadPorDescontar <= 0) break;
 
-      _ocultarSplash();
+          final cantidadActual = (subDoc['cantidad'] ?? 0) as int;
+          final descuento = cantidadPorDescontar > cantidadActual
+              ? cantidadActual
+              : cantidadPorDescontar;
+          cantidadPorDescontar -= descuento;
+          final nuevaCantidad = cantidadActual - descuento;
+
+          if (nuevaCantidad <= 0) {
+            // Eliminar subfila
+            await subDoc.reference.delete();
+          } else {
+            // Actualizar subfila
+            await subDoc.reference.update({'cantidad': nuevaCantidad});
+          }
+        }
+
+        // 4. Recalcular cantidad de fila_inventario
+        final subfilasRestantes = await db
+            .collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: fila.id)
+            .get();
+
+        if (subfilasRestantes.docs.isEmpty) {
+          // Si no quedan subfilas, eliminar la fila
+          await fila.reference.delete();
+        } else {
+          final nuevaCantidadFila = subfilasRestantes.docs
+              // ignore: avoid_types_as_parameter_names
+              .fold<int>(0, (sum, d) => sum + ((d['cantidad'] ?? 0) as int));
+          await fila.reference.update({'cantidad': nuevaCantidadFila});
+        }
+      }
+
+      _ocultarSplashScreen();
+      await Future.delayed(const Duration(milliseconds: 150));
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Venta registrada correctamente')),
       );
-
       Navigator.pop(context, true);
     } catch (e) {
-      _ocultarSplash();
+      _ocultarSplashScreen();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(content: Text('Error al registrar venta: $e')),
       );
     }
   }
 
-  /// 🔹 UI Subfila
-  Widget _buildSubfila(int index) {
-    final sub = _subfilas[index];
+  // -------------------------------------------------------
+  // UI
+  // -------------------------------------------------------
+
+  Widget _buildStockLabel() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+      decoration: BoxDecoration(
+        color: _stockDisponible > 0
+            ? Colors.green.shade50
+            : Colors.red.shade50,
+        border: Border.all(
+          color: _stockDisponible > 0
+              ? Colors.green.shade300
+              : Colors.red.shade300,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Stock disponible:',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          ),
+          _cargandoStock
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(
+                  '$_stockDisponible unidades',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: _stockDisponible > 0
+                        ? Colors.green.shade700
+                        : Colors.red.shade700,
+                  ),
+                ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownCalzado(List<QueryDocumentSnapshot> calzados) {
+    return DropdownButtonFormField<String>(
+      decoration: const InputDecoration(
+        labelText: 'Seleccionar calzado',
+        border: OutlineInputBorder(),
+      ),
+      value: _calzadoId,
+      items: calzados.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final tipoCalzadoId = data['tipo_calzado_id'] ?? '';
+        final nombre = data['nombre'] ?? 'Sin nombre';
+        return DropdownMenuItem<String>(
+          value: doc.id,
+          child: FutureBuilder<String?>(
+            future: _obtenerIconoTipo(tipoCalzadoId),
+            builder: (context, iconSnapshot) {
+              final icono = iconSnapshot.data;
+              return Row(
+                children: [
+                  if (icono != null && icono.isNotEmpty)
+                    Image.asset(icono, width: 32, height: 32),
+                  const SizedBox(width: 8),
+                  Text(nombre),
+                ],
+              );
+            },
+          ),
+        );
+      }).toList(),
+      onChanged: (v) async {
+        if (v == null) return;
+
+        // Cargar flags del calzado
+        final calzadoDoc = await FirebaseFirestore.instance
+            .collection('calzado')
+            .doc(v)
+            .get();
+
+        if (calzadoDoc.exists) {
+          final data = calzadoDoc.data()!;
+          _tipoTieneTaco = data['taco'] ?? false;
+          _tipoTienePlataforma = data['plataforma'] ?? false;
+        }
+
+        setState(() {
+          _calzadoId = v;
+          _tallaSeleccionada = null;
+          _tacoSeleccionado = null;
+          _plataformaSeleccionada = false;
+          _cantidadVenta = 0;
+          _cantidadController.clear();
+        });
+
+        await _calcularStockPorCalzado(v);
+      },
+    );
+  }
+
+  Widget _buildDropdownTalla() {
+    if (_calzadoId == null || _tallasDisponibles.isEmpty) return const SizedBox();
 
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(
-  child: Text(
-    // Primera fila: Talla y Stock
-    'Talla: ${sub['talla']} | Stock: ${sub['stock']}${_tipoTieneTaco || _tipoTienePlataforma
-        ? '\n'
-          '${_tipoTieneTaco && (sub['taco'] != null && sub['taco'] > 0) ? 'Taco: ${sub['taco']}' : ''}'
-          '${_tipoTieneTaco && _tipoTienePlataforma && (sub['plataforma'] != null) ? ' | ' : ''}'
-          '${_tipoTienePlataforma && sub['plataforma'] != null ? 'Plataforma: ${sub['plataforma'] ? 'Sí' : 'No'}' : ''}'
-        : ''}',
-    style: const TextStyle(fontWeight: FontWeight.bold),
-  ),
-),
-            SizedBox(
-              width: 80,
-              child: TextFormField(
-                decoration: const InputDecoration(labelText: 'Vender'),
-                keyboardType: TextInputType.number,
-                onChanged: (v) {
-                  final val = int.tryParse(v) ?? 0;
-
-                  if (val > sub['stock']) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Excede stock')),
-                    );
-                    return;
-                  }
-
-                  setState(() => sub['cantidad'] = val);
-                },
-              ),
-            ),
-          ],
+        const SizedBox(height: 12),
+        DropdownButtonFormField<int>(
+          decoration: const InputDecoration(
+            labelText: 'Seleccionar talla',
+            border: OutlineInputBorder(),
+          ),
+          value: _tallaSeleccionada,
+          items: _tallasDisponibles
+              .map((t) => DropdownMenuItem<int>(
+                    value: t,
+                    child: Text(t.toString()),
+                  ))
+              .toList(),
+          onChanged: (v) async {
+            if (v == null) return;
+            setState(() {
+              _tallaSeleccionada = v;
+              _tacoSeleccionado = null;
+              _plataformaSeleccionada = false;
+              _cantidadVenta = 0;
+              _cantidadController.clear();
+            });
+            await _calcularStockPorTalla(v);
+          },
         ),
-        const Divider(),
+      ],
+    );
+  }
+
+  Widget _buildDropdownTaco() {
+    if (!_tipoTieneTaco) return const SizedBox();
+    if (_tallaSeleccionada == null || _tacosDisponibles.isEmpty) return const SizedBox();
+
+    return Column(
+      children: [
+        const SizedBox(height: 12),
+        DropdownButtonFormField<int>(
+          decoration: const InputDecoration(
+            labelText: 'Seleccionar taco (cm)',
+            border: OutlineInputBorder(),
+          ),
+          value: _tacoSeleccionado,
+          items: _tacosDisponibles
+              .map((t) => DropdownMenuItem<int>(
+                    value: t,
+                    child: Text('$t cm'),
+                  ))
+              .toList(),
+          onChanged: (v) async {
+            if (v == null) return;
+            setState(() {
+              _tacoSeleccionado = v;
+              _plataformaSeleccionada = false;
+              _cantidadVenta = 0;
+              _cantidadController.clear();
+            });
+            await _calcularStockPorTaco(v);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCheckboxPlataforma() {
+    // Mostrar plataforma solo si aplica y ya se selecciono lo anterior
+    final mostrar = _tipoTienePlataforma &&
+        _tallaSeleccionada != null &&
+        (!_tipoTieneTaco || _tacoSeleccionado != null);
+
+    if (!mostrar) return const SizedBox();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(
+        children: [
+          const Text('Con plataforma', style: TextStyle(fontSize: 15)),
+          Checkbox(
+            value: _plataformaSeleccionada,
+            onChanged: (v) async {
+              final valor = v ?? false;
+              setState(() {
+                _plataformaSeleccionada = valor;
+                _cantidadVenta = 0;
+                _cantidadController.clear();
+              });
+              if (_tipoTieneTaco && _tacoSeleccionado != null) {
+                await _calcularStockCompleto();
+              } else {
+                await _calcularStockPorPlataforma(valor);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCantidadVenta() {
+    // Solo mostrar cuando ya hay algun filtro relevante seleccionado
+    if (_calzadoId == null) return const SizedBox();
+
+    return Column(
+      children: [
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: _cantidadController,
+          decoration: const InputDecoration(
+            labelText: 'Cantidad a vender',
+            border: OutlineInputBorder(),
+          ),
+          keyboardType: TextInputType.number,
+          onChanged: (v) {
+            setState(() => _cantidadVenta = int.tryParse(v) ?? 0);
+          },
+        ),
+        if (_mensajeBloqueo != null) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  color: Colors.orange, size: 18),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  _mensajeBloqueo!,
+                  style: const TextStyle(color: Colors.orange, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_cargando) return const SplashScreen02();
-
     return Scaffold(
-      appBar: Designwidgets().appBarMain("Registrar Venta"),
+      appBar: Designwidgets().appBarMain('Nueva Venta'),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            /// 🔹 Dropdown calzado
-            StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('calzado')
-                  .where('usuario_creacion', isEqualTo: widget.firstName)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const SizedBox();
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- Stock Label ---
+              _buildStockLabel(),
+              const SizedBox(height: 16),
 
-                final docs = snapshot.data!.docs;
+              // --- Dropdown Calzado ---
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('calzado')
+                    .where('usuario_creacion', isEqualTo: widget.firstName)
+                    .where('activo', isEqualTo: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Text('No tienes calzados registrados.');
+                  }
+                  return _buildDropdownCalzado(snapshot.data!.docs);
+                },
+              ),
 
-                return DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    labelText: 'Seleccionar calzado',
-                    border: OutlineInputBorder(),
+              // --- Dropdown Talla ---
+              _buildDropdownTalla(),
+
+              // --- Dropdown Taco ---
+              _buildDropdownTaco(),
+
+              // --- Checkbox Plataforma ---
+              _buildCheckboxPlataforma(),
+
+              // --- Campo Cantidad ---
+              _buildCantidadVenta(),
+
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 12),
+
+              // --- Boton Vender ---
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _puedeVender ? Colors.green.shade600 : Colors.grey.shade400,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  value: _calzadoId,
-                  items: docs.map((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    return DropdownMenuItem(
-                      value: doc.id,
-                      child: Text(data['nombre'] ?? 'Sin nombre'),
-                    );
-                  }).toList(),
-                  onChanged: (v) {
-                    setState(() => _calzadoId = v);
-                    if (v != null) {
-                      // Buscar el calzado seleccionado en los docs
-                      final seleccionado =
-                          docs.firstWhere((doc) => doc.id == v);
-                      final data = seleccionado.data() as Map<String, dynamic>;
-
-                      setState(() {
-                        _calzadoId = v;
-                        // 🔹 Actualizar variables según la colección
-                        _tipoTieneTaco = data['taco'] ?? false;
-                        _tipoTienePlataforma = data['plataforma'] ?? false;
-                      });
-                      _cargarStock(v);
-                    }
-                  },
-                );
-              },
-            ),
-
-            const SizedBox(height: 12),
-
-            /// 🔹 Stock total
-            Text(
-              'Stock disponible: $_cantidadDisponible',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 12),
-
-            /// 🔹 Subfilas
-            Expanded(
-              child: ListView.builder(
-                itemCount: _subfilas.length,
-                itemBuilder: (_, i) => _buildSubfila(i),
+                  icon: const Icon(Icons.shopping_cart_checkout),
+                  label: Text(
+                    _stockDisponible == 0 && _calzadoId != null
+                        ? 'Sin stock disponible'
+                        : 'Registrar venta',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  onPressed: _puedeVender ? _realizarVenta : null,
+                ),
               ),
-            ),
-
-            /// 🔹 Botón guardar
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _guardarVenta,
-                icon: const Icon(Icons.save),
-                label: const Text('Registrar venta'),
-              ),
-            ),
-          ],
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );

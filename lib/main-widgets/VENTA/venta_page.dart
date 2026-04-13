@@ -59,7 +59,6 @@ class _VentaPageState extends State<VentaPage> {
       MaterialPageRoute(
         builder: (context) => VentaFormPage(
           firstName: widget.firstName,
-          inventarioId: inventarioId!,
         ),
       ),
     );
