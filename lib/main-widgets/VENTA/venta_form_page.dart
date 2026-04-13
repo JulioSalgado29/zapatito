@@ -179,6 +179,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
   }
 
   Future<void> _calcularStockPorTaco(int taco) async {
+    print('''Calculando stock por taco: $taco''');
     if (_calzadoId == null || _tallaSeleccionada == null) return;
     setState(() => _cargandoStock = true);
     try {
@@ -194,6 +195,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
             .where('fila_inventario_id', isEqualTo: fila.id)
             .where('talla', isEqualTo: _tallaSeleccionada)
             .where('taco', isEqualTo: taco)
+            .where('plataforma', isEqualTo: _plataformaSeleccionada)
             .get();
 
         for (final sub in subfilasSnap.docs) {
@@ -293,7 +295,9 @@ class _VentaFormPageState extends State<VentaFormPage> {
   String? get _mensajeBloqueo {
     if (_calzadoId == null) return null;
     if (_tallaSeleccionada == null) return null;
-    if (_stockDisponible == 0) return 'Sin stock disponible para esta seleccion';
+    if (_stockDisponible == 0) {
+      return 'Sin stock disponible para esta seleccion';
+    }
     if (_cantidadVenta > 0 && _cantidadVenta > _stockDisponible) {
       return 'No hay suficiente stock (disponible: $_stockDisponible)';
     }
@@ -393,7 +397,8 @@ class _VentaFormPageState extends State<VentaFormPage> {
           subQuery = subQuery.where('taco', isEqualTo: _tacoSeleccionado);
         }
         if (_tipoTienePlataforma) {
-          subQuery = subQuery.where('plataforma', isEqualTo: _plataformaSeleccionada);
+          subQuery =
+              subQuery.where('plataforma', isEqualTo: _plataformaSeleccionada);
         }
 
         final subfilasSnap = await subQuery.get();
@@ -457,9 +462,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       decoration: BoxDecoration(
-        color: _stockDisponible > 0
-            ? Colors.green.shade50
-            : Colors.red.shade50,
+        color: _stockDisponible > 0 ? Colors.green.shade50 : Colors.red.shade50,
         border: Border.all(
           color: _stockDisponible > 0
               ? Colors.green.shade300
@@ -527,10 +530,8 @@ class _VentaFormPageState extends State<VentaFormPage> {
       onChanged: (v) async {
         if (v == null) return;
 
-        final calzadoDoc = await FirebaseFirestore.instance
-            .collection('calzado')
-            .doc(v)
-            .get();
+        final calzadoDoc =
+            await FirebaseFirestore.instance.collection('calzado').doc(v).get();
 
         if (calzadoDoc.exists) {
           final data = calzadoDoc.data()!;
@@ -553,7 +554,11 @@ class _VentaFormPageState extends State<VentaFormPage> {
   }
 
   Widget _buildDropdownTalla() {
-    if (_calzadoId == null || _tallasDisponibles.isEmpty) return const SizedBox();
+    if (_calzadoId == null || _tallasDisponibles.isEmpty) {
+      return const SizedBox();
+    }
+
+    final tallas = List.generate(18, (i) => i + 25);
 
     return Column(
       children: [
@@ -563,7 +568,8 @@ class _VentaFormPageState extends State<VentaFormPage> {
             labelText: 'Seleccionar talla',
             border: OutlineInputBorder(),
           ),
-          value: _tallaSeleccionada,
+          value:
+              tallas.contains(_tallaSeleccionada) ? _tallaSeleccionada : null,
           items: _tallasDisponibles
               .map((t) => DropdownMenuItem<int>(
                     value: t,
@@ -588,7 +594,9 @@ class _VentaFormPageState extends State<VentaFormPage> {
 
   Widget _buildDropdownTaco() {
     if (!_tipoTieneTaco) return const SizedBox();
-    if (_tallaSeleccionada == null || _tacosDisponibles.isEmpty) return const SizedBox();
+    if (_tallaSeleccionada == null || _tacosDisponibles.isEmpty) {
+      return const SizedBox();
+    }
 
     return Column(
       children: [
@@ -644,7 +652,9 @@ class _VentaFormPageState extends State<VentaFormPage> {
               if (_tipoTieneTaco && _tacoSeleccionado != null) {
                 await _calcularStockCompleto();
               } else {
-                await _calcularStockPorPlataforma(valor);
+                print('''Calculando stock completo con plataforma: $v''');
+                await _calcularStockPorPlataforma(
+                    _plataformaSeleccionada ?? false);
               }
             },
           ),
@@ -655,11 +665,11 @@ class _VentaFormPageState extends State<VentaFormPage> {
 
   Widget _buildCantidadVenta() {
     if (_calzadoId == null ||
-    _tallaSeleccionada == null ||
-    (_tipoTieneTaco && _tacoSeleccionado == null) ||
-    (_tipoTienePlataforma && _plataformaSeleccionada == null)) {
-  return const SizedBox();
-}
+        _tallaSeleccionada == null ||
+        (_tipoTieneTaco && _tacoSeleccionado == null) ||
+        (_tipoTienePlataforma && _plataformaSeleccionada == null)) {
+      return const SizedBox();
+    }
 
     return Column(
       children: [
@@ -707,7 +717,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
             children: [
               _buildStockLabel(),
               const SizedBox(height: 16),
-
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('calzado')
@@ -721,22 +730,20 @@ class _VentaFormPageState extends State<VentaFormPage> {
                   return _buildDropdownCalzado(snapshot.data!.docs);
                 },
               ),
-
               _buildDropdownTalla(),
               _buildDropdownTaco(),
               _buildCheckboxPlataforma(),
               _buildCantidadVenta(),
-
               const SizedBox(height: 24),
               const Divider(),
               const SizedBox(height: 12),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _puedeVender ? Colors.green.shade600 : Colors.grey.shade400,
+                    backgroundColor: _puedeVender
+                        ? Colors.green.shade600
+                        : Colors.grey.shade400,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
