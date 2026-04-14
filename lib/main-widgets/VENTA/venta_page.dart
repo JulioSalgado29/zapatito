@@ -75,6 +75,17 @@ class _VentaPageState extends State<VentaPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
+        builder: (context) => VentaFormPage(
+          firstName: widget.firstName,
+        ),
+      ),
+    );
+  }
+  /// 
+  void _navegarFormularioMultiple() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
         builder: (context) => VentaFormPageMultiple(
           firstName: widget.firstName,
         ),
@@ -352,11 +363,30 @@ class _VentaPageState extends State<VentaPage> {
                 onPressed: _navegarFormulario,
                 icon: const Icon(Icons.add, color: Colors.white),
                 label:
-                    const Text("Código", style: TextStyle(color: Colors.white)),
+                    const Text("Por Código", style: TextStyle(color: Colors.white)),
+              ),
+            )),
+        const SizedBox(height: 12),
+        SizedBox(
+            width: 150, // 👌 Ambos iguales
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: Designwidgets().linearGradientFire(context),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: FloatingActionButton.extended(
+                heroTag: "btn1",
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                onPressed: _navegarFormularioMultiple,
+                icon: const Icon(Icons.add, color: Colors.white),
+                label:
+                    const Text("Múltiple", style: TextStyle(color: Colors.white)),
               ),
             )),
         const SizedBox(height: 12),
       ]),
+      
     );
   }
 }
