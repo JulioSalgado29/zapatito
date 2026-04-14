@@ -4,11 +4,15 @@ import 'package:zapatito/components/widgets.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:zapatito/main-widgets/CALZADO/calzado_form_page.dart';
+import 'package:zapatito/main-widgets/MAIN/home_page.dart';
 
 class CalzadoPage extends StatefulWidget {
   final String? firstName;
+  final String? emailUser;
+  final String? inventarioId;
 
-  const CalzadoPage({super.key, this.firstName});
+  const CalzadoPage(
+      {super.key, this.firstName, this.emailUser, this.inventarioId});
 
   @override
   State<CalzadoPage> createState() => _CalzadoPageState();
@@ -27,6 +31,31 @@ class _CalzadoPageState extends State<CalzadoPage> {
         });
       }
     });
+    _verificarInventario();
+  }
+
+  Future<void> _verificarInventario() async {
+    try {
+      // 1. Acceso directo al documento por su ID único
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('inventario')
+          .doc(widget
+              .inventarioId) // Buscamos el documento con ese nombre exacto
+          .get();
+
+      // 2. Verificamos si el documento existe físicamente en Firestore
+      if (!docSnapshot.exists) {
+        // Si no existe, redirigimos
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomePage()),
+          );
+        });
+      }
+    } catch (e) {
+      print("Error al buscar el ID del inventario: $e");
+    }
   }
 
   void _navegarFormulario({DocumentSnapshot? doc}) {
@@ -35,6 +64,8 @@ class _CalzadoPageState extends State<CalzadoPage> {
       MaterialPageRoute(
         builder: (context) => CalzadoFormPage(
           firstName: widget.firstName,
+          emailUser: widget.emailUser,
+          inventarioId: widget.inventarioId,
           isOnline: isOnline,
           doc: doc,
         ),
@@ -165,6 +196,9 @@ class _CalzadoPageState extends State<CalzadoPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.inventarioId == null) {
+      return const SplashScreen02();
+    }
     return Scaffold(
       appBar: Designwidgets().appBarMain("Códigos", isOnline: isOnline),
       body: Padding(
@@ -173,7 +207,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
           stream: FirebaseFirestore.instance
               .collection('calzado')
               .where('activo', isEqualTo: true)
-              .where('usuario_creacion', isEqualTo: widget.firstName)
+              .where('id_inventario', isEqualTo: widget.inventarioId)
               .orderBy('fecha_creacion', descending: true)
               .snapshots(),
           builder: (context, snapshot) {

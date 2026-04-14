@@ -8,12 +8,16 @@ class CalzadoFormPage extends StatefulWidget {
   final String? firstName;
   final bool isOnline;
   final DocumentSnapshot? doc;
+  final String? emailUser;
+  final String? inventarioId;
 
   const CalzadoFormPage({
     super.key,
     this.firstName,
     required this.isOnline,
     this.doc,
+    this.emailUser,
+    this.inventarioId,
   });
 
   @override
@@ -133,12 +137,14 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
       'nombre': _nombreController.text.trim(),
       'precio_real': double.parse(precio.toStringAsFixed(2)),
       'usuario_creacion': widget.firstName,
+      'email_usuario': widget.emailUser,
       'fecha_creacion': FieldValue.serverTimestamp(),
       'tipo_calzado_id': _selectedTipoCalzadoId,
       'icono': icono,
       'activo': true,
       'taco': _tacoCheckbox,
       'plataforma': _plataformaCheckbox,
+      'id_inventario': widget.inventarioId,
     };
 
     try {
@@ -195,14 +201,12 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                       ? FirebaseFirestore.instance
                           .collection('tipo_calzado')
                           .where('activo', isEqualTo: true)
-                          .where('usuario_creacion',
-                              isEqualTo: widget.firstName ?? 'Invitado')
+                          .where('id_inventario', isEqualTo: widget.inventarioId)
                           .orderBy('fecha_creacion', descending: true)
                           .snapshots()
                       : FirebaseFirestore.instance
                           .collection('tipo_calzado')
-                          .where('usuario_creacion',
-                              isEqualTo: widget.firstName ?? 'Invitado')
+                          .where('id_inventario', isEqualTo: widget.inventarioId)
                           .orderBy('fecha_creacion', descending: true)
                           .snapshots(),
                   builder: (context, snapshot) {

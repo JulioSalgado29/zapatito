@@ -125,7 +125,7 @@ class _HomePageState extends State<HomePage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => CalzadoPage(firstName: firstName),
+                      builder: (context) => CalzadoPage(firstName: firstName, emailUser: emailUser, inventarioId: inventarioId),
                     ),
                   );
                 },
