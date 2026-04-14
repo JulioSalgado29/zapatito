@@ -35,6 +35,9 @@ class _VentaFormPageState extends State<VentaFormPage> {
   List<int> _tallasDisponibles = [];
   List<int> _tacosDisponibles = [];
 
+  bool _bloqueandoTalla = false; // 🔥 flag para bloquear dropdown de talla mientras se calcula el stock
+  bool _errorTalla = false; // 🔥 flag para mostrar error de talla no disponible
+
   // --- Cache de iconos ---
   final Map<String, String?> _iconCache = {};
 
@@ -145,6 +148,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
     } else {
       print('''Talla seleccionada es invalida: $_tallaSeleccionada''');
       setState(() {
+        _errorTalla = true;
         _tallaSeleccionada = null;
       });
 
@@ -556,7 +560,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
       }).toList(),
       onChanged: (v) async {
         if (v == null) return;
-        _mostrarSplashScreen();
+          _bloqueandoTalla = true;
 
         final calzadoDoc =
             await FirebaseFirestore.instance.collection('calzado').doc(v).get();
@@ -577,48 +581,55 @@ class _VentaFormPageState extends State<VentaFormPage> {
         });
 
         await _calcularStockPorCalzado(v);
-        _ocultarSplashScreen();
+        _bloqueandoTalla = false;
       },
     );
   }
 
   Widget _buildDropdownTalla() {
-    if (_calzadoId == null || _tallasDisponibles.isEmpty) {
+    if (_calzadoId == null || _tallasDisponibles.isEmpty || _errorTalla) {
+      _errorTalla = false; // 🔥 resetear flag de error para que al seleccionar otro calzado no se quede bloqueado
       return const SizedBox();
     }
     print(_tallasDisponibles);
     return Column(
       children: [
         const SizedBox(height: 12),
-        DropdownButtonFormField<int>(
-          decoration: const InputDecoration(
-            labelText: 'Seleccionar talla',
-            border: OutlineInputBorder(),
-          ),
-          value: _tallasDisponibles.contains(_tallaSeleccionada)
-              ? _tallaSeleccionada
-              : null,
-          items: _tallasDisponibles
-              .toSet() // 🔥 evita duplicados (MUY IMPORTANTE)
-              .map((t) => DropdownMenuItem<int>(
-                    value: t,
-                    child: Text(t.toString()),
-                  ))
-              .toList(),
-          onChanged: (v) async {
-            if (v == null) return;
+        IgnorePointer(
+            ignoring: _bloqueandoTalla, // 🔥 bloquea interacción
+            child: DropdownButtonFormField<int>(
+              decoration: InputDecoration(
+                labelText: 'Seleccionar talla',
+                border: const OutlineInputBorder(),
+                filled: true,
+                fillColor: _bloqueandoTalla
+                    ? Colors.grey.shade200
+                    : Colors.white, // 👈 visual
+              ),
+              value: _tallasDisponibles.contains(_tallaSeleccionada)
+                  ? _tallaSeleccionada
+                  : null,
+              items: _tallasDisponibles
+                  .toSet() // 🔥 evita duplicados (MUY IMPORTANTE)
+                  .map((t) => DropdownMenuItem<int>(
+                        value: t,
+                        child: Text(t.toString()),
+                      ))
+                  .toList(),
+              onChanged: (v) async {
+                if (v == null) return;
 
-            setState(() {
-              _tallaSeleccionada = v;
-              _tacoSeleccionado = null;
-              _plataformaSeleccionada = false;
-              _cantidadVenta = 0;
-              _cantidadController.clear();
-            });
+                setState(() {
+                  _tallaSeleccionada = v;
+                  _tacoSeleccionado = null;
+                  _plataformaSeleccionada = false;
+                  _cantidadVenta = 0;
+                  _cantidadController.clear();
+                });
 
-            await _calcularStockPorTalla(v);
-          },
-        )
+                await _calcularStockPorTalla(v);
+              },
+            ))
       ],
     );
   }
@@ -630,9 +641,9 @@ class _VentaFormPageState extends State<VentaFormPage> {
     }
 
     if (_tallaSeleccionada != null &&
-    !_tallasDisponibles.contains(_tallaSeleccionada)) {
-  _tallaSeleccionada = null;
-}
+        !_tallasDisponibles.contains(_tallaSeleccionada)) {
+      _tallaSeleccionada = null;
+    }
 
     return Column(
       children: [
@@ -785,7 +796,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
                   ),
                   icon: const Icon(Icons.shopping_cart_checkout),
                   label: Text(
-                    _stockDisponible == 0 && _calzadoId != null
+                    _stockDisponible == 0 && _calzadoId != null && _tallaSeleccionada == null
                         ? 'Sin stock disponible'
                         : 'Registrar venta',
                     style: const TextStyle(fontSize: 16),
