@@ -54,7 +54,7 @@ class _InventarioPageState extends State<InventarioPage> {
   Stream<QuerySnapshot> _getFilasInventario() {
     return FirebaseFirestore.instance
         .collection('fila_inventario')
-        .where('inventario_id', isEqualTo: inventarioId)
+        .where('inventario_id', isEqualTo: widget.inventarioId)
         .snapshots();
   }
 
