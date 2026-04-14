@@ -44,14 +44,12 @@ class _WelcomePageState extends State<WelcomePage> {
         future: _initialization,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            print('FIREBASE INIT. ERROR');
             return const Center(
               child: Text("Error al inicializar Firebase"),
             );
           }
 
           if (snapshot.connectionState == ConnectionState.done) {
-            print('FIREBASE INIT. DONE ✅');
             // 👇 Solo se ejecuta una vez, después de renderizar el frame
             WidgetsBinding.instance.addPostFrameCallback((_) => _checkIfSignedIn());
           }

@@ -8,12 +8,16 @@ class TipoCalzadoForm extends StatefulWidget {
   final String? firstName;
   final bool isOnline;
   final DocumentSnapshot? doc;
+  final String? inventarioId;
+  final String? emailUser;
 
   const TipoCalzadoForm({
     super.key,
     this.firstName,
     required this.isOnline,
     this.doc,
+    this.inventarioId,
+    this.emailUser,
   });
 
   @override
@@ -85,10 +89,12 @@ class _TipoCalzadoFormState extends State<TipoCalzadoForm> {
       'nombre': _nombreController.text.trim(),
       'icono': _iconoSeleccionado,
       'usuario_creacion': widget.firstName,
+      'email_usuario': widget.emailUser,
       'fecha_creacion': FieldValue.serverTimestamp(),
       'activo': true,
       'taco': _taco,
       'plataforma': _plataforma,
+      'id_inventario': widget.inventarioId,
     };
 
     try {

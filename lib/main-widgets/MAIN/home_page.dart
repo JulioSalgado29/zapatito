@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:zapatito/main-widgets/CALZADO/calzado_page.dart';
@@ -16,6 +17,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String? userName;
   String? firstName;
+  String? emailUser;
+  String? propietarioId;
+  String? inventarioId;
 
   @override
   void initState() {
@@ -24,13 +28,52 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> loadUserName() async {
-    final data = await LocalStorageService.getUserData();
-    setState(() {
-      userName = data['name'] ?? 'Invitado';
-      firstName = userName?.split(' ')[0];
-    });
-  }
+  final data = await LocalStorageService.getUserData();
+  final userEmail = data['email'];
 
+  setState(() {
+    userName = data['name'] ?? 'Invitado';
+    firstName = userName;
+    emailUser = userEmail;
+  });
+
+  if (userEmail != null) {
+    try {
+      // --- PASO 1: Buscar el Propietario ---
+      final userQuery = await FirebaseFirestore.instance
+          .collection('usuario')
+          .where('email', isEqualTo: userEmail)
+          .limit(1)
+          .get();
+
+      if (userQuery.docs.isNotEmpty) {
+        final idProp = userQuery.docs.first.data()['propietario'];
+
+        setState(() {
+          propietarioId = idProp;
+        });
+
+        // --- PASO 2: Buscar el Inventario usando el propietarioId ---
+        if (idProp != null) {
+          final invQuery = await FirebaseFirestore.instance
+              .collection('inventario') // 👈 Asegúrate que este sea el nombre de tu colección
+              .where('propietario', isEqualTo: idProp)
+              .limit(1)
+              .get();
+
+          if (invQuery.docs.isNotEmpty) {
+            setState(() {
+              // Obtenemos el ID del documento (el código alfanumérico de Firebase)
+              inventarioId = invQuery.docs.first.id; 
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print('Error en la búsqueda masiva: $e');
+    }
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,7 +84,7 @@ class _HomePageState extends State<HomePage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             Text(
-              'Hola $userName 👋',
+              'Hola $firstName 👋',
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 30),
@@ -66,7 +109,7 @@ class _HomePageState extends State<HomePage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
-                          TipoCalzadoPage(firstName: firstName),
+                          TipoCalzadoPage(firstName: firstName, emailUser: emailUser, inventarioId: inventarioId),
                     ),
                   );
                 },
@@ -115,8 +158,7 @@ class _HomePageState extends State<HomePage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          VentaPage(firstName: firstName),
+                      builder: (context) => VentaPage(firstName: firstName),
                     ),
                   );
                 },
@@ -128,7 +170,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      drawer: Designwidgets().drawerHome(context, userName ?? "Invitado"),
+      drawer: Designwidgets().drawerHome(context, firstName ?? "Invitado"),
     );
   }
 }

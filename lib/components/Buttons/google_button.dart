@@ -17,7 +17,7 @@ class GoogleButton extends StatelessWidget {
       final email = data['email'];
 
       if (email != null) {
-        await FirebaseFirestore.instance.collection('usuario').add({
+        await FirebaseFirestore.instance.collection('sesion_google_log').add({
           'email': email,
           'name': data['name'] ?? 'Usuario sin nombre',
           'fecha_ingreso': FieldValue.serverTimestamp(),
