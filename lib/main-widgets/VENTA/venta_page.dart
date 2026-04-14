@@ -4,6 +4,7 @@ import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:zapatito/main-widgets/MAIN/home_page.dart';
 import 'package:zapatito/main-widgets/VENTA/venta_form_page.dart';
+import 'package:zapatito/main-widgets/VENTA/venta_form_page_multiple.dart';
 
 class VentaPage extends StatefulWidget {
   final String? firstName;
@@ -74,7 +75,7 @@ class _VentaPageState extends State<VentaPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VentaFormPage(
+        builder: (context) => VentaFormPageMultiple(
           firstName: widget.firstName,
         ),
       ),
