@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:zapatito/main-widgets/MAIN/home_page.dart';
 import 'package:zapatito/main-widgets/VENTA/venta_form_page.dart';
@@ -286,6 +287,10 @@ class _VentaPageState extends State<VentaPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (inventarioId == null) {
+      return const SplashScreen02();
+    }
+    
     return Scaffold(
       appBar: Designwidgets().appBarMain('Ventas'),
       body: StreamBuilder<QuerySnapshot>(

@@ -139,6 +139,24 @@ class _VentaFormPageState extends State<VentaFormPage> {
   }
 
   Future<void> _calcularStockPorTalla(int talla) async {
+    print('''Calculando stock por talla: $talla''');
+    if (_tallasDisponibles.contains(_tallaSeleccionada)) {
+      print('''Talla seleccionada es válida: $_tallaSeleccionada''');
+    } else {
+      print('''Talla seleccionada es invalida: $_tallaSeleccionada''');
+      setState(() {
+        _tallaSeleccionada = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se encontraron tallas disponibles para este calzado, vuelve a seleccionar la talla',
+          ),
+        ),
+      );
+      return;
+    }
     if (_calzadoId == null) return;
     setState(() => _cargandoStock = true);
     try {
@@ -149,6 +167,15 @@ class _VentaFormPageState extends State<VentaFormPage> {
 
       int total = 0;
       final Set<int> tacosSet = {};
+
+      if (filasSnap.docs.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se encontraron filas de inventario'),
+          ),
+        );
+        return;
+      }
 
       for (final fila in filasSnap.docs) {
         final subfilasSnap = await FirebaseFirestore.instance
@@ -529,6 +556,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
       }).toList(),
       onChanged: (v) async {
         if (v == null) return;
+        _mostrarSplashScreen();
 
         final calzadoDoc =
             await FirebaseFirestore.instance.collection('calzado').doc(v).get();
@@ -549,6 +577,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
         });
 
         await _calcularStockPorCalzado(v);
+        _ocultarSplashScreen();
       },
     );
   }
@@ -557,9 +586,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
     if (_calzadoId == null || _tallasDisponibles.isEmpty) {
       return const SizedBox();
     }
-
-    final tallas = List.generate(18, (i) => i + 25);
-
+    print(_tallasDisponibles);
     return Column(
       children: [
         const SizedBox(height: 12),
@@ -568,9 +595,11 @@ class _VentaFormPageState extends State<VentaFormPage> {
             labelText: 'Seleccionar talla',
             border: OutlineInputBorder(),
           ),
-          value:
-              tallas.contains(_tallaSeleccionada) ? _tallaSeleccionada : null,
+          value: _tallasDisponibles.contains(_tallaSeleccionada)
+              ? _tallaSeleccionada
+              : null,
           items: _tallasDisponibles
+              .toSet() // 🔥 evita duplicados (MUY IMPORTANTE)
               .map((t) => DropdownMenuItem<int>(
                     value: t,
                     child: Text(t.toString()),
@@ -578,6 +607,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
               .toList(),
           onChanged: (v) async {
             if (v == null) return;
+
             setState(() {
               _tallaSeleccionada = v;
               _tacoSeleccionado = null;
@@ -585,9 +615,10 @@ class _VentaFormPageState extends State<VentaFormPage> {
               _cantidadVenta = 0;
               _cantidadController.clear();
             });
+
             await _calcularStockPorTalla(v);
           },
-        ),
+        )
       ],
     );
   }
@@ -597,6 +628,11 @@ class _VentaFormPageState extends State<VentaFormPage> {
     if (_tallaSeleccionada == null || _tacosDisponibles.isEmpty) {
       return const SizedBox();
     }
+
+    if (_tallaSeleccionada != null &&
+    !_tallasDisponibles.contains(_tallaSeleccionada)) {
+  _tallaSeleccionada = null;
+}
 
     return Column(
       children: [
