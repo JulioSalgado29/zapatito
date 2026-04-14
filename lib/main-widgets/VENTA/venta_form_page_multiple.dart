@@ -11,17 +11,20 @@ class VentaItem {
   bool plataformaSeleccionada = false;
   int stockDisponible = 0;
   int cantidadVenta = 0;
+  double precioVentaTotal = 0.0; // 🔥 Nuevo: Precio total por este item
   bool cargandoStock = false;
   List<int> tallasDisponibles = [];
   List<int> tacosDisponibles = [];
   bool tipoTieneTaco = false;
   bool tipoTienePlataforma = false;
   bool bloqueandoTalla = false;
-  bool errorTalla = false; // 🔥 Flag de error por item
+  bool errorTalla = false; 
   final TextEditingController cantidadController = TextEditingController();
+  final TextEditingController precioController = TextEditingController(); // 🔥 Nuevo: Controller para el precio
 
   void dispose() {
     cantidadController.dispose();
+    precioController.dispose();
   }
 }
 
@@ -83,10 +86,6 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
     return false;
   }
 
-  // -------------------------------------------------------
-  // CALCULOS DE STOCK (CON TU LOGICA DE TALLA INTEGRADA)
-  // -------------------------------------------------------
-
   Future<void> _calcularStockPorCalzado(int index, String calzadoId) async {
     setState(() => _itemsVenta[index].cargandoStock = true);
     try {
@@ -120,7 +119,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
         item.plataformaSeleccionada = false;
         item.tacosDisponibles = [];
         item.cargandoStock = false;
-        item.errorTalla = false; // Reset error al cambiar calzado
+        item.errorTalla = false;
       });
     } catch (e) {
       setState(() => _itemsVenta[index].cargandoStock = false);
@@ -129,26 +128,16 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Future<void> _calcularStockPorTalla(int index, int talla) async {
     var item = _itemsVenta[index];
-    print('''Calculando stock por talla: $talla''');
-
-    // --- TU LÓGICA DE VALIDACIÓN ---
-    if (item.tallasDisponibles.contains(talla)) {
-      print('''Talla seleccionada es válida: $talla''');
-    } else {
-      print('''Talla seleccionada es invalida: $talla''');
+    if (!item.tallasDisponibles.contains(talla)) {
       setState(() {
         item.errorTalla = true;
         item.tallaSeleccionada = null;
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se encontraron tallas disponibles para este calzado, vuelve a seleccionar la talla'),
-        ),
+        const SnackBar(content: Text('No se encontraron tallas disponibles')),
       );
       return;
     }
-    // -------------------------------
 
     if (item.calzadoId == null) return;
     
@@ -247,10 +236,6 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
     });
   }
 
-  // -------------------------------------------------------
-  // GUARDAR VENTA (MULTI)
-  // -------------------------------------------------------
-
   Future<void> _realizarVenta() async {
     if (!_itemsVenta.every((i) => i.calzadoId != null && i.tallaSeleccionada != null && i.cantidadVenta > 0 && i.cantidadVenta <= i.stockDisponible)) return;
     _mostrarSplashScreen();
@@ -265,6 +250,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
           'taco': item.tipoTieneTaco ? item.tacoSeleccionado ?? 0 : 0,
           'plataforma': item.tipoTienePlataforma ? item.plataformaSeleccionada : false,
           'cantidad': item.cantidadVenta,
+          'precio_venta_total': item.precioVentaTotal, // 🔥 Se guarda el precio total del item
           'fecha_venta': Timestamp.now(),
           'usuario_creacion': widget.firstName ?? 'anon',
         });
@@ -276,6 +262,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
           'taco': item.tipoTieneTaco ? item.tacoSeleccionado ?? 0 : 0,
           'plataforma': item.tipoTienePlataforma ? item.plataformaSeleccionada : false,
           'cantidad': item.cantidadVenta,
+          'precio_venta_total': item.precioVentaTotal, // 🔥 También aquí
           'fecha_creacion': Timestamp.now(),
           'usuario_creacion': widget.firstName ?? 'anon',
         });
@@ -323,10 +310,6 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
     }
   }
 
-  // -------------------------------------------------------
-  // UI HELPERS & BUILDERS
-  // -------------------------------------------------------
-
   Future<String?> _obtenerIconoTipo(String tipoCalzadoId) async {
     if (_iconCache.containsKey(tipoCalzadoId)) return _iconCache[tipoCalzadoId];
     final tipoSnap = await FirebaseFirestore.instance.collection('tipo_calzado').doc(tipoCalzadoId).get();
@@ -365,10 +348,15 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
             final calzadoDoc = await FirebaseFirestore.instance.collection('calzado').doc(v).get();
             final data = calzadoDoc.data()!;
             setState(() {
-              _itemsVenta[index].calzadoId = v;
-              _itemsVenta[index].tipoTieneTaco = data['taco'] ?? false;
-              _itemsVenta[index].tipoTienePlataforma = data['plataforma'] ?? false;
-              _itemsVenta[index].errorTalla = false;
+              var item = _itemsVenta[index];
+              item.calzadoId = v;
+              item.tipoTieneTaco = data['taco'] ?? false;
+              item.tipoTienePlataforma = data['plataforma'] ?? false;
+              item.errorTalla = false;
+              // 🔥 Sugerir precio si existe en la base de datos
+              double precioBase = (data['precio'] ?? 0).toDouble();
+              item.precioVentaTotal = precioBase * item.cantidadVenta;
+              item.precioController.text = item.precioVentaTotal.toString();
             });
             await _calcularStockPorCalzado(index, v);
           },
@@ -380,7 +368,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
   Widget _buildDropdownTalla(int index) {
     var item = _itemsVenta[index];
     if (item.calzadoId == null || item.tallasDisponibles.isEmpty || item.errorTalla) {
-      item.errorTalla = false; // Reset para permitir selección tras error
+      item.errorTalla = false;
       return const SizedBox();
     }
     return Padding(
@@ -398,7 +386,6 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
     );
   }
 
-  // ... (Resto de buildDropdownTaco, buildCheckboxPlataforma, buildCantidadVenta permanecen igual que la versión anterior)
   Widget _buildDropdownTaco(int index) {
     var item = _itemsVenta[index];
     if (!item.tipoTieneTaco || item.tallaSeleccionada == null || item.tacosDisponibles.isEmpty) return const SizedBox();
@@ -429,16 +416,39 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
     ]);
   }
 
-  Widget _buildCantidadVenta(int index) {
+  Widget _buildCantidadYPrecio(int index) {
     var item = _itemsVenta[index];
     if (item.tallaSeleccionada == null) return const SizedBox();
     return Padding(
       padding: const EdgeInsets.only(top: 12),
-      child: TextFormField(
-        controller: item.cantidadController,
-        decoration: InputDecoration(labelText: 'Cantidad', border: const OutlineInputBorder(), errorText: item.cantidadVenta > item.stockDisponible ? 'Excede stock' : null),
-        keyboardType: TextInputType.number,
-        onChanged: (v) => setState(() => item.cantidadVenta = int.tryParse(v) ?? 0),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextFormField(
+              controller: item.cantidadController,
+              decoration: InputDecoration(
+                labelText: 'Cantidad', 
+                border: const OutlineInputBorder(), 
+                errorText: item.cantidadVenta > item.stockDisponible ? 'Excede stock' : null
+              ),
+              keyboardType: TextInputType.number,
+              onChanged: (v) => setState(() => item.cantidadVenta = int.tryParse(v) ?? 0),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextFormField(
+              controller: item.precioController,
+              decoration: const InputDecoration(
+                labelText: 'Precio Venta Total', 
+                border: OutlineInputBorder(),
+                prefixText: 'S/ ',
+              ),
+              keyboardType: TextInputType.number,
+              onChanged: (v) => setState(() => item.precioVentaTotal = double.tryParse(v) ?? 0.0),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -461,7 +471,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
                   padding: const EdgeInsets.all(12),
                   child: Column(children: [
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      Text('Producto #${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text('Venta #${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
                       if (_itemsVenta.length > 1) IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _eliminarItem(index)),
                     ]),
                     const Divider(),
@@ -478,7 +488,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
                     _buildDropdownTalla(index),
                     _buildDropdownTaco(index),
                     _buildCheckboxPlataforma(index),
-                    _buildCantidadVenta(index),
+                    _buildCantidadYPrecio(index), // 🔥 Modificado para incluir precio
                   ]),
                 ),
               ),

@@ -31,7 +31,6 @@ class _VentaPageState extends State<VentaPage> {
   // STREAM DE VENTAS
   // -------------------------------------------------------
 
-  /// CORREGIDO: filtra por usuario_creacion para solo ver las ventas propias
   Stream<QuerySnapshot> _getFilasVenta() {
     return FirebaseFirestore.instance
         .collection('fila_venta')
@@ -68,9 +67,6 @@ class _VentaPageState extends State<VentaPage> {
   // NAVEGACION AL FORMULARIO
   // -------------------------------------------------------
 
-  /// CORREGIDO: espera el resultado del formulario.
-  /// Si retorna true (venta exitosa), el StreamBuilder se actualiza
-  /// automáticamente gracias a Firestore en tiempo real.
   void _navegarFormulario() {
     Navigator.push(
       context,
@@ -81,7 +77,7 @@ class _VentaPageState extends State<VentaPage> {
       ),
     );
   }
-  /// 
+
   void _navegarFormularioMultiple() {
     Navigator.push(
       context,
@@ -97,7 +93,6 @@ class _VentaPageState extends State<VentaPage> {
   // DATOS DEL CALZADO (con cache)
   // -------------------------------------------------------
 
-  /// CORREGIDO: usa cache para no repetir consultas en cada rebuild
   Future<Map<String, dynamic>> _getDatosCalzado(String calzadoId) async {
     if (_calzadoCache.containsKey(calzadoId)) {
       return _calzadoCache[calzadoId]!;
@@ -179,10 +174,6 @@ class _VentaPageState extends State<VentaPage> {
   // CARD DE CADA VENTA
   // -------------------------------------------------------
 
-  /// CORREGIDO: usa los datos directamente de fila_venta.
-  /// No consulta subfila_venta porque esa coleccion no se crea
-  /// en VentaFormPage._realizarVenta(). Todos los datos necesarios
-  /// (talla, taco, plataforma, cantidad) ya estan en fila_venta.
   Widget _buildVentaCard(QueryDocumentSnapshot fila) {
     final filaData = fila.data() as Map<String, dynamic>;
     final calzadoId = filaData['calzado_id'] ?? '';
@@ -191,6 +182,8 @@ class _VentaPageState extends State<VentaPage> {
     final taco = filaData['taco'] ?? 0;
     final plataforma = filaData['plataforma'] ?? false;
     final fecha = filaData['fecha_creacion'];
+    // 🔥 Capturamos el precio de la fila_venta
+    final precioTotal = (filaData['precio_venta_total'] ?? 0.0).toDouble();
 
     return FutureBuilder<Map<String, dynamic>>(
         future: _getDatosCalzado(calzadoId),
@@ -208,7 +201,6 @@ class _VentaPageState extends State<VentaPage> {
           final tieneTaco = calzadoData['taco'] as bool;
           final tienePlataforma = calzadoData['plataforma'] as bool;
 
-          // Construir las lineas de detalle segun los flags del calzado
           final List<Widget> detalles = [];
 
           detalles.add(
@@ -217,6 +209,11 @@ class _VentaPageState extends State<VentaPage> {
           detalles.add(
             _buildDetalleRow(
                 Icons.inventory_2, 'Cantidad', cantidad.toString()),
+          );
+          
+          // 🔥 Detalle del precio en la lista desplegada
+          detalles.add(
+            _buildDetalleRow(Icons.monetization_on, 'Precio Total', 'S/ ${precioTotal.toStringAsFixed(2)}'),
           );
 
           if (tieneTaco && taco > 0) {
@@ -251,9 +248,23 @@ class _VentaPageState extends State<VentaPage> {
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Cantidad: $cantidad  |  Talla: $talla',
-                      style: const TextStyle(fontSize: 13),
+                    // 🔥 Subtítulo con el precio resaltado
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Cant: $cantidad | Talla: $talla',
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                        Text(
+                          'S/ ${precioTotal.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 14, 
+                            fontWeight: FontWeight.bold, 
+                            color: Colors.green
+                          ),
+                        ),
+                      ],
                     ),
                     Text(
                       _formatFecha(fecha),
@@ -293,10 +304,6 @@ class _VentaPageState extends State<VentaPage> {
     );
   }
 
-  // -------------------------------------------------------
-  // BUILD
-  // -------------------------------------------------------
-
   @override
   Widget build(BuildContext context) {
     if (inventarioId == null) {
@@ -308,19 +315,14 @@ class _VentaPageState extends State<VentaPage> {
       body: StreamBuilder<QuerySnapshot>(
         stream: _getFilasVenta(),
         builder: (context, snapshot) {
-          // Estado de carga inicial
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-
-          // Error
           if (snapshot.hasError) {
             return Center(
               child: Text('Error al cargar ventas: ${snapshot.error}'),
             );
           }
-
-          // Sin datos
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(
               child: Column(
@@ -350,7 +352,7 @@ class _VentaPageState extends State<VentaPage> {
       ),
       floatingActionButton: Column(mainAxisSize: MainAxisSize.min, children: [
         SizedBox(
-            width: 150, // 👌 Ambos iguales
+            width: 150,
             child: Container(
               decoration: BoxDecoration(
                 gradient: Designwidgets().linearGradientBlue(context),
@@ -368,14 +370,14 @@ class _VentaPageState extends State<VentaPage> {
             )),
         const SizedBox(height: 12),
         SizedBox(
-            width: 150, // 👌 Ambos iguales
+            width: 150,
             child: Container(
               decoration: BoxDecoration(
                 gradient: Designwidgets().linearGradientFire(context),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: FloatingActionButton.extended(
-                heroTag: "btn1",
+                heroTag: "btn2", // 🔥 Cambiado a btn2 para evitar conflicto de Hero
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 onPressed: _navegarFormularioMultiple,
@@ -386,7 +388,6 @@ class _VentaPageState extends State<VentaPage> {
             )),
         const SizedBox(height: 12),
       ]),
-      
     );
   }
 }
