@@ -142,7 +142,7 @@ class _HomePageState extends State<HomePage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
-                          InventarioPage(firstName: firstName),
+                          InventarioPage(firstName: firstName, emailUser: emailUser, inventarioId: inventarioId),
                     ),
                   );
                 },

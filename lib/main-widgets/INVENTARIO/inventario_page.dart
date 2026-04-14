@@ -8,8 +8,11 @@ import 'inventario_form_page.dart';
 
 class InventarioPage extends StatefulWidget {
   final String? firstName;
+  final String? emailUser;
+  final String? inventarioId;
 
-  const InventarioPage({super.key, this.firstName});
+  const InventarioPage(
+      {super.key, this.firstName, this.emailUser, this.inventarioId});
 
   @override
   State<InventarioPage> createState() => _InventarioPageState();
@@ -25,23 +28,26 @@ class _InventarioPageState extends State<InventarioPage> {
   }
 
   Future<void> _verificarInventario() async {
-    final query = await FirebaseFirestore.instance
-        .collection('inventario')
-        .where('propietario', isEqualTo: widget.firstName)
-        .get();
+    try {
+      // 1. Acceso directo al documento por su ID único
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('inventario')
+          .doc(widget
+              .inventarioId) // Buscamos el documento con ese nombre exacto
+          .get();
 
-    if (query.docs.isEmpty) {
-      // Si no tiene inventario, redirige al home
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
-      });
-    } else {
-      setState(() {
-        inventarioId = query.docs.first.id;
-      });
+      // 2. Verificamos si el documento existe físicamente en Firestore
+      if (!docSnapshot.exists) {
+        // Si no existe, redirigimos
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomePage()),
+          );
+        });
+      }
+    } catch (e) {
+      print("Error al buscar el ID del inventario: $e");
     }
   }
 
@@ -145,7 +151,8 @@ class _InventarioPageState extends State<InventarioPage> {
       MaterialPageRoute(
         builder: (_) => InventarioFormPage(
           firstName: widget.firstName,
-          inventarioId: inventarioId!,
+          emailUser: widget.emailUser,
+          inventarioId: widget.inventarioId,
           filaId: filaId,
         ),
       ),
@@ -161,7 +168,9 @@ class _InventarioPageState extends State<InventarioPage> {
       context,
       MaterialPageRoute(
         builder: (_) => InventarioSerieFormPage(
-            firstName: widget.firstName, inventarioId: inventarioId!),
+          firstName: widget.firstName,
+          emailUser: widget.emailUser,
+          inventarioId: widget.inventarioId),
       ),
     );
 
@@ -280,7 +289,7 @@ class _InventarioPageState extends State<InventarioPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (inventarioId == null) {
+    if (widget.inventarioId == null) {
       return const SplashScreen02();
     }
 
@@ -437,8 +446,8 @@ class _InventarioPageState extends State<InventarioPage> {
                 elevation: 0,
                 onPressed: _abrirFormulario,
                 icon: const Icon(Icons.add, color: Colors.white),
-                label: const Text("Manual",
-                    style: TextStyle(color: Colors.white)),
+                label:
+                    const Text("Manual", style: TextStyle(color: Colors.white)),
               ),
             )),
         const SizedBox(height: 12),

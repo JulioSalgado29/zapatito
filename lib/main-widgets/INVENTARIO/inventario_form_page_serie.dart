@@ -5,12 +5,14 @@ import 'package:zapatito/components/widgets.dart';
 
 class InventarioSerieFormPage extends StatefulWidget {
   final String? firstName;
-  final String inventarioId;
+  final String? inventarioId;
+  final String? emailUser;
 
   const InventarioSerieFormPage({
     super.key,
     required this.firstName,
-    required this.inventarioId,
+    required this.emailUser,
+    this.inventarioId,
   });
 
   @override
@@ -156,6 +158,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
           'cantidad': totalPares,
           'fecha_creacion': Timestamp.now(),
           'usuario_creacion': widget.firstName ?? 'anon',
+          'email_usuario': widget.emailUser ?? 'anon',
         });
       }
 
@@ -216,6 +219,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
             'plataforma': _tipoTienePlataforma ? plataforma : false,
             'fecha_creacion': Timestamp.now(),
             'usuario_creacion': widget.firstName ?? 'anon',
+            'email_usuario': widget.emailUser ?? 'anon',
           });
         }
       }
