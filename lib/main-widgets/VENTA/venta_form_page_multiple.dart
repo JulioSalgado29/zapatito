@@ -307,7 +307,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
           if (subRestantes.docs.isEmpty) {
             await fila.reference.delete();
           } else {
-            final nuevaCantFila = subRestantes.docs.fold<int>(0, (sum, d) => sum + ((d['cantidad'] ?? 0) as int));
+            final nuevaCantFila = subRestantes.docs.fold<int>(0, (int sum, d) => sum + ((d['cantidad'] ?? 0) as int));
             await fila.reference.update({'cantidad': nuevaCantFila});
           }
         }
