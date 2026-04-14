@@ -392,7 +392,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
           ],
         ),
 
-            const SizedBox(height: 12),
+        const SizedBox(height: 12),
         // Checkbox plataforma
         if (_tipoTienePlataforma)
           Padding(
@@ -500,11 +500,11 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
                 stream: widget.filaId != null
                     ? FirebaseFirestore.instance
                         .collection('calzado')
-                        .where('usuario_creacion', isEqualTo: widget.firstName)
+                        .where('id_inventario', isEqualTo: widget.inventarioId)
                         .snapshots() // 👈 EDITAR: trae todos
                     : FirebaseFirestore.instance
                         .collection('calzado')
-                        .where('usuario_creacion', isEqualTo: widget.firstName)
+                        .where('id_inventario', isEqualTo: widget.inventarioId)
                         .where('activo', isEqualTo: true)
                         .snapshots(), // 👈 NUEVO: solo activos
 

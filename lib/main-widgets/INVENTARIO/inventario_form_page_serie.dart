@@ -402,7 +402,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('calzado')
-                    .where('usuario_creacion', isEqualTo: widget.firstName)
+                    .where('id_inventario', isEqualTo: widget.inventarioId)
                     .where('activo', isEqualTo: true)
                     .snapshots(),
                 builder: (context, snapshot) {

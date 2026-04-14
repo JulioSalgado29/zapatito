@@ -28,52 +28,54 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> loadUserName() async {
-  final data = await LocalStorageService.getUserData();
-  final userEmail = data['email'];
+    final data = await LocalStorageService.getUserData();
+    final userEmail = data['email'];
 
-  setState(() {
-    userName = data['name'] ?? 'Invitado';
-    firstName = userName;
-    emailUser = userEmail;
-  });
+    setState(() {
+      userName = data['name'] ?? 'Invitado';
+      firstName = userName;
+      emailUser = userEmail;
+    });
 
-  if (userEmail != null) {
-    try {
-      // --- PASO 1: Buscar el Propietario ---
-      final userQuery = await FirebaseFirestore.instance
-          .collection('usuario')
-          .where('email', isEqualTo: userEmail)
-          .limit(1)
-          .get();
+    if (userEmail != null) {
+      try {
+        // --- PASO 1: Buscar el Propietario ---
+        final userQuery = await FirebaseFirestore.instance
+            .collection('usuario')
+            .where('email', isEqualTo: userEmail)
+            .limit(1)
+            .get();
 
-      if (userQuery.docs.isNotEmpty) {
-        final idProp = userQuery.docs.first.data()['propietario'];
+        if (userQuery.docs.isNotEmpty) {
+          final idProp = userQuery.docs.first.data()['propietario'];
 
-        setState(() {
-          propietarioId = idProp;
-        });
+          setState(() {
+            propietarioId = idProp;
+          });
 
-        // --- PASO 2: Buscar el Inventario usando el propietarioId ---
-        if (idProp != null) {
-          final invQuery = await FirebaseFirestore.instance
-              .collection('inventario') // 👈 Asegúrate que este sea el nombre de tu colección
-              .where('propietario', isEqualTo: idProp)
-              .limit(1)
-              .get();
+          // --- PASO 2: Buscar el Inventario usando el propietarioId ---
+          if (idProp != null) {
+            final invQuery = await FirebaseFirestore.instance
+                .collection(
+                    'inventario') // 👈 Asegúrate que este sea el nombre de tu colección
+                .where('propietario', isEqualTo: idProp)
+                .limit(1)
+                .get();
 
-          if (invQuery.docs.isNotEmpty) {
-            setState(() {
-              // Obtenemos el ID del documento (el código alfanumérico de Firebase)
-              inventarioId = invQuery.docs.first.id; 
-            });
+            if (invQuery.docs.isNotEmpty) {
+              setState(() {
+                // Obtenemos el ID del documento (el código alfanumérico de Firebase)
+                inventarioId = invQuery.docs.first.id;
+              });
+            }
           }
         }
+      } catch (e) {
+        print('Error en la búsqueda masiva: $e');
       }
-    } catch (e) {
-      print('Error en la búsqueda masiva: $e');
     }
   }
-}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,8 +110,10 @@ class _HomePageState extends State<HomePage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          TipoCalzadoPage(firstName: firstName, emailUser: emailUser, inventarioId: inventarioId),
+                      builder: (context) => TipoCalzadoPage(
+                          firstName: firstName,
+                          emailUser: emailUser,
+                          inventarioId: inventarioId),
                     ),
                   );
                 },
@@ -125,7 +129,10 @@ class _HomePageState extends State<HomePage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => CalzadoPage(firstName: firstName, emailUser: emailUser, inventarioId: inventarioId),
+                      builder: (context) => CalzadoPage(
+                          firstName: firstName,
+                          emailUser: emailUser,
+                          inventarioId: inventarioId),
                     ),
                   );
                 },
@@ -141,8 +148,10 @@ class _HomePageState extends State<HomePage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          InventarioPage(firstName: firstName, emailUser: emailUser, inventarioId: inventarioId),
+                      builder: (context) => InventarioPage(
+                          firstName: firstName,
+                          emailUser: emailUser,
+                          inventarioId: inventarioId),
                     ),
                   );
                 },
@@ -158,7 +167,10 @@ class _HomePageState extends State<HomePage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => VentaPage(firstName: firstName),
+                      builder: (context) => VentaPage(
+                          firstName: firstName,
+                          emailUser: emailUser,
+                          inventarioId: inventarioId),
                     ),
                   );
                 },

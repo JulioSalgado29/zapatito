@@ -168,9 +168,9 @@ class _InventarioPageState extends State<InventarioPage> {
       context,
       MaterialPageRoute(
         builder: (_) => InventarioSerieFormPage(
-          firstName: widget.firstName,
-          emailUser: widget.emailUser,
-          inventarioId: widget.inventarioId),
+            firstName: widget.firstName,
+            emailUser: widget.emailUser,
+            inventarioId: widget.inventarioId),
       ),
     );
 

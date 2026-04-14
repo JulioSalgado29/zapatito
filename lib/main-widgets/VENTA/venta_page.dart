@@ -8,8 +8,11 @@ import 'package:zapatito/main-widgets/VENTA/venta_form_page_multiple.dart';
 
 class VentaPage extends StatefulWidget {
   final String? firstName;
+  final String? emailUser;
+  final String? inventarioId;
 
-  const VentaPage({super.key, this.firstName});
+  const VentaPage(
+      {super.key, this.firstName, this.emailUser, this.inventarioId});
 
   @override
   State<VentaPage> createState() => _VentaPageState();
@@ -28,45 +31,55 @@ class _VentaPageState extends State<VentaPage> {
   Stream<QuerySnapshot> _getFilasVenta() {
     return FirebaseFirestore.instance
         .collection('fila_venta')
-        .where('usuario_creacion', isEqualTo: widget.firstName)
+        .where('id_inventario', isEqualTo: widget.inventarioId)
         .orderBy('fecha_creacion', descending: true)
         .snapshots();
   }
 
   Future<void> _verificarInventario() async {
-    final query = await FirebaseFirestore.instance
-        .collection('inventario')
-        .where('propietario', isEqualTo: widget.firstName)
-        .get();
+    try {
+      // 1. Acceso directo al documento por su ID único
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('inventario')
+          .doc(widget
+              .inventarioId) // Buscamos el documento con ese nombre exacto
+          .get();
 
-    if (query.docs.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
-      });
-    } else {
-      setState(() {
-        inventarioId = query.docs.first.id;
-      });
+      // 2. Verificamos si el documento existe físicamente en Firestore
+      if (!docSnapshot.exists) {
+        // Si no existe, redirigimos
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomePage()),
+          );
+        });
+      }
+    } catch (e) {
+      print("Error al buscar el ID del inventario: $e");
     }
   }
 
   void _navegarFormulario() {
     Navigator.push(
-      context,
-      MaterialPageRoute(
-          builder: (context) => VentaFormPage(firstName: widget.firstName)),
-    );
+        context,
+        MaterialPageRoute(
+          builder: (context) => VentaFormPage(
+              firstName: widget.firstName,
+              emailUser: widget.emailUser,
+              inventarioId: widget.inventarioId),
+        ));
   }
 
   void _navegarFormularioMultiple() {
     Navigator.push(
       context,
       MaterialPageRoute(
-          builder: (context) =>
-              VentaFormPageMultiple(firstName: widget.firstName)),
+        builder: (context) => VentaFormPageMultiple(
+            firstName: widget.firstName,
+            emailUser: widget.emailUser,
+            inventarioId: widget.inventarioId),
+      ),
     );
   }
 
@@ -240,7 +253,9 @@ class _VentaPageState extends State<VentaPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (inventarioId == null) return const SplashScreen02();
+    if (widget.inventarioId == null) {
+      return const SplashScreen02();
+    }
 
     return Scaffold(
       appBar: Designwidgets().appBarMain('Ventas'),
