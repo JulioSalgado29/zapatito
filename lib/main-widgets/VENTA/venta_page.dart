@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:zapatito/main-widgets/MAIN/home_page.dart';
@@ -19,8 +20,8 @@ class VentaPage extends StatefulWidget {
 }
 
 class _VentaPageState extends State<VentaPage> {
-  String? inventarioId;
   final Map<String, Map<String, dynamic>> _calzadoCache = {};
+  DateTime? _fechaFiltro;
 
   @override
   void initState() {
@@ -28,111 +29,176 @@ class _VentaPageState extends State<VentaPage> {
     _verificarInventario();
   }
 
+  // --- LÓGICA DE CONSULTA ---
   Stream<QuerySnapshot> _getFilasVenta() {
-    return FirebaseFirestore.instance
+    Query query = FirebaseFirestore.instance
         .collection('fila_venta')
-        .where('id_inventario', isEqualTo: widget.inventarioId)
-        .orderBy('fecha_creacion', descending: true)
-        .snapshots();
+        .where('id_inventario', isEqualTo: widget.inventarioId);
+
+    if (_fechaFiltro != null) {
+      DateTime inicioDia =
+          DateTime(_fechaFiltro!.year, _fechaFiltro!.month, _fechaFiltro!.day);
+      DateTime finDia = inicioDia.add(const Duration(days: 1));
+
+      query = query
+          .where('fecha_creacion',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(inicioDia))
+          .where('fecha_creacion', isLessThan: Timestamp.fromDate(finDia));
+    }
+
+    return query.orderBy('fecha_creacion', descending: true).snapshots();
+  }
+
+  // --- SELECTOR DE FECHA ---
+  Future<void> _seleccionarFecha(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _fechaFiltro ?? DateTime.now(),
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2030),
+      locale: const Locale('es', 'ES'),
+    );
+    if (picked != null && picked != _fechaFiltro) {
+      setState(() {
+        _fechaFiltro = picked;
+      });
+    }
   }
 
   Future<void> _verificarInventario() async {
     try {
-      // 1. Acceso directo al documento por su ID único
       final docSnapshot = await FirebaseFirestore.instance
           .collection('inventario')
-          .doc(widget
-              .inventarioId) // Buscamos el documento con ese nombre exacto
+          .doc(widget.inventarioId)
           .get();
 
-      // 2. Verificamos si el documento existe físicamente en Firestore
       if (!docSnapshot.exists) {
-        // Si no existe, redirigimos
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const HomePage()),
-          );
-        });
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
       }
     } catch (e) {
-      print("Error al buscar el ID del inventario: $e");
+      print("Error de inventario: $e");
     }
   }
 
-  void _navegarFormulario() {
-    Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => VentaFormPage(
-              firstName: widget.firstName,
-              emailUser: widget.emailUser,
-              inventarioId: widget.inventarioId),
-        ));
-  }
+  // --- FORMATO DE FECHA ELEGANTE ---
+  String _formatFechaLarga(dynamic timestamp) {
+    if (timestamp == null) return 'Sin fecha';
+    try {
+      final DateTime dt = (timestamp as Timestamp).toDate();
+      String dia = DateFormat('EEEE', 'es_ES').format(dt);
+      String resto = DateFormat('d de MMMM - yyyy', 'es_ES').format(dt);
+      String hora = DateFormat('hh:mm a').format(dt);
 
-  void _navegarFormularioMultiple() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => VentaFormPageMultiple(
-            firstName: widget.firstName,
-            emailUser: widget.emailUser,
-            inventarioId: widget.inventarioId),
-      ),
-    );
+      return "${dia[0].toUpperCase()}${dia.substring(1)} - $resto ($hora)";
+    } catch (e) {
+      return 'Fecha no válida';
+    }
   }
 
   Future<Map<String, dynamic>> _getDatosCalzado(String calzadoId) async {
     if (_calzadoCache.containsKey(calzadoId)) return _calzadoCache[calzadoId]!;
-
     final snap = await FirebaseFirestore.instance
         .collection('calzado')
         .doc(calzadoId)
         .get();
-    Map<String, dynamic> result;
 
-    if (!snap.exists) {
-      result = {
-        'nombre': 'Sin nombre',
-        'icono': null,
-        'taco': false,
-        'plataforma': false
-      };
-    } else {
-      final data = snap.data()!;
-      result = {
-        'nombre': data['nombre'] ?? 'Sin nombre',
-        'icono': data['icono'],
-        'taco': data['taco'] ?? false,
-        'plataforma': data['plataforma'] ?? false,
-      };
-    }
+    Map<String, dynamic> result =
+        snap.exists ? snap.data()! : {'nombre': 'Sin nombre', 'icono': null};
+
     _calzadoCache[calzadoId] = result;
     return result;
   }
 
-  Widget _buildIcon(String? icono) {
-    if (icono == null || icono.isEmpty) {
-      return const Icon(Icons.point_of_sale, size: 40, color: Colors.green);
-    }
-    return Image.asset(
-      icono,
-      width: 40,
-      height: 40,
-      errorBuilder: (_, __, ___) =>
-          const Icon(Icons.point_of_sale, size: 40, color: Colors.green),
-    );
-  }
+  @override
+  Widget build(BuildContext context) {
+    if (widget.inventarioId == null) return const SplashScreen02();
 
-  String _formatFecha(dynamic timestamp) {
-    if (timestamp == null) return 'Sin fecha';
-    try {
-      final dt = (timestamp as Timestamp).toDate();
-      return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return 'Sin fecha';
-    }
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Ventas Realizadas'),
+        backgroundColor: const Color.fromARGB(255, 33, 47, 243),
+        foregroundColor: Colors.white,
+        actions: [
+          if (_fechaFiltro != null)
+            IconButton(
+              icon: const Icon(Icons.filter_list_off),
+              onPressed: () => setState(() => _fechaFiltro = null),
+            ),
+          IconButton(
+            icon: const Icon(Icons.calendar_month),
+            onPressed: () => _seleccionarFecha(context),
+          ),
+        ],
+      ),
+      drawer:
+          Designwidgets().drawerHome(context, widget.firstName ?? "Invitado"),
+      body: SafeArea(
+        // 👈 Agregado
+        child: Column(
+          children: [
+            if (_fechaFiltro != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                color: Colors.blue.shade50,
+                child: Text(
+                  'Filtrado: ${DateFormat('dd/MM/yyyy').format(_fechaFiltro!)}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: Colors.blue.shade900, fontWeight: FontWeight.bold),
+                ),
+              ),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: _getFilasVenta(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return const Center(
+                        child: Text('Error de conexión o falta de Índice.'));
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(
+                        child: Text('No hay ventas registradas.'));
+                  }
+
+                  final filas = snapshot.data!.docs;
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(10), // Padding estándar
+                    itemCount: filas.length +
+                        1, // Añadimos uno extra para el espacio final
+                    itemBuilder: (context, index) {
+                      if (index == filas.length) {
+                        return const SizedBox(
+                            height:
+                                100); // Espacio para que el FAB no tape la última venta
+                      }
+                      return _buildVentaCard(filas[index]);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildFab(Designwidgets().linearGradientBlue(context), "btn1",
+              _navegarFormulario, "Por Código"),
+          const SizedBox(height: 12),
+          _buildFab(Designwidgets().linearGradientFire(context), "btn2",
+              _navegarFormularioMultiple, "Múltiple"),
+        ],
+      ),
+    );
   }
 
   Widget _buildVentaCard(QueryDocumentSnapshot fila) {
@@ -140,182 +206,153 @@ class _VentaPageState extends State<VentaPage> {
     final calzadoId = filaData['calzado_id'] ?? '';
     final cantidad = filaData['cantidad'] ?? 0;
     final talla = filaData['talla'] ?? 0;
-    final taco = filaData['taco'] ?? 0;
-    final plataforma = filaData['plataforma'] ?? false;
-    final fecha = filaData['fecha_creacion'];
     final precioTotal = (filaData['precio_venta_total'] ?? 0.0).toDouble();
-    final vendedor =
-        filaData['usuario_creacion'] ?? 'Desconocido'; // 🔥 Vendedor
+    final vendedor = filaData['usuario_creacion'] ?? 'Desconocido';
+    final fecha = filaData['fecha_creacion'];
 
     return FutureBuilder<Map<String, dynamic>>(
-        future: _getDatosCalzado(calzadoId),
-        builder: (context, calzadoSnap) {
-          if (!calzadoSnap.hasData) {
-            return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                child: LinearProgressIndicator());
-          }
+      future: _getDatosCalzado(calzadoId),
+      builder: (context, calzadoSnap) {
+        if (!calzadoSnap.hasData) return const LinearProgressIndicator();
 
-          final calzadoData = calzadoSnap.data!;
-          final nombre = calzadoData['nombre'] as String;
-          final icono = calzadoData['icono'] as String?;
-          final tieneTaco = calzadoData['taco'] as bool;
-          final tienePlataforma = calzadoData['plataforma'] as bool;
-
-          final List<Widget> detalles = [
-            _buildDetalleRow(Icons.straighten, 'Talla', talla.toString()),
-            _buildDetalleRow(
-                Icons.inventory_2, 'Cantidad', cantidad.toString()),
-            _buildDetalleRow(Icons.monetization_on, 'Precio Total',
-                'S/ ${precioTotal.toStringAsFixed(2)}'),
-            _buildDetalleRow(
-                Icons.person, 'Vendedor', vendedor), // 🔥 Detalle extra
-          ];
-
-          if (tieneTaco && taco > 0) {
-            detalles.add(_buildDetalleRow(Icons.height, 'Taco', '$taco cm'));
-          }
-          if (tienePlataforma) {
-            detalles.add(_buildDetalleRow(
-                Icons.layers, 'Plataforma', plataforma ? 'Si' : 'No'));
-          }
-
-          return Card(
-              margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
-              child: ExpansionTile(
-                leading: _buildIcon(icono),
-                title: Text(nombre,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 15)),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        final calzadoData = calzadoSnap.data!;
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          elevation: 3,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ExpansionTile(
+            leading: _buildIcon(calzadoData['icono']),
+            title: Text(calzadoData['nombre'],
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 5),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Cant: $cantidad | Talla: $talla',
-                            style: const TextStyle(fontSize: 13)),
-                        Text('S/ ${precioTotal.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.person_outline,
-                            size: 12, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text('Vendedor: $vendedor',
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade700,
-                                fontStyle: FontStyle.italic)),
-                      ],
-                    ),
-                    Text(_formatFecha(fecha),
-                        style: TextStyle(
-                            fontSize: 11, color: Colors.grey.shade600)),
+                    Text('Cant: $cantidad • Talla: $talla',
+                        style: const TextStyle(
+                            fontSize: 13, color: Colors.black54)),
+                    Text('S/ ${precioTotal.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                            fontSize: 15)),
                   ],
                 ),
-                childrenPadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                children: [
-                  const Divider(height: 1),
-                  const SizedBox(height: 8),
-                  ...detalles,
-                  const SizedBox(height: 4),
-                ],
-              ));
-        });
+                const SizedBox(height: 10),
+                // --- ETIQUETA DE FECHA ---
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300)),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today,
+                          size: 12, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(_formatFechaLarga(fecha),
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade800,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            children: [
+              const Divider(),
+              _buildDetalleRow(Icons.person, 'Vendedor', vendedor),
+              _buildDetalleRow(
+                  Icons.straighten, 'Talla Seleccionada', talla.toString()),
+              _buildDetalleRow(
+                  Icons.shopping_bag, 'Cantidad Vendida', cantidad.toString()),
+              _buildDetalleRow(Icons.monetization_on, 'Total de la Fila',
+                  'S/ ${precioTotal.toStringAsFixed(2)}'),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildDetalleRow(IconData icon, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.green.shade700),
-          const SizedBox(width: 8),
+          Icon(icon, size: 18, color: Colors.blue.shade700),
+          const SizedBox(width: 10),
           Text('$label: ',
               style:
-                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           Text(value, style: const TextStyle(fontSize: 14)),
         ],
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (widget.inventarioId == null) {
-      return const SplashScreen02();
+  Widget _buildIcon(String? icono) {
+    if (icono == null || icono.isEmpty) {
+      return const Icon(Icons.image_not_supported,
+          size: 35, color: Colors.grey);
     }
-
-    return Scaffold(
-      appBar: Designwidgets().appBarMain('Ventas'),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: _getFilasVenta(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Text('Error al cargar ventas: ${snapshot.error}'),
-            );
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-                child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                  Icon(Icons.receipt_long, size: 64, color: Colors.grey),
-                  SizedBox(height: 12),
-                  Text('No hay ventas registradas.',
-                      style: TextStyle(fontSize: 16, color: Colors.grey))
-                ]));
-          }
-
-          final filas = snapshot.data!.docs;
-          return ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 80),
-            itemCount: filas.length,
-            itemBuilder: (context, index) => _buildVentaCard(filas[index]),
-          );
-        },
-      ),
-      floatingActionButton: Column(mainAxisSize: MainAxisSize.min, children: [
-        _buildFab(Designwidgets().linearGradientBlue(context), "btn1",
-            _navegarFormulario, "Por Código"),
-        const SizedBox(height: 12),
-        _buildFab(Designwidgets().linearGradientFire(context), "btn2",
-            _navegarFormularioMultiple, "Múltiple"),
-        const SizedBox(height: 12),
-      ]),
-    );
+    return Image.asset(icono,
+        width: 40,
+        height: 40,
+        errorBuilder: (_, __, ___) => const Icon(Icons.receipt));
   }
+
+  void _navegarFormulario() => Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (_) => VentaFormPage(
+              firstName: widget.firstName,
+              emailUser: widget.emailUser,
+              inventarioId: widget.inventarioId)));
+  void _navegarFormularioMultiple() => Navigator.push(
+      context,
+      MaterialPageRoute(
+          builder: (_) => VentaFormPageMultiple(
+              firstName: widget.firstName,
+              emailUser: widget.emailUser,
+              inventarioId: widget.inventarioId)));
 
   Widget _buildFab(
       Gradient gradient, String tag, VoidCallback onPressed, String label) {
     return SizedBox(
-        width: 150,
-        child: Container(
-          decoration: BoxDecoration(
-              gradient: gradient, borderRadius: BorderRadius.circular(12)),
-          child: FloatingActionButton.extended(
-            heroTag: tag,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            onPressed: onPressed,
-            icon: const Icon(Icons.add, color: Colors.white),
-            label: Text(label, style: const TextStyle(color: Colors.white)),
-          ),
-        ));
+      width: 170,
+      child: Container(
+        decoration: BoxDecoration(
+            gradient: gradient,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2))
+            ]),
+        child: FloatingActionButton.extended(
+          heroTag: tag,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          onPressed: onPressed,
+          icon: const Icon(Icons.add_shopping_cart, color: Colors.white),
+          label: Text(label,
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold)),
+        ),
+      ),
+    );
   }
 }
