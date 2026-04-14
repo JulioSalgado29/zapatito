@@ -237,7 +237,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
   }
 
   Future<void> _realizarVenta() async {
-    if (!_itemsVenta.every((i) => i.calzadoId != null && i.tallaSeleccionada != null && i.cantidadVenta > 0 && i.cantidadVenta <= i.stockDisponible)) return;
+    if (!_itemsVenta.every((i) => i.calzadoId != null && i.tallaSeleccionada != null && i.precioVentaTotal > 0 && i.cantidadVenta > 0 && i.cantidadVenta <= i.stockDisponible)) return;
     _mostrarSplashScreen();
 
     try {
@@ -455,7 +455,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   @override
   Widget build(BuildContext context) {
-    bool puedeVenderTodo = _itemsVenta.isNotEmpty && _itemsVenta.every((i) => i.calzadoId != null && i.tallaSeleccionada != null && i.cantidadVenta > 0 && i.cantidadVenta <= i.stockDisponible);
+    bool puedeVenderTodo = _itemsVenta.isNotEmpty && _itemsVenta.every((i) => i.calzadoId != null && i.tallaSeleccionada != null && i.precioVentaTotal > 0 && i.cantidadVenta > 0 && i.cantidadVenta <= i.stockDisponible);
 
     return Scaffold(
       appBar: Designwidgets().appBarMain('Nueva Venta Multiple'),
