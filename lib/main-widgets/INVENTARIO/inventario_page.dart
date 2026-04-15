@@ -432,48 +432,53 @@ class _InventarioPageState extends State<InventarioPage> {
           );
         },
       ),
-      floatingActionButton: Column(mainAxisSize: MainAxisSize.min, children: [
-        SizedBox(
-            width: 150, // 👌 Ambos iguales
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: Designwidgets().linearGradientBlue(context),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: FloatingActionButton.extended(
-                heroTag: "btn1",
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                onPressed: _abrirFormulario,
-                icon: const Icon(Icons.add, color: Colors.white),
-                label:
-                    const Text("Manual", style: TextStyle(color: Colors.white)),
-              ),
-            )),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: 150, // 👌 Mismo ancho
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: Designwidgets().linearGradientFire(context),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: FloatingActionButton.extended(
-              heroTag: "btn2",
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              onPressed: () {
-                _abrirFormularioSerie();
-              },
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text(
-                "Por serie",
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildFab(
+            Designwidgets().linearGradientBlue(context),
+            "btn1",
+            _abrirFormulario,
+            "Manual",
+            Icons.add_circle_outline, // Icono para registro manual
           ),
+          const SizedBox(height: 12),
+          _buildFab(
+            Designwidgets().linearGradientFire(context),
+            "btn2",
+            _abrirFormularioSerie,
+            "Por serie",
+            Icons.inventory_2, // Icono de inventario solicitado
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildFab(
+      Gradient gradient, String tag, VoidCallback onPressed, String label, IconData icon) {
+    return SizedBox(
+      width: 170, // Ancho unificado
+      child: Container(
+        decoration: BoxDecoration(
+            gradient: gradient,
+            borderRadius: BorderRadius.circular(30), // Bordes redondeados elegantes
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2))
+            ]),
+        child: FloatingActionButton.extended(
+          heroTag: tag,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          onPressed: onPressed,
+          icon: Icon(icon, color: Colors.white),
+          label: Text(label,
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold)),
         ),
-      ]),
+      ),
     );
   }
 }
