@@ -29,16 +29,12 @@ class _InventarioPageState extends State<InventarioPage> {
 
   Future<void> _verificarInventario() async {
     try {
-      // 1. Acceso directo al documento por su ID único
       final docSnapshot = await FirebaseFirestore.instance
           .collection('inventario')
-          .doc(widget
-              .inventarioId) // Buscamos el documento con ese nombre exacto
+          .doc(widget.inventarioId)
           .get();
 
-      // 2. Verificamos si el documento existe físicamente en Firestore
       if (!docSnapshot.exists) {
-        // Si no existe, redirigimos
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.pushReplacement(
             context,
@@ -71,7 +67,7 @@ class _InventarioPageState extends State<InventarioPage> {
     return snapshot.docs;
   }
 
-  /// 🔹 Obtiene datos del calzado directamente (sin tipo_calzado)
+  /// 🔹 Obtiene datos del calzado directamente (Agregado campo 'estado')
   Future<Map<String, dynamic>> _getDatosCalzado(String calzadoId) async {
     final calzadoSnap = await FirebaseFirestore.instance
         .collection('calzado')
@@ -85,6 +81,7 @@ class _InventarioPageState extends State<InventarioPage> {
         'taco': true,
         'plataforma': true,
         'colores': true,
+        'activo': false, // Por defecto inactivo si no existe
       };
     }
 
@@ -96,6 +93,7 @@ class _InventarioPageState extends State<InventarioPage> {
       'taco': calzadoData?['taco'] ?? true,
       'plataforma': calzadoData?['plataforma'] ?? true,
       'colores': calzadoData?['colores'] ?? true,
+      'activo': calzadoData?['activo'] ?? true, // <--- Nuevo campo extraído
     };
   }
 
@@ -114,7 +112,6 @@ class _InventarioPageState extends State<InventarioPage> {
     }
   }
 
-  /// 🔹 Eliminar fila y sus subfilas
   Future<void> _eliminarFila(String filaId) async {
     final subfilas = await FirebaseFirestore.instance
         .collection('subfila_inventario')
@@ -142,12 +139,9 @@ class _InventarioPageState extends State<InventarioPage> {
           duration: Duration(seconds: 2),
         ),
       );
-    } else {
-      return;
     }
   }
 
-  /// 🔹 Abre formulario y recarga al volver
   Future<void> _abrirFormulario({String? filaId}) async {
     final result = await Navigator.push(
       context,
@@ -182,7 +176,6 @@ class _InventarioPageState extends State<InventarioPage> {
     }
   }
 
-  /// 🔹 Construye icono (asset o URL)
   Widget _buildIcon(String? icono) {
     if (icono == null || icono.isEmpty) {
       return const Icon(Icons.shopping_bag_outlined,
@@ -291,23 +284,45 @@ class _InventarioPageState extends State<InventarioPage> {
   }
 
   Widget _buildInfoChip(String text, {bool isColor = false}) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-    decoration: BoxDecoration(
-      color: isColor ? Colors.indigo[50] : Colors.grey[100],
-      borderRadius: BorderRadius.circular(4),
-      border: Border.all(color: isColor ? Colors.indigo[100]! : Colors.grey[300]!),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(
-        fontSize: 12,
-        color: isColor ? Colors.indigo[900] : Colors.black87,
-        fontWeight: isColor ? FontWeight.w600 : FontWeight.normal,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: isColor ? Colors.indigo[50] : Colors.grey[100],
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+            color: isColor ? Colors.indigo[100]! : Colors.grey[300]!),
       ),
-    ),
-  );
-}
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          color: isColor ? Colors.indigo[900] : Colors.black87,
+          fontWeight: isColor ? FontWeight.w600 : FontWeight.normal,
+        ),
+      ),
+    );
+  }
+
+  /// 🔹 Widget para mostrar si el producto está Activo/Inactivo
+  Widget _buildEstadoChip(bool activo) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: activo ? Colors.green[50] : Colors.red[50],
+        borderRadius: BorderRadius.circular(12),
+        border:
+            Border.all(color: activo ? Colors.green[200]! : Colors.red[200]!),
+      ),
+      child: Text(
+        activo ? 'ACTIVO' : 'INACTIVO',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: activo ? Colors.green[700] : Colors.red[700],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -355,6 +370,8 @@ class _InventarioPageState extends State<InventarioPage> {
                   final tieneTaco = calzadoData['taco'] ?? true;
                   final tienePlataforma = calzadoData['plataforma'] ?? true;
                   final tieneColores = calzadoData['colores'] ?? true;
+                  final estaActivo =
+                      calzadoData['activo'] ?? true; // <--- Valor obtenido
 
                   return FutureBuilder<List<QueryDocumentSnapshot>>(
                     future: _getSubfilas(fila.id),
@@ -369,20 +386,26 @@ class _InventarioPageState extends State<InventarioPage> {
 
                       final subfilas = subfilaSnap.data ?? [];
 
-                      // 🔹 Si ambos campos son falsos, no mostrar esta fila
-                      //if (!tieneTaco && !tienePlataforma) {
-                      //return const SizedBox.shrink();
-                      //}
-
                       return Card(
                         margin: const EdgeInsets.symmetric(
                             vertical: 8, horizontal: 12),
                         elevation: 3,
                         child: ExpansionTile(
                           leading: _buildIcon(icono),
-                          title: Text(
-                            nombreCalzado,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          title: Row(
+                            // <-- Row para mostrar nombre y estado
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  nombreCalzado,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _buildEstadoChip(
+                                  estaActivo), // <-- Indicador de Estado
+                            ],
                           ),
                           subtitle: Text('Cantidad total: $cantidad'),
                           trailing: PopupMenuButton<String>(
@@ -416,25 +439,6 @@ class _InventarioPageState extends State<InventarioPage> {
                                   final taco = sub['taco'];
                                   final plataforma = sub['plataforma'];
                                   final colores = sub['colores'];
-
-
-                                  List<String> partes = [];
-
-                                  if (tieneTaco) partes.add('Taco: $taco');
-                                  if (tienePlataforma) {
-                                    partes.add(
-                                        'Plataforma: ${plataforma ? 'Sí' : 'No'}');
-                                  }
-                                  if (tieneColores) {
-                                    partes.add('Color: $colores');
-                                  }
-
-
-                                  if (tieneTaco ||
-                                      tienePlataforma ||
-                                      tieneColores) {
-                                  } else {
-                                  }
 
                                   return ListTile(
                                     contentPadding: const EdgeInsets.symmetric(
@@ -471,10 +475,8 @@ class _InventarioPageState extends State<InventarioPage> {
                                       ),
                                     ),
                                     subtitle: Wrap(
-                                      spacing:
-                                          8, // Espacio horizontal entre etiquetas
-                                      runSpacing:
-                                          4, // Espacio vertical si saltan de línea
+                                      spacing: 8,
+                                      runSpacing: 4,
                                       children: [
                                         if (tieneTaco)
                                           _buildInfoChip('Taco: $taco'),
@@ -508,7 +510,7 @@ class _InventarioPageState extends State<InventarioPage> {
             "btn1",
             _abrirFormulario,
             "Manual",
-            Icons.add_circle_outline, // Icono para registro manual
+            Icons.add_circle_outline,
           ),
           const SizedBox(height: 12),
           _buildFab(
@@ -516,7 +518,7 @@ class _InventarioPageState extends State<InventarioPage> {
             "btn2",
             _abrirFormularioSerie,
             "Por serie",
-            Icons.inventory_2, // Icono de inventario solicitado
+            Icons.inventory_2,
           ),
         ],
       ),
@@ -526,12 +528,11 @@ class _InventarioPageState extends State<InventarioPage> {
   Widget _buildFab(Gradient gradient, String tag, VoidCallback onPressed,
       String label, IconData icon) {
     return SizedBox(
-      width: 170, // Ancho unificado
+      width: 170,
       child: Container(
         decoration: BoxDecoration(
             gradient: gradient,
-            borderRadius:
-                BorderRadius.circular(30), // Bordes redondeados elegantes
+            borderRadius: BorderRadius.circular(30),
             boxShadow: [
               BoxShadow(
                   color: Colors.black.withOpacity(0.2),
