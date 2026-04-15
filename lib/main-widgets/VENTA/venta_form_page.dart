@@ -73,7 +73,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
       final calzadosSnap = await FirebaseFirestore.instance
           .collection('calzado')
           .where('id_inventario', isEqualTo: widget.inventarioId)
-          .where('activo', isEqualTo: true)
           .get();
 
       if (calzadosSnap.docs.isEmpty) {
@@ -634,7 +633,7 @@ for (final fila in filasSnap.docs) {
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance.collection('calzado')
                     .where('id_inventario', isEqualTo: widget.inventarioId)
-                    .where('activo', isEqualTo: true).snapshots(),
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) return const LinearProgressIndicator();
                   return _buildDropdownCalzado(snapshot.data!.docs);
