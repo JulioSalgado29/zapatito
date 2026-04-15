@@ -166,7 +166,9 @@ class _VentaFormPageState extends State<VentaFormPage> {
       return;
     }
     if (_calzadoId == null) return;
-    setState(() => _cargandoStock = true,);
+    setState(
+      () => _cargandoStock = true,
+    );
     try {
       final filasSnap = await FirebaseFirestore.instance
           .collection('fila_inventario')
@@ -177,11 +179,17 @@ class _VentaFormPageState extends State<VentaFormPage> {
       final Set<String> coloresSet = {};
 
       for (final fila in filasSnap.docs) {
-        final subfilasSnap = await FirebaseFirestore.instance
+        // 1. Iniciamos la referencia a la colección
+        Query q = FirebaseFirestore.instance
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: fila.id)
-            .where('talla', isEqualTo: talla)
-            .get();
+            .where('talla', isEqualTo: talla);
+            
+        if (!_tipoTieneColores && !_tipoTieneTaco && _tipoTienePlataforma) {
+          q = q.where('plataforma', isEqualTo: false);
+        }
+
+        final subfilasSnap = await q.get();
 
         for (final sub in subfilasSnap.docs) {
           total += (sub['cantidad'] ?? 0) as int;
@@ -225,12 +233,17 @@ class _VentaFormPageState extends State<VentaFormPage> {
       final Set<int> tacosSet = {};
 
       for (final fila in filasSnap.docs) {
-        final subfilasSnap = await FirebaseFirestore.instance
+        Query q = FirebaseFirestore.instance
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: fila.id)
             .where('talla', isEqualTo: _tallaSeleccionada)
-            .where('colores', isEqualTo: color)
-            .get();
+            .where('colores', isEqualTo: color);
+            
+        if (!_tipoTieneTaco && _tipoTienePlataforma) {
+          q = q.where('plataforma', isEqualTo: false);
+        }
+
+        final subfilasSnap = await q.get();
 
         for (final sub in subfilasSnap.docs) {
           total += (sub['cantidad'] ?? 0) as int;
@@ -286,11 +299,14 @@ class _VentaFormPageState extends State<VentaFormPage> {
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: fila.id)
             .where('talla', isEqualTo: _tallaSeleccionada)
-            .where('taco', isEqualTo: taco)
-            .where('plataforma', isEqualTo: false);
-        
-        if (_tipoTieneColores && _colorSeleccionado != null) {
+            .where('taco', isEqualTo: taco);
+
+        if (_tipoTieneColores) {
           q = q.where('colores', isEqualTo: _colorSeleccionado);
+        }
+
+        if (_tipoTienePlataforma) {
+          q = q.where('plataforma', isEqualTo: false);
         }
 
         final subfilasSnap = await q.get();
@@ -325,9 +341,15 @@ class _VentaFormPageState extends State<VentaFormPage> {
             .where('fila_inventario_id', isEqualTo: fila.id)
             .where('talla', isEqualTo: _tallaSeleccionada);
 
-        if (_tipoTieneColores && _colorSeleccionado != null) q = q.where('colores', isEqualTo: _colorSeleccionado);
-        if (_tipoTieneTaco && _tacoSeleccionado != null) q = q.where('taco', isEqualTo: _tacoSeleccionado);
-        if (_tipoTienePlataforma) q = q.where('plataforma', isEqualTo: _plataformaSeleccionada);
+        if (_tipoTieneColores && _colorSeleccionado != null) {
+          q = q.where('colores', isEqualTo: _colorSeleccionado);
+        }
+        if (_tipoTieneTaco && _tacoSeleccionado != null) {
+          q = q.where('taco', isEqualTo: _tacoSeleccionado);
+        }
+        if (_tipoTienePlataforma) {
+          q = q.where('plataforma', isEqualTo: _plataformaSeleccionada);
+        }
 
         final subfilasSnap = await q.get();
         for (final sub in subfilasSnap.docs) {
@@ -352,29 +374,44 @@ class _VentaFormPageState extends State<VentaFormPage> {
     if (_calzadoId == null) return false;
     if (_tallaSeleccionada == null) return false;
     if (_tipoTieneColores && _colorSeleccionado == null) return false;
-    if (_cantidadVenta <= 0 || _stockDisponible <= 0 || _cantidadVenta > _stockDisponible) return false;
+    if (_cantidadVenta <= 0 ||
+        _stockDisponible <= 0 ||
+        _cantidadVenta > _stockDisponible) return false;
     if (_precioVentaTotal <= 0) return false;
     return true;
   }
 
   String? get _mensajeBloqueo {
     if (_calzadoId == null || _tallaSeleccionada == null) return null;
-    if (_stockDisponible == 0) return 'Sin stock disponible para esta seleccion';
-    if (_cantidadVenta > 0 && _cantidadVenta > _stockDisponible) return 'No hay suficiente stock (disponible: $_stockDisponible)';
+    if (_stockDisponible == 0) {
+      return 'Sin stock disponible para esta seleccion';
+    }
+    if (_cantidadVenta > 0 && _cantidadVenta > _stockDisponible) {
+      return 'No hay suficiente stock (disponible: $_stockDisponible)';
+    }
     return null;
   }
 
   void _mostrarSplashScreen() {
-    showDialog(context: context, barrierDismissible: false, useRootNavigator: true, builder: (_) => const SplashScreen02());
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        useRootNavigator: true,
+        builder: (_) => const SplashScreen02());
   }
 
   void _ocultarSplashScreen() {
-    if (Navigator.of(context, rootNavigator: true).canPop()) Navigator.of(context, rootNavigator: true).pop();
+    if (Navigator.of(context, rootNavigator: true).canPop()) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
   }
 
   Future<String?> _obtenerIconoTipo(String tipoCalzadoId) async {
     if (_iconCache.containsKey(tipoCalzadoId)) return _iconCache[tipoCalzadoId];
-    final tipoSnap = await FirebaseFirestore.instance.collection('tipo_calzado').doc(tipoCalzadoId).get();
+    final tipoSnap = await FirebaseFirestore.instance
+        .collection('tipo_calzado')
+        .doc(tipoCalzadoId)
+        .get();
     String? icono = tipoSnap.data()?['icono']?.toString();
     _iconCache[tipoCalzadoId] = icono;
     return icono;
@@ -388,7 +425,8 @@ class _VentaFormPageState extends State<VentaFormPage> {
       final ventaRef = await db.collection('venta').add({
         'calzado_id': _calzadoId,
         'talla': _tallaSeleccionada,
-        'colores': _tipoTieneColores ? _colorSeleccionado : '', // 🔥 Guardar color
+        'colores':
+            _tipoTieneColores ? _colorSeleccionado : '', // 🔥 Guardar color
         'taco': _tipoTieneTaco ? _tacoSeleccionado ?? 0 : 0,
         'plataforma': _tipoTienePlataforma ? _plataformaSeleccionada : false,
         'cantidad': _cantidadVenta,
@@ -402,7 +440,8 @@ class _VentaFormPageState extends State<VentaFormPage> {
         'venta_id': ventaRef.id,
         'calzado_id': _calzadoId,
         'talla': _tallaSeleccionada,
-        'colores': _tipoTieneColores ? _colorSeleccionado : '', // 🔥 Guardar color
+        'colores':
+            _tipoTieneColores ? _colorSeleccionado : '', // 🔥 Guardar color
         'taco': _tipoTieneTaco ? _tacoSeleccionado ?? 0 : 0,
         'plataforma': _tipoTienePlataforma ? _plataformaSeleccionada : false,
         'cantidad': _cantidadVenta,
@@ -414,61 +453,72 @@ class _VentaFormPageState extends State<VentaFormPage> {
 
       // Descuento inventario
       // --- Descuento de inventario en cascada (Subfila y Fila) ---
-int cantidadPorDescontar = _cantidadVenta;
-final filasSnap = await db.collection('fila_inventario')
-    .where('calzado_id', isEqualTo: _calzadoId)
-    .get();
+      int cantidadPorDescontar = _cantidadVenta;
+      final filasSnap = await db
+          .collection('fila_inventario')
+          .where('calzado_id', isEqualTo: _calzadoId)
+          .get();
 
-for (final fila in filasSnap.docs) {
-  if (cantidadPorDescontar <= 0) break;
+      for (final fila in filasSnap.docs) {
+        if (cantidadPorDescontar <= 0) break;
 
-  Query subQuery = db.collection('subfila_inventario')
-      .where('fila_inventario_id', isEqualTo: fila.id)
-      .where('talla', isEqualTo: _tallaSeleccionada);
-  
-  if (_tipoTieneColores) subQuery = subQuery.where('colores', isEqualTo: _colorSeleccionado);
-  if (_tipoTieneTaco && _tacoSeleccionado != null) subQuery = subQuery.where('taco', isEqualTo: _tacoSeleccionado);
-  if (_tipoTienePlataforma) subQuery = subQuery.where('plataforma', isEqualTo: _plataformaSeleccionada);
+        Query subQuery = db
+            .collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: fila.id)
+            .where('talla', isEqualTo: _tallaSeleccionada);
 
-  final subfilasSnap = await subQuery.get();
+        if (_tipoTieneColores) {
+          subQuery = subQuery.where('colores', isEqualTo: _colorSeleccionado);
+        }
+        if (_tipoTieneTaco && _tacoSeleccionado != null) {
+          subQuery = subQuery.where('taco', isEqualTo: _tacoSeleccionado);
+        }
+        if (_tipoTienePlataforma) {
+          subQuery =
+              subQuery.where('plataforma', isEqualTo: _plataformaSeleccionada);
+        }
 
-  for (final subDoc in subfilasSnap.docs) {
-    if (cantidadPorDescontar <= 0) break;
+        final subfilasSnap = await subQuery.get();
 
-    final cantidadActualSub = (subDoc['cantidad'] ?? 0) as int;
-    final descuento = cantidadPorDescontar > cantidadActualSub ? cantidadActualSub : cantidadPorDescontar;
-    
-    cantidadPorDescontar -= descuento;
+        for (final subDoc in subfilasSnap.docs) {
+          if (cantidadPorDescontar <= 0) break;
 
-    // 1. ACTUALIZAR SUBFILA (Talla/Color/Taco específico)
-    if (cantidadActualSub - descuento <= 0) {
-      await subDoc.reference.delete();
-    } else {
-      await subDoc.reference.update({
-        'cantidad': cantidadActualSub - descuento
-      });
-    }
+          final cantidadActualSub = (subDoc['cantidad'] ?? 0) as int;
+          final descuento = cantidadPorDescontar > cantidadActualSub
+              ? cantidadActualSub
+              : cantidadPorDescontar;
 
-    // 2. ACTUALIZAR FILA (Nivel General - LO QUE FALTABA)
-    // Usamos increment con valor negativo para restar directamente en la DB
-    await fila.reference.update({
-      'cantidad': FieldValue.increment(-descuento)
-    });
-  }
+          cantidadPorDescontar -= descuento;
 
-  // 3. LIMPIEZA DE FILA (Opcional)
-  // Si después de los descuentos la fila quedó en 0 o menos, la eliminamos
-  final filaActualizada = await fila.reference.get();
-  if ((filaActualizada.data()?['cantidad'] ?? 0) <= 0) {
-    await fila.reference.delete();
-  }
-}
+          // 1. ACTUALIZAR SUBFILA (Talla/Color/Taco específico)
+          if (cantidadActualSub - descuento <= 0) {
+            await subDoc.reference.delete();
+          } else {
+            await subDoc.reference
+                .update({'cantidad': cantidadActualSub - descuento});
+          }
+
+          // 2. ACTUALIZAR FILA (Nivel General - LO QUE FALTABA)
+          // Usamos increment con valor negativo para restar directamente en la DB
+          await fila.reference
+              .update({'cantidad': FieldValue.increment(-descuento)});
+        }
+
+        // 3. LIMPIEZA DE FILA (Opcional)
+        // Si después de los descuentos la fila quedó en 0 o menos, la eliminamos
+        final filaActualizada = await fila.reference.get();
+        if ((filaActualizada.data()?['cantidad'] ?? 0) <= 0) {
+          await fila.reference.delete();
+        }
+      }
       _ocultarSplashScreen();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Venta registrada correctamente')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Venta registrada correctamente')));
       Navigator.pop(context, true);
     } catch (e) {
       _ocultarSplashScreen();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -485,7 +535,8 @@ for (final fila in filasSnap.docs) {
 
   Widget _buildDropdownCalzado(List<QueryDocumentSnapshot> calzados) {
     return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(labelText: 'Seleccionar código', border: OutlineInputBorder()),
+      decoration: const InputDecoration(
+          labelText: 'Seleccionar código', border: OutlineInputBorder()),
       value: _calzadoId,
       items: calzados.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
@@ -506,7 +557,8 @@ for (final fila in filasSnap.docs) {
       }).toList(),
       onChanged: (v) async {
         if (v == null) return;
-        final doc = await FirebaseFirestore.instance.collection('calzado').doc(v).get();
+        final doc =
+            await FirebaseFirestore.instance.collection('calzado').doc(v).get();
         if (doc.exists) {
           final data = doc.data()!;
           _tipoTieneTaco = data['taco'] ?? false;
@@ -527,15 +579,20 @@ for (final fila in filasSnap.docs) {
 
   Widget _buildDropdownTalla() {
     if (_calzadoId == null || _tallasDisponibles.isEmpty || _errorTalla) {
-      _errorTalla = false; // 🔥 resetear flag de error para que al seleccionar otro calzado no se quede bloqueado
+      _errorTalla =
+          false; // 🔥 resetear flag de error para que al seleccionar otro calzado no se quede bloqueado
       return const SizedBox();
     }
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<int>(
-        decoration: const InputDecoration(labelText: 'Seleccionar talla', border: OutlineInputBorder()),
+        decoration: const InputDecoration(
+            labelText: 'Seleccionar talla', border: OutlineInputBorder()),
         value: _tallaSeleccionada,
-        items: _tallasDisponibles.map((t) => DropdownMenuItem<int>(value: t, child: Text(t.toString()))).toList(),
+        items: _tallasDisponibles
+            .map((t) =>
+                DropdownMenuItem<int>(value: t, child: Text(t.toString())))
+            .toList(),
         onChanged: (v) async {
           if (v == null) return;
           setState(() {
@@ -551,13 +608,20 @@ for (final fila in filasSnap.docs) {
 
   // 🔥 NUEVO: UI Dropdown Color
   Widget _buildDropdownColor() {
-    if (!_tipoTieneColores || _tallaSeleccionada == null || _coloresDisponibles.isEmpty) return const SizedBox();
+    if (!_tipoTieneColores ||
+        _tallaSeleccionada == null ||
+        _coloresDisponibles.isEmpty) return const SizedBox();
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<String>(
-        decoration: const InputDecoration(labelText: 'Seleccionar color', border: OutlineInputBorder(), prefixIcon: Icon(Icons.palette)),
+        decoration: const InputDecoration(
+            labelText: 'Seleccionar color',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.palette)),
         value: _colorSeleccionado,
-        items: _coloresDisponibles.map((c) => DropdownMenuItem<String>(value: c, child: Text(c))).toList(),
+        items: _coloresDisponibles
+            .map((c) => DropdownMenuItem<String>(value: c, child: Text(c)))
+            .toList(),
         onChanged: (v) async {
           if (v == null) return;
           setState(() {
@@ -572,13 +636,19 @@ for (final fila in filasSnap.docs) {
   }
 
   Widget _buildDropdownTaco() {
-    if (!_tipoTieneTaco || _tallaSeleccionada == null || (_tipoTieneColores && _colorSeleccionado == null) || _tacosDisponibles.isEmpty) return const SizedBox();
+    if (!_tipoTieneTaco ||
+        _tallaSeleccionada == null ||
+        (_tipoTieneColores && _colorSeleccionado == null) ||
+        _tacosDisponibles.isEmpty) return const SizedBox();
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<int>(
-        decoration: const InputDecoration(labelText: 'Seleccionar taco (cm)', border: OutlineInputBorder()),
+        decoration: const InputDecoration(
+            labelText: 'Seleccionar taco (cm)', border: OutlineInputBorder()),
         value: _tacoSeleccionado,
-        items: _tacosDisponibles.map((t) => DropdownMenuItem<int>(value: t, child: Text('$t cm'))).toList(),
+        items: _tacosDisponibles
+            .map((t) => DropdownMenuItem<int>(value: t, child: Text('$t cm')))
+            .toList(),
         onChanged: (v) async {
           if (v == null) return;
           setState(() {
@@ -593,9 +663,10 @@ for (final fila in filasSnap.docs) {
   }
 
   Widget _buildCheckboxPlataforma() {
-    final mostrar = _tipoTienePlataforma && _tallaSeleccionada != null && 
-                  (!_tipoTieneColores || _colorSeleccionado != null) &&
-                  (!_tipoTieneTaco || _tacoSeleccionado != null);
+    final mostrar = _tipoTienePlataforma &&
+        _tallaSeleccionada != null &&
+        (!_tipoTieneColores || _colorSeleccionado != null) &&
+        (!_tipoTieneTaco || _tacoSeleccionado != null);
     if (!mostrar) return const SizedBox();
     return Padding(
       padding: const EdgeInsets.only(top: 12),
@@ -617,7 +688,7 @@ for (final fila in filasSnap.docs) {
   }
 
   // ... (Resto de métodos UI: _buildStockLabel, _buildCantidadYPrecio, build Scaffold se mantienen igual)
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -631,7 +702,8 @@ for (final fila in filasSnap.docs) {
               _buildStockLabel(),
               const SizedBox(height: 16),
               StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('calzado')
+                stream: FirebaseFirestore.instance
+                    .collection('calzado')
                     .where('id_inventario', isEqualTo: widget.inventarioId)
                     .snapshots(),
                 builder: (context, snapshot) {
@@ -649,7 +721,8 @@ for (final fila in filasSnap.docs) {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _puedeVender ? Colors.green.shade600 : Colors.grey,
+                    backgroundColor:
+                        _puedeVender ? Colors.green.shade600 : Colors.grey,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
@@ -672,45 +745,66 @@ for (final fila in filasSnap.docs) {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _stockDisponible > 0 ? Colors.green.shade50 : Colors.red.shade50,
-        border: Border.all(color: _stockDisponible > 0 ? Colors.green.shade300 : Colors.red.shade300),
+        border: Border.all(
+            color: _stockDisponible > 0
+                ? Colors.green.shade300
+                : Colors.red.shade300),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           const Text('Stock disponible:'),
-          _cargandoStock 
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-            : Text('$_stockDisponible unidades', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          _cargandoStock
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : Text('$_stockDisponible unidades',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 18)),
         ],
       ),
     );
   }
 
   Widget _buildCantidadYPrecio() {
-    if (_tallaSeleccionada == null || (_tipoTieneColores && _colorSeleccionado == null)
-                                   || (_tipoTieneTaco && _tacoSeleccionado == null)) return const SizedBox();
+    if (_tallaSeleccionada == null ||
+        (_tipoTieneColores && _colorSeleccionado == null) ||
+        (_tipoTieneTaco && _tacoSeleccionado == null)) return const SizedBox();
     return Column(children: [
       const SizedBox(height: 12),
       Row(children: [
-        Expanded(child: TextFormField(
+        Expanded(
+            child: TextFormField(
           controller: _cantidadController,
-          decoration: const InputDecoration(labelText: 'Cantidad', border: OutlineInputBorder()),
+          decoration: const InputDecoration(
+              labelText: 'Cantidad', border: OutlineInputBorder()),
           keyboardType: TextInputType.number,
-          onChanged: (v) { _cantidadVenta = int.tryParse(v) ?? 0; _actualizarPrecioSugerido(); },
+          onChanged: (v) {
+            _cantidadVenta = int.tryParse(v) ?? 0;
+            _actualizarPrecioSugerido();
+          },
         )),
         const SizedBox(width: 10),
-        Expanded(child: TextFormField(
+        Expanded(
+            child: TextFormField(
           controller: _precioController,
-          decoration: const InputDecoration(labelText: 'Precio Total', border: OutlineInputBorder(), prefixText: 'S/ '),
+          decoration: const InputDecoration(
+              labelText: 'Precio Total',
+              border: OutlineInputBorder(),
+              prefixText: 'S/ '),
           keyboardType: TextInputType.number,
-          onChanged: (v) => setState(() => _precioVentaTotal = double.tryParse(v) ?? 0.0),
+          onChanged: (v) =>
+              setState(() => _precioVentaTotal = double.tryParse(v) ?? 0.0),
         )),
       ]),
-      if (_mensajeBloqueo != null) Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Text(_mensajeBloqueo!, style: const TextStyle(color: Colors.orange)),
-      )
+      if (_mensajeBloqueo != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(_mensajeBloqueo!,
+              style: const TextStyle(color: Colors.orange)),
+        )
     ]);
   }
 }
