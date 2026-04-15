@@ -10,6 +10,7 @@ class CalzadoFormPage extends StatefulWidget {
   final DocumentSnapshot? doc;
   final String? emailUser;
   final String? inventarioId;
+  final bool? isAlmacenero;
 
   const CalzadoFormPage({
     super.key,
@@ -18,6 +19,7 @@ class CalzadoFormPage extends StatefulWidget {
     this.doc,
     this.emailUser,
     this.inventarioId,
+    this.isAlmacenero,
   });
 
   @override
@@ -86,7 +88,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
     final precio = _precioController.text.trim();
 
     final valido = nombre.isNotEmpty &&
-        precio.isNotEmpty &&
+        (widget.isAlmacenero == true || precio.isNotEmpty) &&
         _selectedTipoCalzadoId != null &&
         _formKey.currentState?.validate() != false;
 
@@ -96,6 +98,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
   }
 
   String? validarPrecio(String? valor) {
+    if (widget.isAlmacenero == true) return null;
     if (valor == null || valor.isEmpty) return 'Ingrese un precio';
     final precioText = valor.replaceAll("S/", "").trim();
     final precio = double.tryParse(precioText);
@@ -134,8 +137,13 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
     final tipoData = tipoSnap.data() ?? {};
     final icono = tipoData['icono'] ?? _iconoSeleccionado ?? '';
 
-    final precioText = _precioController.text.replaceAll("S/", "").trim();
-    final precio = double.tryParse(precioText) ?? 0.0;
+    double precio = 0.0;
+    if (widget.isAlmacenero == true) {
+      precio = isEditing ? (widget.doc!.data() as Map)['precio_real'] ?? 0.0 : 0.0;
+    } else {
+      final precioText = _precioController.text.replaceAll("S/", "").trim();
+      precio = double.tryParse(precioText) ?? 0.0;
+    }
 
     final data = {
       'nombre': _nombreController.text.trim(),
@@ -168,7 +176,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
         );
       }
 
-      _ocultarSplashScreen(); // 👈 CERRAR LOADER
+      _ocultarSplashScreen();
 
       await Future.delayed(const Duration(milliseconds: 150));
 
@@ -264,8 +272,6 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                           decoration: InputDecoration(
                             labelText: 'Tipo de Calzado',
                             border: const OutlineInputBorder(),
-
-                            // 👇 COLOR CUANDO ESTÁ BLOQUEADO
                             filled: true,
                             fillColor:
                                 isEditing ? Colors.grey.shade200 : Colors.white,
@@ -325,7 +331,6 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                                   _plataforma = tipoData['plataforma'] ?? false;
                                   _colores = tipoData['colores'] ?? false;
 
-                                  // Si el tipo no soporta taco/plataforma, desmarcar
                                   if (!_taco) _tacoCheckbox = false;
                                   if (!_plataforma) _plataformaCheckbox = false;
                                   if (!_colores) _coloresCheckbox = false;
@@ -363,22 +368,23 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                 const SizedBox(height: 16),
 
                 // Precio
-                TextFormField(
-                  controller: _precioController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d+\.?\d{0,2}$')),
-                  ],
-                  decoration: const InputDecoration(
-                    labelText: 'Precio proveedor',
-                    prefixText: 'S/ ',
-                    border: OutlineInputBorder(),
+                if (widget.isAlmacenero != true)
+                  TextFormField(
+                    controller: _precioController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d+\.?\d{0,2}$')),
+                    ],
+                    decoration: const InputDecoration(
+                      labelText: 'Precio proveedor',
+                      prefixText: 'S/ ',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: validarPrecio,
                   ),
-                  validator: validarPrecio,
-                ),
-                const SizedBox(height: 16),
+                if (widget.isAlmacenero != true) const SizedBox(height: 16),
 
                 // Taco / Plataforma / Colores
                 if (_selectedTipoCalzadoId != null && (_taco || _plataforma || _colores))

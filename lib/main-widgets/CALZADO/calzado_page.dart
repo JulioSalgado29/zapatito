@@ -10,9 +10,10 @@ class CalzadoPage extends StatefulWidget {
   final String? firstName;
   final String? emailUser;
   final String? inventarioId;
+  final bool? isAlmacenero;
 
   const CalzadoPage(
-      {super.key, this.firstName, this.emailUser, this.inventarioId});
+      {super.key, this.firstName, this.emailUser, this.inventarioId, this.isAlmacenero});
 
   @override
   State<CalzadoPage> createState() => _CalzadoPageState();
@@ -67,6 +68,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
           emailUser: widget.emailUser,
           inventarioId: widget.inventarioId,
           isOnline: isOnline,
+          isAlmacenero: widget.isAlmacenero,
           doc: doc,
         ),
       ),
@@ -278,8 +280,11 @@ class _CalzadoPageState extends State<CalzadoPage> {
                                     ],
                                   ),
                                   const SizedBox(height: 8),
-                                  Text(
-                                      'S/ ${precio.toStringAsFixed(2)}  |  $usuario'),
+                                  
+                                  // CAMBIO AQUÍ: Condicional para ver precio proveedor
+                                  Text(widget.isAlmacenero == true
+                                      ? usuario
+                                      : 'S/ ${precio.toStringAsFixed(2)}  |  $usuario'),
 
                                   // Mostrar la talla si está disponible
                                   if (taco != null)

@@ -144,7 +144,8 @@ Widget build(BuildContext context) {
                     page: CalzadoPage(
                         firstName: firstName,
                         emailUser: emailUser,
-                        inventarioId: inventarioId),
+                        inventarioId: inventarioId,
+                        isAlmacenero: isAlmacenero),
                   ),
 
                 if (isAdmin || isAlmacenero)
