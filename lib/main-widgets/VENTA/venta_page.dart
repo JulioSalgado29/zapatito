@@ -194,87 +194,125 @@ class _VentaPageState extends State<VentaPage> {
     );
   }
 
+  Widget _miniChip(String texto, Color color) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(4),
+      border: Border.all(color: color.withOpacity(0.3)),
+    ),
+    child: Text(
+      texto,
+      style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold),
+    ),
+  );
+}
+
   Widget _buildVentaCard(QueryDocumentSnapshot fila) {
-    final filaData = fila.data() as Map<String, dynamic>;
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _getDatosCalzado(filaData['calzado_id'] ?? ''),
-      builder: (context, calzadoSnap) {
-        if (!calzadoSnap.hasData) return const LinearProgressIndicator();
+  final filaData = fila.data() as Map<String, dynamic>;
+  
+  return FutureBuilder<Map<String, dynamic>>(
+    future: _getDatosCalzado(filaData['calzado_id'] ?? ''),
+    builder: (context, calzadoSnap) {
+      if (!calzadoSnap.hasData) return const LinearProgressIndicator();
 
-        final calzadoData = calzadoSnap.data!;
-        final precioTotal = (filaData['precio_venta_total'] ?? 0.0).toDouble();
+      final calzadoData = calzadoSnap.data!;
+      final precioTotal = (filaData['precio_venta_total'] ?? 0.0).toDouble();
 
-        return Card(
-          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-          elevation: 3,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: ExpansionTile(
-            leading: _buildIcon(calzadoData['icono']),
-            title: Text(calzadoData['nombre'],
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 5),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                        'Cant: ${filaData['cantidad']} • Talla: ${filaData['talla']}',
-                        style: const TextStyle(
-                            fontSize: 13, color: Colors.black54)),
-                    Text('S/ ${precioTotal.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green,
-                            fontSize: 15)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300)),
-                  child: Row(
+      // --- Extraer Atributos Extra ---
+      final taco = filaData['taco'];
+      final plataforma = filaData['plataforma'] == true; // asumimos booleano
+      final colores = filaData['colores']; // el string que agregamos antes
+
+      return Card(
+        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: ExpansionTile(
+          leading: _buildIcon(calzadoData['icono']),
+          title: Text(calzadoData['nombre'],
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 5),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                      'Cant: ${filaData['cantidad']} • Talla: ${filaData['talla']}',
+                      style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                  Text('S/ ${precioTotal.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                          fontSize: 15)),
+                ],
+              ),
+              
+              // --- RESUMEN DE ATRIBUTOS (Chips rápidos) ---
+              if (taco != null || plataforma || (colores != null && colores.toString().isNotEmpty))
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
                     children: [
-                      const Icon(Icons.calendar_today,
-                          size: 12, color: Colors.blue),
-                      const SizedBox(width: 8),
-                      Expanded(
-                          child: Text(
-                              _formatFechaLarga(filaData['fecha_creacion']),
-                              style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey.shade800,
-                                  fontWeight: FontWeight.w600))),
+                      if (taco != null) _miniChip('Taco: $taco', Colors.orange),
+                      if (plataforma) _miniChip('Con Plataforma', Colors.blue),
+                      if (colores != null && colores.toString().isNotEmpty) 
+                        _miniChip('Color: $colores', Colors.indigo),
                     ],
                   ),
                 ),
-              ],
-            ),
-            children: [
-              const Divider(),
-              _buildDetalleRow(Icons.person, 'Vendedor',
-                  filaData['usuario_creacion'] ?? 'Desconocido'),
-              _buildDetalleRow(Icons.straighten, 'Talla Seleccionada',
-                  filaData['talla'].toString()),
-              _buildDetalleRow(Icons.shopping_bag, 'Cantidad Vendida',
-                  filaData['cantidad'].toString()),
-              _buildDetalleRow(Icons.monetization_on, 'Total de la Fila',
-                  'S/ ${precioTotal.toStringAsFixed(2)}'),
+              
               const SizedBox(height: 10),
+              // Contenedor de Fecha
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300)),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today, size: 12, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Expanded(
+                        child: Text(
+                            _formatFechaLarga(filaData['fecha_creacion']),
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade800,
+                                fontWeight: FontWeight.w600))),
+                  ],
+                ),
+              ),
             ],
           ),
-        );
-      },
-    );
-  }
-
+          children: [
+            const Divider(),
+            _buildDetalleRow(Icons.person, 'Vendedor', filaData['usuario_creacion'] ?? 'Desconocido'),
+            
+            // --- DETALLES DINÁMICOS EN EL INTERIOR ---
+            if (taco != null) 
+              _buildDetalleRow(Icons.height, 'Medida Taco', '$taco'),
+            if (plataforma) 
+              _buildDetalleRow(Icons.layers, 'Plataforma', 'Sí incluye'),
+            if (colores != null && colores.toString().isNotEmpty)
+              _buildDetalleRow(Icons.palette, 'Color Especificado', colores.toString()),
+            
+            _buildDetalleRow(Icons.straighten, 'Talla Seleccionada', filaData['talla'].toString()),
+            _buildDetalleRow(Icons.shopping_bag, 'Cantidad Vendida', filaData['cantidad'].toString()),
+            _buildDetalleRow(Icons.monetization_on, 'Total de la Fila', 'S/ ${precioTotal.toStringAsFixed(2)}'),
+            const SizedBox(height: 10),
+          ],
+        ),
+      );
+    },
+  );
+}
   Widget _buildDetalleRow(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),

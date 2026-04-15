@@ -24,6 +24,7 @@ class InventarioFormPage extends StatefulWidget {
 class _InventarioFormPageState extends State<InventarioFormPage> {
   String? _calzadoId;
   bool _tipoTienePlataforma = false;
+  bool _tipoTieneColores = false;
   bool _tipoTieneTaco = false;
 
   int _cantidadFila = 0;
@@ -37,8 +38,13 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
     if (widget.filaId != null) {
       _cargarDatosExistentes();
     } else {
-      _subfilas
-          .add({'cantidad': 0, 'talla': 0, 'taco': 0, 'plataforma': false});
+      _subfilas.add({
+        'cantidad': 0,
+        'talla': 0,
+        'taco': 0,
+        'plataforma': false,
+        'colores': ''
+      });
     }
   }
 
@@ -64,6 +70,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
         final calzadoData = calzadoDoc.data()!;
         _tipoTieneTaco = calzadoData['taco'] ?? true;
         _tipoTienePlataforma = calzadoData['plataforma'] ?? true;
+        _tipoTieneColores = calzadoData['colores'] ?? true;
       }
 
       final subSnap = await FirebaseFirestore.instance
@@ -79,12 +86,18 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
           'talla': doc['talla'] ?? 0,
           'taco': doc['taco'] ?? 0,
           'plataforma': doc['plataforma'] ?? false,
+          'colores': doc['colores'] ?? '',
         });
       }
 
       if (_subfilas.isEmpty) {
-        _subfilas
-            .add({'cantidad': 0, 'talla': 0, 'taco': 0, 'plataforma': false});
+        _subfilas.add({
+          'cantidad': 0,
+          'talla': 0,
+          'taco': 0,
+          'plataforma': false,
+          'colores': ''
+        });
       }
     }
     setState(() => _cargandoDatos = false);
@@ -134,7 +147,8 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
 
     final combinaciones = <String>{};
     for (var sub in _subfilas) {
-      final key = '${sub['talla']}_${sub['taco']}_${sub['plataforma']}';
+      final key =
+          '${sub['talla']}_${sub['taco']}_${sub['plataforma']}_${sub['colores']}';
       if ((sub['cantidad'] ?? 0) <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -151,11 +165,19 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
         );
         return;
       }
+      if ((sub['colores'] ?? '') == '' && _tipoTieneColores) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text(
+                  'Todas las subfilas deben tener un color especificado')),
+        );
+        return;
+      }
       if (combinaciones.contains(key)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text(
-                  'No se pueden repetir subfilas con misma talla y/o taco y/o plataforma')),
+                  'No se pueden repetir subfilas con misma talla y/o taco y/o plataforma y/o colores')),
         );
         return;
       }
@@ -204,6 +226,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
                 .where('talla', isEqualTo: sub['talla'])
                 .where('taco', isEqualTo: sub['taco'])
                 .where('plataforma', isEqualTo: sub['plataforma'])
+                .where('colores', isEqualTo: sub['colores'])
                 .limit(1)
                 .get();
 
@@ -221,6 +244,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
                 'talla': sub['talla'],
                 'taco': _tipoTieneTaco ? sub['taco'] : 0,
                 'plataforma': _tipoTienePlataforma ? sub['plataforma'] : false,
+                'colores': _tipoTieneColores ? sub['colores'] : '',
                 'fecha_creacion': Timestamp.now(),
                 'usuario_creacion': widget.firstName ?? 'anon',
               });
@@ -248,6 +272,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
               'talla': sub['talla'],
               'taco': _tipoTieneTaco ? sub['taco'] : 0,
               'plataforma': _tipoTienePlataforma ? sub['plataforma'] : false,
+              'colores': _tipoTieneColores ? sub['colores'] : '',
               'fecha_creacion': Timestamp.now(),
               'usuario_creacion': widget.firstName ?? 'anon',
               'email_user': widget.emailUser ?? 'anon',
@@ -284,6 +309,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
             'talla': sub['talla'],
             'taco': _tipoTieneTaco ? sub['taco'] : 0,
             'plataforma': _tipoTienePlataforma ? sub['plataforma'] : false,
+            'colores': _tipoTieneColores ? sub['colores'] : '',
             'fecha_creacion': Timestamp.now(),
             'usuario_creacion': widget.firstName ?? 'anon',
           });
@@ -326,6 +352,24 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
       key: ValueKey('subfila_$index'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const SizedBox(height: 12),
+        if (_tipoTieneColores)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: TextFormField(
+              decoration: const InputDecoration(
+                labelText: 'Color',
+                hintText: 'Ej. Negro, Blanco, Rojo...',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.color_lens_outlined),
+              ),
+              // Usamos el valor actual del mapa o un string vacío
+              initialValue: sub['colores'] ?? '',
+              onChanged: (v) => setState(() {
+                _subfilas[index]['colores'] = v;
+              }),
+            ),
+          ),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -408,7 +452,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
               ],
             ),
           ),
-
+        
         const Divider(),
       ],
     );
@@ -473,6 +517,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
               setState(() {
                 _tipoTieneTaco = calzadoData['taco'] ?? true;
                 _tipoTienePlataforma = calzadoData['plataforma'] ?? true;
+                _tipoTieneColores = calzadoData['colores'] ?? true;
               });
             }
           }
@@ -571,7 +616,8 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
                         'cantidad': 0,
                         'talla': 0,
                         'taco': 0,
-                        'plataforma': false
+                        'plataforma': false,
+                        'colores': '',
                       });
                     });
                   },

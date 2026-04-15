@@ -33,8 +33,10 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
 
   bool _taco = false;
   bool _plataforma = false;
+  bool _colores = false;
   bool _tacoCheckbox = false;
   bool _plataformaCheckbox = false;
+  bool _coloresCheckbox = false;
   String? _iconoSeleccionado;
 
   bool get isEditing => widget.doc != null;
@@ -52,6 +54,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
       _selectedTipoCalzadoId = data['tipo_calzado_id'];
       _tacoCheckbox = data['taco'] ?? false;
       _plataformaCheckbox = data['plataforma'] ?? false;
+      _coloresCheckbox = data['colores'] ?? false;
       _iconoSeleccionado = data['icono'] ?? '';
     }
 
@@ -71,6 +74,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
           setState(() {
             _taco = data['taco'] ?? false;
             _plataforma = data['plataforma'] ?? false;
+            _colores = data['colores'] ?? false;
           });
         }
       }
@@ -144,6 +148,7 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
       'activo': true,
       'taco': _tacoCheckbox,
       'plataforma': _plataformaCheckbox,
+      'colores': _coloresCheckbox,
       'id_inventario': widget.inventarioId,
     };
 
@@ -318,10 +323,12 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                                   _iconoSeleccionado = tipoData['icono'] ?? '';
                                   _taco = tipoData['taco'] ?? false;
                                   _plataforma = tipoData['plataforma'] ?? false;
+                                  _colores = tipoData['colores'] ?? false;
 
                                   // Si el tipo no soporta taco/plataforma, desmarcar
                                   if (!_taco) _tacoCheckbox = false;
                                   if (!_plataforma) _plataformaCheckbox = false;
+                                  if (!_colores) _coloresCheckbox = false;
                                 });
                               }
                             }
@@ -373,8 +380,8 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Taco / Plataforma
-                if (_selectedTipoCalzadoId != null && (_taco || _plataforma))
+                // Taco / Plataforma / Colores
+                if (_selectedTipoCalzadoId != null && (_taco || _plataforma || _colores))
                   Column(
                     children: [
                       if (_taco)
@@ -398,6 +405,18 @@ class _CalzadoFormPageState extends State<CalzadoFormPage> {
                               value: _plataformaCheckbox,
                               onChanged: (val) => setState(
                                   () => _plataformaCheckbox = val ?? false),
+                            ),
+                          ],
+                        ),
+                      if (_colores)
+                        Row(
+                          children: [
+                            const Text('¿Tiene Colores?',
+                                style: TextStyle(fontSize: 16)),
+                            Checkbox(
+                              value: _coloresCheckbox,
+                              onChanged: (val) => setState(
+                                  () => _coloresCheckbox = val ?? false),
                             ),
                           ],
                         ),

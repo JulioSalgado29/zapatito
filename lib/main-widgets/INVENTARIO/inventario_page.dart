@@ -64,8 +64,9 @@ class _InventarioPageState extends State<InventarioPage> {
         .where('fila_inventario_id', isEqualTo: filaId)
         .orderBy('fila_inventario_id')
         .orderBy('talla')
-        .orderBy('plataforma')
         .orderBy('taco')
+        .orderBy('plataforma')
+        .orderBy('colores')
         .get();
     return snapshot.docs;
   }
@@ -83,6 +84,7 @@ class _InventarioPageState extends State<InventarioPage> {
         'icono': null,
         'taco': true,
         'plataforma': true,
+        'colores': true,
       };
     }
 
@@ -93,6 +95,7 @@ class _InventarioPageState extends State<InventarioPage> {
       'icono': calzadoData?['icono'],
       'taco': calzadoData?['taco'] ?? true,
       'plataforma': calzadoData?['plataforma'] ?? true,
+      'colores': calzadoData?['colores'] ?? true,
     };
   }
 
@@ -287,6 +290,25 @@ class _InventarioPageState extends State<InventarioPage> {
     );
   }
 
+  Widget _buildInfoChip(String text, {bool isColor = false}) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    decoration: BoxDecoration(
+      color: isColor ? Colors.indigo[50] : Colors.grey[100],
+      borderRadius: BorderRadius.circular(4),
+      border: Border.all(color: isColor ? Colors.indigo[100]! : Colors.grey[300]!),
+    ),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontSize: 12,
+        color: isColor ? Colors.indigo[900] : Colors.black87,
+        fontWeight: isColor ? FontWeight.w600 : FontWeight.normal,
+      ),
+    ),
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     if (widget.inventarioId == null) {
@@ -332,6 +354,7 @@ class _InventarioPageState extends State<InventarioPage> {
                   final icono = calzadoData['icono'] as String?;
                   final tieneTaco = calzadoData['taco'] ?? true;
                   final tienePlataforma = calzadoData['plataforma'] ?? true;
+                  final tieneColores = calzadoData['colores'] ?? true;
 
                   return FutureBuilder<List<QueryDocumentSnapshot>>(
                     future: _getSubfilas(fila.id),
@@ -392,34 +415,79 @@ class _InventarioPageState extends State<InventarioPage> {
                                   final talla = sub['talla'];
                                   final taco = sub['taco'];
                                   final plataforma = sub['plataforma'];
+                                  final colores = sub['colores'];
 
-                                  Text? mostrarSubtitulo;
-                                  if (tieneTaco && tienePlataforma) {
-                                    mostrarSubtitulo = Text(
-                                        'Taco: $taco  |  Plataforma: ${plataforma ? 'Sí' : 'No'}');
-                                  } else if (tieneTaco) {
-                                    mostrarSubtitulo = Text('Taco: $taco');
-                                  } else if (tienePlataforma) {
-                                    mostrarSubtitulo = Text(
+
+                                  List<String> partes = [];
+
+                                  if (tieneTaco) partes.add('Taco: $taco');
+                                  if (tienePlataforma) {
+                                    partes.add(
                                         'Plataforma: ${plataforma ? 'Sí' : 'No'}');
                                   }
+                                  if (tieneColores) {
+                                    partes.add('Color: $colores');
+                                  }
 
-                                  Text? subtitle;
-                                  if (tieneTaco || tienePlataforma) {
-                                    subtitle = mostrarSubtitulo;
+
+                                  if (tieneTaco ||
+                                      tienePlataforma ||
+                                      tieneColores) {
                                   } else {
-                                    subtitle = null;
                                   }
 
                                   return ListTile(
-                                    leading: const Icon(Icons.label_outline),
-                                    title: Text(
-                                      'Talla: $talla  |  Cantidad: $cantidad',
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    leading: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[200],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                          Icons.inventory_2_outlined,
                                           color: Color(0xFF4E4E4E)),
                                     ),
-                                    subtitle: subtitle,
+                                    title: Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            'Talla: $talla',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16),
+                                          ),
+                                          const Spacer(),
+                                          Text(
+                                            'Cant: $cantidad',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.blueGrey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    subtitle: Wrap(
+                                      spacing:
+                                          8, // Espacio horizontal entre etiquetas
+                                      runSpacing:
+                                          4, // Espacio vertical si saltan de línea
+                                      children: [
+                                        if (tieneTaco)
+                                          _buildInfoChip('Taco: $taco'),
+                                        if (tienePlataforma)
+                                          _buildInfoChip(
+                                              'Plataforma: ${plataforma ? 'Sí' : 'No'}'),
+                                        if (tieneColores &&
+                                            colores != null &&
+                                            colores.toString().isNotEmpty)
+                                          _buildInfoChip('Color: $colores',
+                                              isColor: true),
+                                      ],
+                                    ),
                                   );
                                 }).toList(),
                         ),
@@ -454,14 +522,16 @@ class _InventarioPageState extends State<InventarioPage> {
       ),
     );
   }
-  Widget _buildFab(
-      Gradient gradient, String tag, VoidCallback onPressed, String label, IconData icon) {
+
+  Widget _buildFab(Gradient gradient, String tag, VoidCallback onPressed,
+      String label, IconData icon) {
     return SizedBox(
       width: 170, // Ancho unificado
       child: Container(
         decoration: BoxDecoration(
             gradient: gradient,
-            borderRadius: BorderRadius.circular(30), // Bordes redondeados elegantes
+            borderRadius:
+                BorderRadius.circular(30), // Bordes redondeados elegantes
             boxShadow: [
               BoxShadow(
                   color: Colors.black.withOpacity(0.2),

@@ -231,6 +231,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
                 final tipoId = data['tipo_calzado_id'];
                 final taco = data['taco']; // Talla si existe
                 final plataforma = data['plataforma']; // Plataforma si existe
+                final colores = data['colores']; // Colores si existen
 
                 return FutureBuilder<String>(
                   future: _obtenerIconoTipo(tipoId),
@@ -300,6 +301,16 @@ class _CalzadoPageState extends State<CalzadoPage> {
                                           plataforma == true
                                               ? 'Plataforma: Sí'
                                               : 'Plataforma: No',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold)),
+                                    ),
+                                  if (colores != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
+                                      child: Text(
+                                          colores == true
+                                              ? 'Colores: Sí'
+                                              : 'Colores: No',
                                           style: const TextStyle(
                                               fontWeight: FontWeight.bold)),
                                     ),
