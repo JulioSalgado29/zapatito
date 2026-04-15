@@ -18,6 +18,7 @@ class VentaItem {
   List<int> tacosDisponibles = [];
   bool errorTalla = false;
   bool errorColor = false;
+  bool errorTaco = false;
   List<String> coloresDisponibles = []; // 🔥 Nuevo: Colores
   bool tipoTieneTaco = false;
   bool tipoTienePlataforma = false;
@@ -141,7 +142,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Future<void> _calcularStockPorTalla(int index, int talla) async {
     var item = _itemsVenta[index];
-    if (item.tallasDisponibles.contains(talla)) {
+    if (item.tallasDisponibles.contains(item.tallaSeleccionada)) {
       print('''Talla seleccionada es válida: $talla''');
     } else {
       print('''Talla seleccionada es invalida: $talla''');
@@ -172,12 +173,17 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
       final Set<String> coloresSet = {}; 
 
       for (final fila in filasSnap.docs) {
-        final subfilasSnap = await FirebaseFirestore.instance
+        // 1. Iniciamos la referencia a la colección
+        Query q = FirebaseFirestore.instance
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: fila.id)
-            .where('talla', isEqualTo: talla)
-            .get();
+            .where('talla', isEqualTo: talla);
+            
+        if (!item.tipoTieneColores && !item.tipoTieneTaco && item.tipoTienePlataforma) {
+          q = q.where('plataforma', isEqualTo: false);
+        }
 
+        final subfilasSnap = await q.get();
         for (final sub in subfilasSnap.docs) {
           total += (sub['cantidad'] ?? 0) as int;
           final color = sub['colores']?.toString() ?? ''; 
@@ -201,10 +207,8 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Future<void> _calcularStockPorColor(int index, String color) async {
     var item = _itemsVenta[index];
-    if (item.coloresDisponibles.contains(color)) {
-      print('''Color seleccionado es válido: $color''');
+    if (item.coloresDisponibles.contains(item.colorSeleccionado)) {
     } else {
-      print('''Color seleccionado es inválido: $color''');
       setState(() {
         item.errorColor = true;
         item.colorSeleccionado = null;
@@ -232,12 +236,82 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
       final Set<int> tacosSet = {};
 
       for (final fila in filasSnap.docs) {
-        final subfilasSnap = await FirebaseFirestore.instance
+        Query q = FirebaseFirestore.instance
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: fila.id)
             .where('talla', isEqualTo: item.tallaSeleccionada)
-            .where('colores', isEqualTo: color)
-            .get();
+            .where('colores', isEqualTo: color);
+            
+        if (!item.tipoTieneTaco && item.tipoTienePlataforma) {
+          q = q.where('plataforma', isEqualTo: false);
+        }
+
+        final subfilasSnap = await q.get();
+
+        for (final sub in subfilasSnap.docs) {
+          total += (sub['cantidad'] ?? 0) as int;
+          final taco = sub['taco'] ?? 0;
+          if (item.tipoTieneTaco && taco > 0) tacosSet.add(taco as int);
+        }
+      }
+
+      setState(() {
+        item.stockDisponible = total;
+        item.tacosDisponibles = tacosSet.toList()..sort();
+        item.tacoSeleccionado = null;
+        item.plataformaSeleccionada = false;
+        item.cargandoStock = false;
+      });
+    } catch (e) {
+      setState(() => item.cargandoStock = false);
+    }
+  }
+
+  Future<void> _calcularStockPorTaco(int index, int taco) async {
+    var item = _itemsVenta[index];
+    if (item.tacosDisponibles.contains(item.tacoSeleccionado)) {
+      setState(() {
+        item.errorTaco = true;
+        item.tacoSeleccionado = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se encontraron tacos disponibles para este calzado, vuelve a seleccionar el taco',
+          ),
+        ),
+      );
+      return;
+    }
+    if (item.calzadoId == null || item.tallaSeleccionada == null) return;
+
+    setState(() => item.cargandoStock = true);
+    try {
+      final filasSnap = await FirebaseFirestore.instance
+          .collection('fila_inventario')
+          .where('calzado_id', isEqualTo: item.calzadoId)
+          .get();
+
+      int total = 0;
+      final Set<int> tacosSet = {};
+
+      for (final fila in filasSnap.docs) {
+        Query q = FirebaseFirestore.instance
+            .collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: fila.id)
+            .where('talla', isEqualTo: item.tallaSeleccionada)
+            .where('taco', isEqualTo: taco);
+            
+        if (item.tipoTieneColores) {
+          q = q.where('colores', isEqualTo: item.colorSeleccionado);
+        }
+
+        if (item.tipoTienePlataforma) {
+          q = q.where('plataforma', isEqualTo: false);
+        }
+
+        final subfilasSnap = await q.get();
 
         for (final sub in subfilasSnap.docs) {
           total += (sub['cantidad'] ?? 0) as int;
@@ -512,13 +586,12 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
         items: item.tallasDisponibles.toSet().map((t) => DropdownMenuItem(value: t, child: Text(t.toString()))).toList(),
         onChanged: (v) {
           if (v == null) return;
-          setState(() => item.tallaSeleccionada = v);
-          if (item.tipoTieneColores) {
-            _calcularStockPorTalla(index, v);
-          } else {
-            // Si no tiene colores, saltar a taco
-            _calcularStockPorColor(index, ""); 
-          }
+          setState(() {
+            item.tallaSeleccionada = v;
+            item.cantidadVenta = 0;
+            item.cantidadController.clear();
+          });
+          _calcularStockPorTalla(index, v);
         },
       ),
     );
@@ -538,7 +611,11 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
         items: item.coloresDisponibles.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
         onChanged: (v) {
           if (v == null) return;
-          setState(() => item.colorSeleccionado = v);
+          setState(() {
+            item.colorSeleccionado = v;
+            item.cantidadVenta = 0;
+            item.cantidadController.clear();
+          });
           _calcularStockPorColor(index, v);
         },
       ),
@@ -555,10 +632,14 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
         decoration: const InputDecoration(labelText: 'Taco (cm)', border: OutlineInputBorder()),
         value: item.tacoSeleccionado,
         items: item.tacosDisponibles.map((t) => DropdownMenuItem(value: t, child: Text('$t cm'))).toList(),
-        onChanged: (v) {
+        onChanged: (v) async {
           if (v == null) return;
-          setState(() => item.tacoSeleccionado = v);
-          _calcularStockCompleto(index);
+          setState(() {
+            item.tacoSeleccionado = v;
+            item.cantidadVenta = 0;
+            item.cantidadController.clear();
+          });
+          await _calcularStockPorTaco(index, v);
         },
       ),
     );
@@ -573,7 +654,11 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
       Checkbox(
           value: item.plataformaSeleccionada,
           onChanged: (v) {
-            setState(() => item.plataformaSeleccionada = v ?? false);
+            setState(() {
+            item.plataformaSeleccionada = v ?? false;
+            item.cantidadVenta = 0;
+            item.cantidadController.clear();
+          });
             _calcularStockCompleto(index);
           }),
     ]);
