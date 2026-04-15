@@ -17,6 +17,7 @@ class VentaItem {
   List<int> tallasDisponibles = [];
   List<int> tacosDisponibles = [];
   bool errorTalla = false;
+  bool errorColor = false;
   List<String> coloresDisponibles = []; // 🔥 Nuevo: Colores
   bool tipoTieneTaco = false;
   bool tipoTienePlataforma = false;
@@ -200,6 +201,24 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Future<void> _calcularStockPorColor(int index, String color) async {
     var item = _itemsVenta[index];
+    if (item.coloresDisponibles.contains(color)) {
+      print('''Color seleccionado es válido: $color''');
+    } else {
+      print('''Color seleccionado es inválido: $color''');
+      setState(() {
+        item.errorColor = true;
+        item.colorSeleccionado = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se encontraron colores disponibles para este calzado, vuelve a seleccionar el color',
+          ),
+        ),
+      );
+      return;
+    }
     if (item.calzadoId == null || item.tallaSeleccionada == null) return;
 
     setState(() => item.cargandoStock = true);
@@ -507,7 +526,10 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Widget _buildDropdownColor(int index) {
     var item = _itemsVenta[index];
-    if (!item.tipoTieneColores || item.tallaSeleccionada == null || item.coloresDisponibles.isEmpty) return const SizedBox();
+    if (!item.tipoTieneColores || item.tallaSeleccionada == null || item.coloresDisponibles.isEmpty || item.errorColor) {
+      item.errorColor = false; // 🔥 resetear flag de error para que al seleccionar otro calzado no se quede bloqueado
+      return const SizedBox();
+    }
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<String>(
