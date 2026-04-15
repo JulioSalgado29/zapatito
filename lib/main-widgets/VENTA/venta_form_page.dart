@@ -44,7 +44,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
   List<String> _coloresDisponibles = []; // 🔥 Agregado
   List<int> _tacosDisponibles = [];
 
-  bool _bloqueandoTalla = false;
   bool _errorTalla = false;
 
   final Map<String, String?> _iconCache = {};
@@ -508,7 +507,6 @@ for (final fila in filasSnap.docs) {
       }).toList(),
       onChanged: (v) async {
         if (v == null) return;
-        _bloqueandoTalla = true;
         final doc = await FirebaseFirestore.instance.collection('calzado').doc(v).get();
         if (doc.exists) {
           final data = doc.data()!;
@@ -524,7 +522,6 @@ for (final fila in filasSnap.docs) {
           _precioController.clear();
         });
         await _calcularStockPorCalzado(v);
-        _bloqueandoTalla = false;
       },
     );
   }
