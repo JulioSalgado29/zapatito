@@ -149,8 +149,26 @@ class _VentaFormPageState extends State<VentaFormPage> {
   }
 
   Future<void> _calcularStockPorTalla(int talla) async {
+    if (_tallasDisponibles.contains(_tallaSeleccionada)) {
+      print('''Talla seleccionada es válida: $_tallaSeleccionada''');
+    } else {
+      print('''Talla seleccionada es invalida: $_tallaSeleccionada''');
+      setState(() {
+        _errorTalla = true;
+        _tallaSeleccionada = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se encontraron tallas disponibles para este calzado, vuelve a seleccionar la talla',
+          ),
+        ),
+      );
+      return;
+    }
     if (_calzadoId == null) return;
-    setState(() => _cargandoStock = true);
+    setState(() => _cargandoStock = true,);
     try {
       final filasSnap = await FirebaseFirestore.instance
           .collection('fila_inventario')
@@ -512,7 +530,10 @@ for (final fila in filasSnap.docs) {
   }
 
   Widget _buildDropdownTalla() {
-    if (_calzadoId == null || _tallasDisponibles.isEmpty) return const SizedBox();
+    if (_calzadoId == null || _tallasDisponibles.isEmpty || _errorTalla) {
+      _errorTalla = false; // 🔥 resetear flag de error para que al seleccionar otro calzado no se quede bloqueado
+      return const SizedBox();
+    }
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<int>(

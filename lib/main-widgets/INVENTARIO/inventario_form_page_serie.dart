@@ -24,6 +24,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
   String? _calzadoId;
   bool _tipoTienePlataforma = false;
   bool _tipoTieneTaco = false;
+  bool _tipoTieneColores = false; // 🔥 AGREGADO
 
   int _cantidadSeriesTotal = 0;
 
@@ -54,7 +55,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
   @override
   void initState() {
     super.initState();
-    _subfilas.add({'cantidad': 0, 'talla': 0, 'taco': 0, 'plataforma': false});
+    _subfilas.add({'cantidad': 0, 'talla': 0, 'taco': 0, 'plataforma': false, 'colores': null}); // 🔥 AGREGADO colores
   }
 
   void _mostrarSplashScreen() {
@@ -96,7 +97,8 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
 
     final combinaciones = <String>{};
     for (var sub in _subfilas) {
-      final key = '${sub['serie']}_${sub['taco']}_${sub['plataforma']}';
+      // 🔥 MODIFICADO PARA INCLUIR COLOR EN LA LLAVE DE VALIDACION
+      final key = '${sub['serie']}_${sub['taco']}_${sub['plataforma']}_${sub['colores']}';
       if ((sub['cantidad'] ?? 0) <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -113,11 +115,19 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
         );
         return;
       }
+      // 🔥 AGREGADO VALIDACION DE COLOR
+      if (_tipoTieneColores && (sub['colores'] == null || sub['colores'].toString().isEmpty)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Todas las subfilas deben tener un color seleccionado')),
+        );
+        return;
+      }
       if (combinaciones.contains(key)) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text(
-                  'No se pueden repetir subfilas con misma serie y/o taco y/o plataforma')),
+                  'No se pueden repetir subfilas con misma serie, color y/o taco y/o plataforma')),
         );
         return;
       }
@@ -170,11 +180,13 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
         int cantidadSerie = sub['cantidad'];
         int taco = sub['taco'] ?? 0;
         bool plataforma = sub['plataforma'] ?? false;
+        String color = sub['colores'] ?? ''; // 🔥 AGREGADO
 
         List<int> tallas = seriesMap[serie]!;
 
         for (var talla in tallas) {
-          String key = '${talla}_${taco}_$plataforma';
+          // 🔥 MODIFICADO PARA INCLUIR COLOR EN EL ACUMULADO
+          String key = '${talla}_${taco}_${plataforma}_$color';
 
           if (!acumulado.containsKey(key)) {
             acumulado[key] = 0;
@@ -189,14 +201,17 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
         int talla = int.parse(partes[0]);
         int taco = int.parse(partes[1]);
         bool plataforma = partes[2] == 'true';
+        String color = partes[3]; // 🔥 AGREGADO
         int cantidadNueva = entry.value;
 
+        // 🔥 MODIFICADO QUERY PARA INCLUIR COLOR
         final subExistente = await FirebaseFirestore.instance
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: filaRef.id)
             .where('talla', isEqualTo: talla)
             .where('taco', isEqualTo: taco)
             .where('plataforma', isEqualTo: plataforma)
+            .where('colores', isEqualTo: color)
             .limit(1)
             .get();
 
@@ -217,6 +232,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
             'talla': talla,
             'taco': _tipoTieneTaco ? taco : 0,
             'plataforma': _tipoTienePlataforma ? plataforma : false,
+            'colores': _tipoTieneColores ? color : '', // 🔥 AGREGADO
             'fecha_creacion': Timestamp.now(),
             'usuario_creacion': widget.firstName ?? 'anon',
             'email_usuario': widget.emailUser ?? 'anon',
@@ -300,6 +316,20 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
           ],
         ),
         const SizedBox(height: 12),
+        // 🔥 AGREGADO DROPDOWN DE COLORES
+        if (_tipoTieneColores)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: TextFormField(
+              decoration: const InputDecoration(
+                labelText: 'Color', 
+                border: OutlineInputBorder(), 
+                prefixIcon: Icon(Icons.palette),
+                hintText: 'Ej: Negro, Blanco, etc.'
+              ),
+              onChanged: (v) => _subfilas[index]['colores'] = v,
+            ),
+          ),
         if (_tipoTieneTaco)
           DropdownButtonFormField<int>(
             decoration: const InputDecoration(
@@ -379,6 +409,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
             final calzadoData = calzadoDoc.data()!;
             _tipoTieneTaco = calzadoData['taco'] ?? true;
             _tipoTienePlataforma = calzadoData['plataforma'] ?? true;
+            _tipoTieneColores = calzadoData['colores'] ?? true; // 🔥 AGREGADO
             setState(() {}); // refrescar vista
           }
         }
@@ -468,7 +499,7 @@ class _InventarioSerieFormPageState extends State<InventarioSerieFormPage> {
 
                     setState(() {
                       _subfilas
-                          .add({'cantidad': 0, 'taco': 0, 'plataforma': false});
+                          .add({'cantidad': 0, 'taco': 0, 'plataforma': false, 'colores': null}); // 🔥 AGREGADO colores
                     });
                   },
                   label: const Text('Agregar subfila'),
