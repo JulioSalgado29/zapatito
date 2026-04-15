@@ -45,6 +45,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
   List<int> _tacosDisponibles = [];
 
   bool _errorTalla = false;
+  bool _errorColor = false;
 
   final Map<String, String?> _iconCache = {};
   final TextEditingController _cantidadController = TextEditingController();
@@ -221,6 +222,24 @@ class _VentaFormPageState extends State<VentaFormPage> {
 
   // 🔥 NUEVO: Método para continuar cascada despues de Color
   Future<void> _calcularStockPorColor(String color) async {
+    if (_coloresDisponibles.contains(_colorSeleccionado)) {
+      print('''Color seleccionado es válido: $_colorSeleccionado''');
+    } else {
+      print('''Color seleccionado es inválido: $_colorSeleccionado''');
+      setState(() {
+        _errorColor = true;
+        _colorSeleccionado = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se encontraron tallas disponibles para este calzado, vuelve a seleccionar la talla',
+          ),
+        ),
+      );
+      return;
+    }
     if (_calzadoId == null || _tallaSeleccionada == null) return;
     setState(() => _cargandoStock = true);
     try {
@@ -610,7 +629,11 @@ class _VentaFormPageState extends State<VentaFormPage> {
   Widget _buildDropdownColor() {
     if (!_tipoTieneColores ||
         _tallaSeleccionada == null ||
-        _coloresDisponibles.isEmpty) return const SizedBox();
+        _coloresDisponibles.isEmpty || _errorColor) {
+      _errorColor =
+          false; // 🔥 resetear flag de error para que al seleccionar otro calzado no se quede bloqueado
+      return const SizedBox();
+    }
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<String>(
