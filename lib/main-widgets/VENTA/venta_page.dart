@@ -29,7 +29,6 @@ class _VentaPageState extends State<VentaPage> {
     _verificarInventario();
   }
 
-  // --- LÓGICA DE CONSULTA ---
   Stream<QuerySnapshot> _getFilasVenta() {
     Query query = FirebaseFirestore.instance
         .collection('fila_venta')
@@ -39,17 +38,14 @@ class _VentaPageState extends State<VentaPage> {
       DateTime inicioDia =
           DateTime(_fechaFiltro!.year, _fechaFiltro!.month, _fechaFiltro!.day);
       DateTime finDia = inicioDia.add(const Duration(days: 1));
-
       query = query
           .where('fecha_creacion',
               isGreaterThanOrEqualTo: Timestamp.fromDate(inicioDia))
           .where('fecha_creacion', isLessThan: Timestamp.fromDate(finDia));
     }
-
     return query.orderBy('fecha_creacion', descending: true).snapshots();
   }
 
-  // --- SELECTOR DE FECHA ---
   Future<void> _seleccionarFecha(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -59,9 +55,7 @@ class _VentaPageState extends State<VentaPage> {
       locale: const Locale('es', 'ES'),
     );
     if (picked != null && picked != _fechaFiltro) {
-      setState(() {
-        _fechaFiltro = picked;
-      });
+      setState(() => _fechaFiltro = picked);
     }
   }
 
@@ -71,28 +65,25 @@ class _VentaPageState extends State<VentaPage> {
           .collection('inventario')
           .doc(widget.inventarioId)
           .get();
-
       if (!docSnapshot.exists) {
         if (!mounted) return;
         Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const HomePage()),
-        );
+            context, MaterialPageRoute(builder: (_) => const HomePage()));
       }
     } catch (e) {
       print("Error de inventario: $e");
     }
   }
 
-  // --- FORMATO DE FECHA ELEGANTE ---
+  // CORRECCIÓN DE "14e" -> "14 de"
   String _formatFechaLarga(dynamic timestamp) {
     if (timestamp == null) return 'Sin fecha';
     try {
       final DateTime dt = (timestamp as Timestamp).toDate();
       String dia = DateFormat('EEEE', 'es_ES').format(dt);
-      String resto = DateFormat('d de MMMM - yyyy', 'es_ES').format(dt);
+      String resto = DateFormat("d 'de' MMMM - yyyy", "es_ES")
+          .format(dt); // Escapado con 'de'
       String hora = DateFormat('hh:mm a').format(dt);
-
       return "${dia[0].toUpperCase()}${dia.substring(1)} - $resto ($hora)";
     } catch (e) {
       return 'Fecha no válida';
@@ -105,10 +96,8 @@ class _VentaPageState extends State<VentaPage> {
         .collection('calzado')
         .doc(calzadoId)
         .get();
-
     Map<String, dynamic> result =
         snap.exists ? snap.data()! : {'nombre': 'Sin nombre', 'icono': null};
-
     _calzadoCache[calzadoId] = result;
     return result;
   }
@@ -119,9 +108,20 @@ class _VentaPageState extends State<VentaPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ventas Realizadas'),
-        backgroundColor: const Color.fromARGB(255, 33, 47, 243),
+        backgroundColor: const Color(0xff5b16c2),
         foregroundColor: Colors.white,
+        // Forzamos la flecha de regreso para que el drawer no la quite
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Ventas Realizadas',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Georgia',
+          ),
+        ),
         actions: [
           if (_fechaFiltro != null)
             IconButton(
@@ -137,7 +137,6 @@ class _VentaPageState extends State<VentaPage> {
       drawer:
           Designwidgets().drawerHome(context, widget.firstName ?? "Invitado"),
       body: SafeArea(
-        // 👈 Agregado
         child: Column(
           children: [
             if (_fechaFiltro != null)
@@ -160,8 +159,7 @@ class _VentaPageState extends State<VentaPage> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (snapshot.hasError) {
-                    return const Center(
-                        child: Text('Error de conexión o falta de Índice.'));
+                    return const Center(child: Text('Error de conexión.'));
                   }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return const Center(
@@ -170,17 +168,12 @@ class _VentaPageState extends State<VentaPage> {
 
                   final filas = snapshot.data!.docs;
                   return ListView.builder(
-                    padding: const EdgeInsets.all(10), // Padding estándar
-                    itemCount: filas.length +
-                        1, // Añadimos uno extra para el espacio final
-                    itemBuilder: (context, index) {
-                      if (index == filas.length) {
-                        return const SizedBox(
-                            height:
-                                100); // Espacio para que el FAB no tape la última venta
-                      }
-                      return _buildVentaCard(filas[index]);
-                    },
+                    padding: const EdgeInsets.only(
+                        top: 10, bottom: 150), // Tu padding original
+                    cacheExtent: 10, // Parche invisible para Impeller
+                    itemCount: filas.length,
+                    itemBuilder: (context, index) =>
+                        _buildVentaCard(filas[index]),
                   );
                 },
               ),
@@ -203,19 +196,14 @@ class _VentaPageState extends State<VentaPage> {
 
   Widget _buildVentaCard(QueryDocumentSnapshot fila) {
     final filaData = fila.data() as Map<String, dynamic>;
-    final calzadoId = filaData['calzado_id'] ?? '';
-    final cantidad = filaData['cantidad'] ?? 0;
-    final talla = filaData['talla'] ?? 0;
-    final precioTotal = (filaData['precio_venta_total'] ?? 0.0).toDouble();
-    final vendedor = filaData['usuario_creacion'] ?? 'Desconocido';
-    final fecha = filaData['fecha_creacion'];
-
     return FutureBuilder<Map<String, dynamic>>(
-      future: _getDatosCalzado(calzadoId),
+      future: _getDatosCalzado(filaData['calzado_id'] ?? ''),
       builder: (context, calzadoSnap) {
         if (!calzadoSnap.hasData) return const LinearProgressIndicator();
 
         final calzadoData = calzadoSnap.data!;
+        final precioTotal = (filaData['precio_venta_total'] ?? 0.0).toDouble();
+
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
           elevation: 3,
@@ -233,7 +221,8 @@ class _VentaPageState extends State<VentaPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Cant: $cantidad • Talla: $talla',
+                    Text(
+                        'Cant: ${filaData['cantidad']} • Talla: ${filaData['talla']}',
                         style: const TextStyle(
                             fontSize: 13, color: Colors.black54)),
                     Text('S/ ${precioTotal.toStringAsFixed(2)}',
@@ -244,7 +233,6 @@ class _VentaPageState extends State<VentaPage> {
                   ],
                 ),
                 const SizedBox(height: 10),
-                // --- ETIQUETA DE FECHA ---
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -258,12 +246,12 @@ class _VentaPageState extends State<VentaPage> {
                           size: 12, color: Colors.blue),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(_formatFechaLarga(fecha),
-                            style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.grey.shade800,
-                                fontWeight: FontWeight.w600)),
-                      ),
+                          child: Text(
+                              _formatFechaLarga(filaData['fecha_creacion']),
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade800,
+                                  fontWeight: FontWeight.w600))),
                     ],
                   ),
                 ),
@@ -271,11 +259,12 @@ class _VentaPageState extends State<VentaPage> {
             ),
             children: [
               const Divider(),
-              _buildDetalleRow(Icons.person, 'Vendedor', vendedor),
-              _buildDetalleRow(
-                  Icons.straighten, 'Talla Seleccionada', talla.toString()),
-              _buildDetalleRow(
-                  Icons.shopping_bag, 'Cantidad Vendida', cantidad.toString()),
+              _buildDetalleRow(Icons.person, 'Vendedor',
+                  filaData['usuario_creacion'] ?? 'Desconocido'),
+              _buildDetalleRow(Icons.straighten, 'Talla Seleccionada',
+                  filaData['talla'].toString()),
+              _buildDetalleRow(Icons.shopping_bag, 'Cantidad Vendida',
+                  filaData['cantidad'].toString()),
               _buildDetalleRow(Icons.monetization_on, 'Total de la Fila',
                   'S/ ${precioTotal.toStringAsFixed(2)}'),
               const SizedBox(height: 10),
