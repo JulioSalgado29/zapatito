@@ -314,9 +314,11 @@ class _InventarioPageState extends State<InventarioPage> {
             Border.all(color: activo ? Colors.green[200]! : Colors.red[200]!),
       ),
       child: Text(
-        activo ? 'ACTIVO' : 'INACTIVO',
+        activo ? 'CODIGO\nACTIVO' : 'CODIGO\nINACTIVO',
+        textAlign: TextAlign.center, // Alinea ambas palabras al centro
         style: TextStyle(
           fontSize: 10,
+          height: 1.1, // Ajusta el espacio entre las dos líneas si es necesario
           fontWeight: FontWeight.bold,
           color: activo ? Colors.green[700] : Colors.red[700],
         ),
