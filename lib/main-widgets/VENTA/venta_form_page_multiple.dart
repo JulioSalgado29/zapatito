@@ -432,7 +432,6 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
       stream: FirebaseFirestore.instance
           .collection('calzado')
           .where('id_inventario', isEqualTo: widget.inventarioId)
-          .where('activo', isEqualTo: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const LinearProgressIndicator();
