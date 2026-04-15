@@ -8,6 +8,7 @@ class VentaItem {
   String? calzadoId;
   int? tallaSeleccionada;
   int? tacoSeleccionado;
+  String? colorSeleccionado; // 🔥 Nuevo: Color
   bool plataformaSeleccionada = false;
   int stockDisponible = 0;
   int cantidadVenta = 0;
@@ -15,10 +16,12 @@ class VentaItem {
   bool cargandoStock = false;
   List<int> tallasDisponibles = [];
   List<int> tacosDisponibles = [];
+  bool errorTalla = false;
+  List<String> coloresDisponibles = []; // 🔥 Nuevo: Colores
   bool tipoTieneTaco = false;
   bool tipoTienePlataforma = false;
-  bool bloqueandoTalla = false;
-  bool errorTalla = false;
+  bool tipoTieneColores = false; // 🔥 Nuevo: Tipo Colores
+  
   final TextEditingController cantidadController = TextEditingController();
   final TextEditingController precioController =
       TextEditingController(); // 🔥 Nuevo: Controller para el precio
@@ -86,6 +89,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
       if (item.calzadoId == actual.calzadoId &&
           item.tallaSeleccionada == actual.tallaSeleccionada &&
           item.tacoSeleccionado == actual.tacoSeleccionado &&
+          item.colorSeleccionado == actual.colorSeleccionado && // 🔥 Validar color
           item.plataformaSeleccionada == actual.plataformaSeleccionada) {
         return true;
       }
@@ -123,10 +127,11 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
         item.tallasDisponibles = tallasSet.toList()..sort();
         item.tallaSeleccionada = null;
         item.tacoSeleccionado = null;
+        item.colorSeleccionado = null; // 🔥 Reset color
         item.plataformaSeleccionada = false;
         item.tacosDisponibles = [];
+        item.coloresDisponibles = []; // 🔥 Reset colores
         item.cargandoStock = false;
-        item.errorTalla = false;
       });
     } catch (e) {
       setState(() => _itemsVenta[index].cargandoStock = false);
@@ -135,18 +140,67 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Future<void> _calcularStockPorTalla(int index, int talla) async {
     var item = _itemsVenta[index];
-    if (!item.tallasDisponibles.contains(talla)) {
+    if (item.tallasDisponibles.contains(talla)) {
+      print('''Talla seleccionada es válida: $talla''');
+    } else {
+      print('''Talla seleccionada es invalida: $talla''');
       setState(() {
         item.errorTalla = true;
         item.tallaSeleccionada = null;
       });
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se encontraron tallas disponibles')),
+        const SnackBar(
+          content: Text(
+            'No se encontraron tallas disponibles para este calzado, vuelve a seleccionar la talla',
+          ),
+        ),
       );
       return;
     }
-
     if (item.calzadoId == null) return;
+
+    setState(() => item.cargandoStock = true);
+    try {
+      final filasSnap = await FirebaseFirestore.instance
+          .collection('fila_inventario')
+          .where('calzado_id', isEqualTo: item.calzadoId)
+          .get();
+
+      int total = 0;
+      final Set<String> coloresSet = {}; 
+
+      for (final fila in filasSnap.docs) {
+        final subfilasSnap = await FirebaseFirestore.instance
+            .collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: fila.id)
+            .where('talla', isEqualTo: talla)
+            .get();
+
+        for (final sub in subfilasSnap.docs) {
+          total += (sub['cantidad'] ?? 0) as int;
+          final color = sub['colores']?.toString() ?? ''; 
+          if (item.tipoTieneColores && color.isNotEmpty) coloresSet.add(color);
+        }
+      }
+
+      setState(() {
+        item.stockDisponible = total;
+        item.coloresDisponibles = coloresSet.toList()..sort(); 
+        item.colorSeleccionado = null; 
+        item.tacoSeleccionado = null;
+        item.plataformaSeleccionada = false;
+        item.tacosDisponibles = [];
+        item.cargandoStock = false;
+      });
+    } catch (e) {
+      setState(() => item.cargandoStock = false);
+    }
+  }
+
+  Future<void> _calcularStockPorColor(int index, String color) async {
+    var item = _itemsVenta[index];
+    if (item.calzadoId == null || item.tallaSeleccionada == null) return;
 
     setState(() => item.cargandoStock = true);
     try {
@@ -162,7 +216,8 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
         final subfilasSnap = await FirebaseFirestore.instance
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: fila.id)
-            .where('talla', isEqualTo: talla)
+            .where('talla', isEqualTo: item.tallaSeleccionada)
+            .where('colores', isEqualTo: color)
             .get();
 
         for (final sub in subfilasSnap.docs) {
@@ -179,10 +234,6 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
         item.plataformaSeleccionada = false;
         item.cargandoStock = false;
       });
-
-      if (_esCombinacionDuplicada(index)) {
-        _notificarDuplicado(index);
-      }
     } catch (e) {
       setState(() => item.cargandoStock = false);
     }
@@ -206,6 +257,9 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
             .where('fila_inventario_id', isEqualTo: fila.id)
             .where('talla', isEqualTo: item.tallaSeleccionada);
 
+        if (item.tipoTieneColores && item.colorSeleccionado != null) {
+          subQuery = subQuery.where('colores', isEqualTo: item.colorSeleccionado);
+        }
         if (item.tipoTieneTaco && item.tacoSeleccionado != null) {
           subQuery = subQuery.where('taco', isEqualTo: item.tacoSeleccionado);
         }
@@ -262,6 +316,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
           'calzado_id': item.calzadoId,
           'talla': item.tallaSeleccionada,
           'taco': item.tipoTieneTaco ? item.tacoSeleccionado ?? 0 : 0,
+          'colores': item.tipoTieneColores ? item.colorSeleccionado ?? '' : '', // 🔥 Guardar color
           'plataforma':
               item.tipoTienePlataforma ? item.plataformaSeleccionada : false,
           'cantidad': item.cantidadVenta,
@@ -277,6 +332,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
           'calzado_id': item.calzadoId,
           'talla': item.tallaSeleccionada,
           'taco': item.tipoTieneTaco ? item.tacoSeleccionado ?? 0 : 0,
+          'colores': item.tipoTieneColores ? item.colorSeleccionado ?? '' : '', // 🔥 Guardar color
           'plataforma':
               item.tipoTienePlataforma ? item.plataformaSeleccionada : false,
           'cantidad': item.cantidadVenta,
@@ -300,6 +356,9 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
               .where('talla', isEqualTo: item.tallaSeleccionada);
           if (item.tipoTieneTaco && item.tacoSeleccionado != null) {
             subQuery = subQuery.where('taco', isEqualTo: item.tacoSeleccionado);
+          }
+          if (item.tipoTieneColores && item.colorSeleccionado != null) { // 🔥 Descuento color
+            subQuery = subQuery.where('colores', isEqualTo: item.colorSeleccionado);
           }
           if (item.tipoTienePlataforma) {
             subQuery = subQuery.where('plataforma',
@@ -408,7 +467,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
               item.calzadoId = v;
               item.tipoTieneTaco = data['taco'] ?? false;
               item.tipoTienePlataforma = data['plataforma'] ?? false;
-              item.errorTalla = false;
+              item.tipoTieneColores = data['colores'] ?? false; // 🔥 Asignar si tiene colores
               // 🔥 Sugerir precio si existe en la base de datos
               double precioBase = (data['precio'] ?? 0).toDouble();
               item.precioVentaTotal = precioBase * item.cantidadVenta;
@@ -423,26 +482,43 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Widget _buildDropdownTalla(int index) {
     var item = _itemsVenta[index];
-    if (item.calzadoId == null ||
-        item.tallasDisponibles.isEmpty ||
-        item.errorTalla) {
-      item.errorTalla = false;
+    if (item.calzadoId == null || item.tallasDisponibles.isEmpty || item.errorTalla) {
+      item.errorTalla = false; // 🔥 resetear flag de error para que al seleccionar otro calzado no se quede bloqueado
       return const SizedBox();
     }
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<int>(
-        decoration: const InputDecoration(
-            labelText: 'Talla', border: OutlineInputBorder()),
+        decoration: const InputDecoration(labelText: 'Talla', border: OutlineInputBorder()),
         value: item.tallaSeleccionada,
-        items: item.tallasDisponibles
-            .toSet()
-            .map((t) => DropdownMenuItem(value: t, child: Text(t.toString())))
-            .toList(),
+        items: item.tallasDisponibles.toSet().map((t) => DropdownMenuItem(value: t, child: Text(t.toString()))).toList(),
         onChanged: (v) {
           if (v == null) return;
           setState(() => item.tallaSeleccionada = v);
-          _calcularStockPorTalla(index, v);
+          if (item.tipoTieneColores) {
+            _calcularStockPorTalla(index, v);
+          } else {
+            // Si no tiene colores, saltar a taco
+            _calcularStockPorColor(index, ""); 
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildDropdownColor(int index) {
+    var item = _itemsVenta[index];
+    if (!item.tipoTieneColores || item.tallaSeleccionada == null || item.coloresDisponibles.isEmpty) return const SizedBox();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: DropdownButtonFormField<String>(
+        decoration: const InputDecoration(labelText: 'Color', border: OutlineInputBorder()),
+        value: item.colorSeleccionado,
+        items: item.coloresDisponibles.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+        onChanged: (v) {
+          if (v == null) return;
+          setState(() => item.colorSeleccionado = v);
+          _calcularStockPorColor(index, v);
         },
       ),
     );
@@ -450,18 +526,14 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Widget _buildDropdownTaco(int index) {
     var item = _itemsVenta[index];
-    if (!item.tipoTieneTaco ||
-        item.tallaSeleccionada == null ||
-        item.tacosDisponibles.isEmpty) return const SizedBox();
+    // Cascada: Requiere talla y si tiene colores, requiere color
+    if (!item.tipoTieneTaco || item.tallaSeleccionada == null || (item.tipoTieneColores && item.colorSeleccionado == null) || item.tacosDisponibles.isEmpty) return const SizedBox();
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<int>(
-        decoration: const InputDecoration(
-            labelText: 'Taco (cm)', border: OutlineInputBorder()),
+        decoration: const InputDecoration(labelText: 'Taco (cm)', border: OutlineInputBorder()),
         value: item.tacoSeleccionado,
-        items: item.tacosDisponibles
-            .map((t) => DropdownMenuItem(value: t, child: Text('$t cm')))
-            .toList(),
+        items: item.tacosDisponibles.map((t) => DropdownMenuItem(value: t, child: Text('$t cm'))).toList(),
         onChanged: (v) {
           if (v == null) return;
           setState(() => item.tacoSeleccionado = v);
@@ -473,9 +545,8 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Widget _buildCheckboxPlataforma(int index) {
     var item = _itemsVenta[index];
-    if (!item.tipoTienePlataforma || item.tallaSeleccionada == null) {
-      return const SizedBox();
-    }
+    // Cascada: Requiere talla, color (si aplica) y taco (si aplica)
+    if (!item.tipoTienePlataforma || item.tallaSeleccionada == null || (item.tipoTieneColores && item.colorSeleccionado == null) || (item.tipoTieneTaco && item.tacoSeleccionado == null)) return const SizedBox();
     return Row(children: [
       const Text('Con plataforma'),
       Checkbox(
@@ -489,7 +560,12 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Widget _buildCantidadYPrecio(int index) {
     var item = _itemsVenta[index];
-    if (item.tallaSeleccionada == null) return const SizedBox();
+    // Cascada final: Solo mostrar si todos los obligatorios están seleccionados
+    bool listo = item.tallaSeleccionada != null && 
+                 (!item.tipoTieneColores || item.colorSeleccionado != null) &&
+                 (!item.tipoTieneTaco || item.tacoSeleccionado != null);
+                 
+    if (!listo) return const SizedBox();
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Row(
@@ -533,6 +609,8 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
         _itemsVenta.every((i) =>
             i.calzadoId != null &&
             i.tallaSeleccionada != null &&
+            (!i.tipoTieneColores || i.colorSeleccionado != null) &&
+            (!i.tipoTieneTaco || i.tacoSeleccionado != null) &&
             i.precioVentaTotal > 0 &&
             i.cantidadVenta > 0 &&
             i.cantidadVenta <= i.stockDisponible);
@@ -592,6 +670,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
                     const SizedBox(height: 12),
                     _buildDropdownCalzado(index),
                     _buildDropdownTalla(index),
+                    _buildDropdownColor(index), // 🔥 Incluido en el build
                     _buildDropdownTaco(index),
                     _buildCheckboxPlataforma(index),
                     _buildCantidadYPrecio(
