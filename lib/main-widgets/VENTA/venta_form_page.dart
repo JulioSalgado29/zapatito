@@ -8,12 +8,17 @@ class VentaFormPage extends StatefulWidget {
   final String? firstName;
   final String? emailUser;
   final String? inventarioId;
+  // 🔹 Nuevos parámetros para edición
+  final String? ventaId;
+  final Map<String, dynamic>? datosEdicion;
 
   const VentaFormPage({
     super.key,
     required this.firstName,
     this.emailUser,
     this.inventarioId,
+    this.ventaId,
+    this.datosEdicion,
   });
 
   @override
@@ -21,6 +26,7 @@ class VentaFormPage extends StatefulWidget {
 }
 
 class _VentaFormPageState extends State<VentaFormPage> {
+  bool get _esEdicion => widget.ventaId != null;
   // --- Selecciones del usuario ---
   String? _calzadoId;
   int? _tallaSeleccionada;
@@ -56,13 +62,52 @@ class _VentaFormPageState extends State<VentaFormPage> {
   String? _metodoPagoSeleccionado;
   String? _lugarVentaSeleccionado;
 
-  final List<String> _metodosPago = ['Efectivo', 'Yape', 'Plin', 'Transferencia', 'POS', 'Efectivo y Yape', 'Efectivo y Plin', 'Efectivo y Transferencia', 'Efectivo y POS'];
+  final List<String> _metodosPago = [
+    'Efectivo',
+    'Yape',
+    'Plin',
+    'Transferencia',
+    'POS',
+    'Efectivo y Yape',
+    'Efectivo y Plin',
+    'Efectivo y Transferencia',
+    'Efectivo y POS'
+  ];
   final List<String> _lugaresVenta = ['Tienda', 'Live'];
 
   @override
   void initState() {
     super.initState();
-    _calcularStockTotal();
+    if (_esEdicion) {
+      _cargarDatosEdicion();
+    } else {
+      _calcularStockTotal();
+    }
+  }
+
+  void _cargarDatosEdicion() {
+    final d = widget.datosEdicion!;
+    setState(() {
+      _calzadoId = d['calzado_id'];
+      _tallaSeleccionada = d['talla'];
+      _colorSeleccionado = d['colores'] == '' ? null : d['colores'];
+      _tacoSeleccionado = d['taco'] == 0 ? null : d['taco'];
+      _plataformaSeleccionada = d['plataforma'] == '' ? null : d['plataforma'];
+      _cantidadVenta = d['cantidad'];
+      _precioVentaTotal = (d['precio_venta_total'] ?? 0.0).toDouble();
+      _metodoPagoSeleccionado = d['metodo_pago'];
+      _lugarVentaSeleccionado = d['lugar_venta'];
+
+      _cantidadController.text = _cantidadVenta.toString();
+      _precioController.text = _precioVentaTotal.toString();
+    });
+    // Disparar la cascada inicial para cargar listas disponibles
+    _calcularStockPorCalzado(_calzadoId!).then((_) {
+      if (_tallaSeleccionada != null) {
+        _calcularStockPorTalla(_tallaSeleccionada!);
+      }
+      // Nota: Al editar, el stock disponible mostrado será el actual + lo ya vendido originalmente
+    });
   }
 
   @override
@@ -436,85 +481,142 @@ class _VentaFormPageState extends State<VentaFormPage> {
         context: context,
         barrierDismissible: false,
         builder: (_) => const SplashScreen02());
+
     try {
       final db = FirebaseFirestore.instance;
-      final ventaMap = {
-        'calzado_id': _calzadoId,
-        'talla': _tallaSeleccionada,
-        'colores': _tipoTieneColores ? _colorSeleccionado : '',
-        'taco': _tipoTieneTaco ? _tacoSeleccionado ?? 0 : 0,
-        'plataforma': _tipoTienePlataforma ? _plataformaSeleccionada : '',
-        'cantidad': _cantidadVenta,
-        'precio_venta_total': _precioVentaTotal,
-        'metodo_pago': _metodoPagoSeleccionado, // 🔹 Nuevo
-        'lugar_venta': _lugarVentaSeleccionado, // 🔹 Nuevo
-        'fecha_venta': Timestamp.now(),
-        'usuario_creacion': widget.firstName ?? 'anon',
-      };
+      final batch = db.batch();
 
-      final ventaRef = await db.collection('venta').add(ventaMap);
-      await db.collection('fila_venta').add({
-        ...ventaMap,
-        'id_inventario': widget.inventarioId,
-        'venta_id': ventaRef.id,
-        'fecha_creacion': Timestamp.now(),
-        'email_user': widget.emailUser ?? 'anon',
-      });
-
-      // Descuento en inventario
-      int cantidadPorDescontar = _cantidadVenta;
-      final filasSnap = await db
-          .collection('fila_inventario')
-          .where('calzado_id', isEqualTo: _calzadoId)
-          .get();
-
-      for (final fila in filasSnap.docs) {
-        if (cantidadPorDescontar <= 0) break;
-        Query subQuery = db
+      // 1. SI ES EDICIÓN: REVERSA DEL STOCK ANTERIOR PRIMERO
+      if (_esEdicion) {
+        final dAntiguo = widget.datosEdicion!;
+        // Buscamos la subfila del stock antiguo para devolverlo
+        final subfilasAntiguas = await db
             .collection('subfila_inventario')
-            .where('fila_inventario_id', isEqualTo: fila.id)
-            .where('talla', isEqualTo: _tallaSeleccionada);
+            .where('talla', isEqualTo: dAntiguo['talla'])
+            .where('colores', isEqualTo: dAntiguo['colores'] ?? '')
+            .where('taco', isEqualTo: dAntiguo['taco'] ?? 0)
+            .where('plataforma', isEqualTo: dAntiguo['plataforma'] ?? '')
+            .get();
 
-        if (_tipoTieneColores) {
-          subQuery = subQuery.where('colores', isEqualTo: _colorSeleccionado);
-        }
-        if (_tipoTieneTaco) {
-          subQuery = subQuery.where('taco', isEqualTo: _tacoSeleccionado);
-        }
-        if (_tipoTienePlataforma) {
-          subQuery =
-              subQuery.where('plataforma', isEqualTo: _plataformaSeleccionada);
-        }
-
-        final subfilasSnap = await subQuery.get();
-        for (final subDoc in subfilasSnap.docs) {
-          if (cantidadPorDescontar <= 0) break;
-          final cantActual = (subDoc['cantidad'] ?? 0) as int;
-          final desc = cantidadPorDescontar > cantActual
-              ? cantActual
-              : cantidadPorDescontar;
-          cantidadPorDescontar -= desc;
-
-          if (cantActual - desc <= 0) {
-            await subDoc.reference.delete();
-          } else {
-            await subDoc.reference.update({'cantidad': cantActual - desc});
+        for (var subDoc in subfilasAntiguas.docs) {
+          final filaRef = await db
+              .collection('fila_inventario')
+              .doc(subDoc['fila_inventario_id'])
+              .get();
+          if (filaRef.exists &&
+              filaRef['calzado_id'] == dAntiguo['calzado_id'] &&
+              filaRef['id_inventario'] == widget.inventarioId) {
+            batch.update(subDoc.reference,
+                {'cantidad': FieldValue.increment(dAntiguo['cantidad'])});
+            batch.update(filaRef.reference,
+                {'cantidad': FieldValue.increment(dAntiguo['cantidad'])});
+            break;
           }
-          await fila.reference
-              .update({'cantidad': FieldValue.increment(-desc)});
         }
       }
 
-      if (Navigator.canPop(context)) Navigator.pop(context);
-      _mostrarSnack('Venta registrada correctamente');
-      Navigator.pop(context, true);
-    } catch (e) {
-      if (Navigator.canPop(context)) Navigator.pop(context);
-      _mostrarSnack('Error: $e');
-    }
-  }
+      // 2. PREPARAR DATA DE LA VENTA
+      final ventaMap = {
+        'calzado_id': _calzadoId,
+        'talla': _tallaSeleccionada,
+        'colores': _tipoTieneColores ? _colorSeleccionado ?? '' : '',
+        'taco': _tipoTieneTaco ? _tacoSeleccionado ?? 0 : 0,
+        'plataforma': _tipoTienePlataforma ? _plataformaSeleccionada ?? '' : '',
+        'cantidad': _cantidadVenta,
+        'precio_venta_total': _precioVentaTotal,
+        'metodo_pago': _metodoPagoSeleccionado,
+        'lugar_venta': _lugarVentaSeleccionado,
+        'usuario_creacion': widget.firstName ?? 'anon',
+        'fecha_venta':
+            _esEdicion ? widget.datosEdicion!['fecha_venta'] : Timestamp.now(),
+      };
 
-  // -------------------------------------------------------
+      // 3. ACTUALIZAR O CREAR DOCUMENTOS DE VENTA
+      DocumentReference vRef;
+      if (_esEdicion) {
+        vRef = db.collection('venta').doc(widget.datosEdicion!['venta_id']);
+        batch.update(vRef, ventaMap);
+        batch.update(db.collection('fila_venta').doc(widget.ventaId), {
+          ...ventaMap,
+          'id_inventario': widget.inventarioId,
+          'email_user': widget.emailUser ?? 'anon',
+        });
+      } else {
+        vRef = db.collection('venta').doc();
+        batch.set(vRef, ventaMap);
+        batch.set(db.collection('fila_venta').doc(), {
+          ...ventaMap,
+          'id_inventario': widget.inventarioId,
+          'venta_id': vRef.id,
+          'fecha_creacion': Timestamp.now(),
+          'email_user': widget.emailUser ?? 'anon',
+        });
+      }
+
+      // 4. DESCUENTO DE STOCK (LÓGICA CORREGIDA)
+      int cantidadPorDescontar = _cantidadVenta;
+
+      // Obtenemos la fila_inventario principal
+      final filasSnap = await db
+          .collection('fila_inventario')
+          .where('calzado_id', isEqualTo: _calzadoId)
+          .where('inventario_id', isEqualTo: widget.inventarioId)
+          .limit(1)
+          .get();
+
+      if (filasSnap.docs.isNotEmpty) {
+        final filaDoc = filasSnap.docs.first;
+
+        // Buscamos la subfila específica
+        Query subQuery = db
+            .collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: filaDoc.id)
+            .where('talla', isEqualTo: _tallaSeleccionada);
+
+        if (_tipoTieneColores) {
+          subQuery =
+              subQuery.where('colores', isEqualTo: _colorSeleccionado ?? '');
+        }
+        if (_tipoTieneTaco) {
+          subQuery = subQuery.where('taco', isEqualTo: _tacoSeleccionado ?? 0);
+        }
+        if (_tipoTienePlataforma) {
+          subQuery = subQuery.where('plataforma',
+              isEqualTo: _plataformaSeleccionada ?? '');
+        }
+
+        final subSnap = await subQuery.get();
+
+        if (subSnap.docs.isNotEmpty) {
+          final subDoc = subSnap.docs.first;
+          int stockActualSub = subDoc['cantidad'];
+
+          // Si el descuento deja el stock en 0 o menos, ELIMINAMOS la subfila
+          if (stockActualSub <= cantidadPorDescontar) {
+            batch.delete(subDoc.reference);
+          } else {
+            batch.update(subDoc.reference,
+                {'cantidad': FieldValue.increment(-cantidadPorDescontar)});
+          }
+
+          // Siempre descontamos de la fila principal (stock total del código)
+          batch.update(filaDoc.reference,
+              {'cantidad': FieldValue.increment(-cantidadPorDescontar)});
+        }
+      }
+
+      await batch.commit();
+
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop(); // Cerrar splash
+        _mostrarSnack(_esEdicion ? 'Venta actualizada' : 'Venta registrada');
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      _mostrarSnack('Error al procesar venta: $e');
+    }
+  } // -------------------------------------------------------
   // UI COMPONENTS
   // -------------------------------------------------------
 
@@ -771,26 +873,32 @@ class _VentaFormPageState extends State<VentaFormPage> {
       children: [
         const SizedBox(height: 12),
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start, // Alinea al inicio por si el texto envuelve
+          crossAxisAlignment: CrossAxisAlignment
+              .start, // Alinea al inicio por si el texto envuelve
           children: [
             // Dropdown Metodo de Pago
             Expanded(
               child: DropdownButtonFormField<String>(
-                isExpanded: true, // 🔹 Obliga al contenido a no salirse del ancho asignado
+                isExpanded:
+                    true, // 🔹 Obliga al contenido a no salirse del ancho asignado
                 decoration: const InputDecoration(
                   labelText: 'Pago',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.payments_outlined, size: 20),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12), // Espacio interno reducido
+                  contentPadding: EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 12), // Espacio interno reducido
                 ),
                 value: _metodoPagoSeleccionado,
-                style: const TextStyle(fontSize: 13, color: Colors.black), // 🔹 Fuente un poco más pequeña
+                style: const TextStyle(
+                    fontSize: 13,
+                    color: Colors.black), // 🔹 Fuente un poco más pequeña
                 items: _metodosPago
                     .map((m) => DropdownMenuItem(
                           value: m,
                           child: Text(
                             m,
-                            overflow: TextOverflow.ellipsis, // 🔹 Corta el texto con "..." si es muy largo
+                            overflow: TextOverflow
+                                .ellipsis, // 🔹 Corta el texto con "..." si es muy largo
                             style: const TextStyle(fontSize: 13),
                           ),
                         ))
@@ -807,7 +915,8 @@ class _VentaFormPageState extends State<VentaFormPage> {
                   labelText: 'Lugar',
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.location_on_outlined, size: 20),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  contentPadding:
+                      EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                 ),
                 value: _lugarVentaSeleccionado,
                 style: const TextStyle(fontSize: 13, color: Colors.black),
@@ -829,6 +938,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
       ],
     );
   }
+
   Widget _buildCantidadYPrecio() {
     final bool camposListos = _tallaSeleccionada != null &&
         (!_tipoTieneColores || _colorSeleccionado != null) &&

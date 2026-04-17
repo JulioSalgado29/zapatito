@@ -169,7 +169,7 @@ Widget build(BuildContext context) {
                         inventarioId: inventarioId),
                   ),
 
-                if (isAdmin || isVendedor)
+                if (isAdmin || isVendedor || isAlmacenero)
                   _buildMenuButton(
                     context,
                     label: 'Ventas',
