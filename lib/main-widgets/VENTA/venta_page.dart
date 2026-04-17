@@ -134,42 +134,58 @@ class _VentaPageState extends State<VentaPage> {
             .limit(1)
             .get();
 
-        if (filasSnap.docs.isNotEmpty) {
+        DocumentReference filaRef;
+        String filaId;
+
+        if (filasSnap.docs.isEmpty) {
+          // 🔹 NO EXISTE LA FILA PRINCIPAL: La creamos de nuevo
+          filaRef = db.collection('fila_inventario').doc();
+          filaId = filaRef.id;
+
+          batch.set(filaRef, {
+            'calzado_id': data['calzado_id'],
+            'inventario_id': widget.inventarioId,
+            'cantidad': data['cantidad'], // Empezamos con la cantidad devuelta
+            'fecha_creacion': Timestamp.now(),
+            'email': widget.emailUser,
+            'usuario_creacion': widget.firstName
+          });
+        } else {
+          // SI EXISTE: Obtenemos referencia e incrementamos
           final filaDoc = filasSnap.docs.first;
-          final filaId = filaDoc.id;
+          filaRef = filaDoc.reference;
+          filaId = filaDoc.id;
 
-          // 2. Buscar si la subfila existe actualmente
-          final subfilasSnap = await db
-              .collection('subfila_inventario')
-              .where('fila_inventario_id', isEqualTo: filaId)
-              .where('talla', isEqualTo: data['talla'])
-              .where('colores', isEqualTo: data['colores'] ?? '')
-              .where('taco', isEqualTo: data['taco'] ?? 0)
-              .where('plataforma', isEqualTo: data['plataforma'] ?? '')
-              .limit(1)
-              .get();
+          batch.update(
+              filaRef, {'cantidad': FieldValue.increment(data['cantidad'])});
+        }
 
-          if (subfilasSnap.docs.isNotEmpty) {
-            // SI EXISTE: Solo incrementamos
-            batch.update(subfilasSnap.docs.first.reference,
-                {'cantidad': FieldValue.increment(data['cantidad'])});
-          } else {
-            // NO EXISTE (Se borró al llegar a 0): La creamos de nuevo
-            final nuevaSubfilaRef = db.collection('subfila_inventario').doc();
-            batch.set(nuevaSubfilaRef, {
-              'fila_inventario_id': filaId,
-              'talla': data['talla'],
-              'colores': data['colores'] ?? '',
-              'taco': data['taco'] ?? 0,
-              'plataforma': data['plataforma'] ?? '',
-              'cantidad': data[
-              'cantidad'], // Insertamos la cantidad que se está devolviendo
-            });
-          }
+// 2. Buscar si la subfila existe
+        final subfilasSnap = await db
+            .collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: filaId)
+            .where('talla', isEqualTo: data['talla'])
+            .where('colores', isEqualTo: data['colores'] ?? '')
+            .where('taco', isEqualTo: data['taco'] ?? 0)
+            .where('plataforma', isEqualTo: data['plataforma'] ?? '')
+            .limit(1)
+            .get();
 
-          // 3. Siempre incrementamos la fila principal
-          batch.update(filaDoc.reference,
+        if (subfilasSnap.docs.isNotEmpty) {
+          // SI EXISTE LA SUBFILA: Solo incrementamos
+          batch.update(subfilasSnap.docs.first.reference,
               {'cantidad': FieldValue.increment(data['cantidad'])});
+        } else {
+          // NO EXISTE LA SUBFILA: La creamos
+          final nuevaSubfilaRef = db.collection('subfila_inventario').doc();
+          batch.set(nuevaSubfilaRef, {
+            'fila_inventario_id': filaId,
+            'talla': data['talla'],
+            'colores': data['colores'] ?? '',
+            'taco': data['taco'] ?? 0,
+            'plataforma': data['plataforma'] ?? '',
+            'cantidad': data['cantidad'],
+          });
         }
       }
 
