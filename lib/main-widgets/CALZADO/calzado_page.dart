@@ -98,10 +98,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(25),
             gradient: const LinearGradient(
-              colors: [
-                Color.fromARGB(255, 33, 47, 243),
-                Color(0xFF4A5AF7),
-              ],
+              colors: [Color.fromARGB(255, 33, 47, 243), Color(0xFF4A5AF7)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -109,16 +106,11 @@ class _CalzadoPageState extends State<CalzadoPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.warning_amber_rounded,
-                  size: 60, color: Colors.white),
+              const Icon(Icons.warning_amber_rounded, size: 60, color: Colors.white),
               const SizedBox(height: 16),
               const Text(
                 '¿Eliminar código?',
-                style: TextStyle(
-                  fontSize: 22,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
               const Text(
@@ -133,41 +125,31 @@ class _CalzadoPageState extends State<CalzadoPage> {
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.grey[900],
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
                     onPressed: () => Navigator.pop(ctx),
                     icon: const Icon(Icons.cancel, color: Colors.white),
-                    label: const Text('Cancelar',
-                        style: TextStyle(color: Colors.white)),
+                    label: const Text('Cancelar', style: TextStyle(color: Colors.white)),
                   ),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.redAccent,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                     ),
                     onPressed: () async {
                       _mostrarSplashScreen();
-                      await FirebaseFirestore.instance
-                          .collection('calzado')
-                          .doc(id)
-                          .update({'activo': false});
+                      await FirebaseFirestore.instance.collection('calzado').doc(id).update({'activo': false});
                       _ocultarSplashScreen();
                       await Future.delayed(const Duration(milliseconds: 150));
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Código eliminado correctamente 🗑️'),
-                            duration: Duration(seconds: 2),
-                          ),
+                          const SnackBar(content: Text('Código eliminado correctamente 🗑️'), duration: Duration(seconds: 2)),
                         );
                       }
                       Navigator.pop(ctx);
                     },
                     icon: const Icon(Icons.delete_forever, color: Colors.white),
-                    label: const Text('Eliminar',
-                        style: TextStyle(color: Colors.white)),
+                    label: const Text('Eliminar', style: TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
@@ -180,10 +162,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
 
   Future<String> _obtenerIconoTipo(String? tipoId) async {
     if (tipoId == null) return "❓";
-    final doc = await FirebaseFirestore.instance
-        .collection('tipo_calzado')
-        .doc(tipoId)
-        .get();
+    final doc = await FirebaseFirestore.instance.collection('tipo_calzado').doc(tipoId).get();
     return (doc.data()?['icono'] ?? "❓").toString();
   }
 
@@ -193,17 +172,10 @@ class _CalzadoPageState extends State<CalzadoPage> {
       children: [
         Icon(icon, size: 16, color: value ? Colors.blue : Colors.grey),
         const SizedBox(width: 4),
-        Text(
-          '$label: ',
-          style: const TextStyle(fontSize: 13, color: Colors.black54),
-        ),
+        Text('$label: ', style: const TextStyle(fontSize: 13, color: Colors.black54)),
         Text(
           value ? "Sí" : "No",
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-            color: value ? Colors.green[700] : Colors.red[700],
-          ),
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: value ? Colors.green[700] : Colors.red[700]),
         ),
       ],
     );
@@ -211,9 +183,7 @@ class _CalzadoPageState extends State<CalzadoPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.inventarioId == null) {
-      return const SplashScreen02();
-    }
+    if (widget.inventarioId == null) return const SplashScreen02();
     return Scaffold(
       appBar: Designwidgets().appBarMain("Códigos", isOnline: isOnline),
       body: Padding(
@@ -226,14 +196,9 @@ class _CalzadoPageState extends State<CalzadoPage> {
               .orderBy('fecha_creacion', descending: true)
               .snapshots(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             final docs = snapshot.data!.docs;
-
-            if (docs.isEmpty) {
-              return const Center(child: Text('No hay códigos aún'));
-            }
+            if (docs.isEmpty) return const Center(child: Text('No hay códigos aún'));
 
             return ListView.builder(
               itemCount: docs.length,
@@ -252,88 +217,99 @@ class _CalzadoPageState extends State<CalzadoPage> {
                   future: _obtenerIconoTipo(tipoId),
                   builder: (context, iconSnapshot) {
                     final icono = iconSnapshot.data ?? "❓";
-                    
+                    final bool mostrarAvisoPrecio = (precio <= 0 && widget.isAlmacenero == false);
+
                     return Card(
                       elevation: 3,
                       margin: const EdgeInsets.symmetric(vertical: 8),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: ListTile(
-                          leading: (icono.toString().endsWith('.png') ||
-                                  icono.toString().endsWith('.jpg'))
-                              ? Image.asset(
-                                  icono,
-                                  width: 45,
-                                  height: 45,
-                                  fit: BoxFit.contain,
-                                )
-                              : Text(
-                                  icono,
-                                  style: const TextStyle(fontSize: 32),
-                                ),
-                          title: Text(
-                            nombre,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 18),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 10),
-                              
-                              // Chips de Taco, Plataforma y Colores
-                              Wrap(
-                                spacing: 12,
-                                runSpacing: 8,
-                                children: [
-                                  _buildFeatureChip(Icons.height, 'Taco', taco),
-                                  _buildFeatureChip(Icons.layers, 'Plataforma', plataforma),
-                                  _buildFeatureChip(Icons.palette, 'Colores', colores),
-                                ],
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        children: [
+                          if (mostrarAvisoPrecio)
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              color: Colors.red.shade100,
+                              child: const Text(
+                                "⚠️ Falta ingresar el precio",
+                                style: TextStyle(color: Colors.red, fontSize: 11, fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
                               ),
-
-                              const SizedBox(height: 12),
-
-                              // Precio y Autor
-                              Row(
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: ListTile(
+                              leading: (icono.toString().endsWith('.png') || icono.toString().endsWith('.jpg'))
+                                  ? Image.asset(icono, width: 45, height: 45, fit: BoxFit.contain)
+                                  : Text(icono, style: const TextStyle(fontSize: 32)),
+                              title: Text(nombre, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(Icons.account_circle,
-                                      size: 14, color: Colors.grey[400]),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      widget.isAlmacenero == true
-                                          ? 'Creado por: $usuario'
-                                          : 'S/ ${precio.toStringAsFixed(2)}  |  $usuario',
-                                      style: TextStyle(
-                                          fontSize: 11, color: Colors.grey[500]),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 12,
+                                    runSpacing: 8,
+                                    children: [
+                                      _buildFeatureChip(Icons.height, 'Taco', taco),
+                                      _buildFeatureChip(Icons.layers, 'Plataforma', plataforma),
+                                      _buildFeatureChip(Icons.palette, 'Colores', colores),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Icon(Icons.account_circle, size: 14, color: Colors.grey[400]),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text.rich(
+                                          TextSpan(
+                                            children: [
+                                              if (widget.isAlmacenero != true) ...[
+                                                TextSpan(
+                                                  text: 'S/ ${precio.toStringAsFixed(2)}',
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.blue.shade800,
+                                                  ),
+                                                ),
+                                                const TextSpan(
+                                                  text: '  |  ',
+                                                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                                                ),
+                                              ],
+                                              TextSpan(
+                                                text: widget.isAlmacenero == true ? 'Creado por: $usuario' : usuario,
+                                                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                                              ),
+                                            ],
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                          trailing: Wrap(
-                            direction: Axis.vertical,
-                            alignment: WrapAlignment.center,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit,
-                                    color: Colors.blueAccent, size: 22),
-                                onPressed: () => _navegarFormulario(doc: doc),
+                              trailing: Wrap(
+                                direction: Axis.vertical,
+                                alignment: WrapAlignment.center,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, color: Colors.blueAccent, size: 22),
+                                    onPressed: () => _navegarFormulario(doc: doc),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_forever, color: Colors.redAccent, size: 22),
+                                    onPressed: () => _confirmarEliminacion(context, doc.id),
+                                  ),
+                                ],
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_forever,
-                                    color: Colors.redAccent, size: 22),
-                                onPressed: () =>
-                                    _confirmarEliminacion(context, doc.id),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     );
                   },
