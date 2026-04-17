@@ -928,6 +928,8 @@ class _VentaFormPageState extends State<VentaFormPage> {
     if (!camposListos) return const SizedBox();
 
     return Column(children: [
+      
+      _buildMetodoYLugar(),
       const SizedBox(height: 12),
       Row(children: [
         Expanded(
@@ -973,7 +975,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
           ),
         ),
       ]),
-      _buildMetodoYLugar(),
       if (_mensajeBloqueo != null)
         Padding(
             padding: const EdgeInsets.only(top: 8),

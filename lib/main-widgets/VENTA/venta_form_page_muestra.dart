@@ -301,7 +301,7 @@ class _VentaFormPageMuestraState extends State<VentaFormPageMuestra> {
           Expanded(
             child: DropdownButtonFormField<String>(
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Pago', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10)),
+              decoration: const InputDecoration(labelText: 'Método de Pago', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10)),
               value: item.metodoPagoSeleccionado,
               items: _metodosPago.map((m) => DropdownMenuItem(value: m, child: Text(m, overflow: TextOverflow.ellipsis))).toList(),
               onChanged: (v) => setState(() => item.metodoPagoSeleccionado = v),
@@ -311,7 +311,7 @@ class _VentaFormPageMuestraState extends State<VentaFormPageMuestra> {
           Expanded(
             child: DropdownButtonFormField<String>(
               isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Lugar', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10)),
+              decoration: const InputDecoration(labelText: 'Lugar de Venta', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 10)),
               value: item.lugarVentaSeleccionado,
               items: _lugaresVenta.map((l) => DropdownMenuItem(value: l, child: Text(l, overflow: TextOverflow.ellipsis))).toList(),
               onChanged: (v) => setState(() => item.lugarVentaSeleccionado = v),
@@ -366,8 +366,8 @@ class _VentaFormPageMuestraState extends State<VentaFormPageMuestra> {
                     _buildDropdownDueno(index),
                     _buildDropdownCalzado(index),
                     _buildCascadaAtributos(index),
-                    _buildCantidadYPrecio(index),
                     _buildPagoYLugar(index),
+                    _buildCantidadYPrecio(index),
                   ]),
                 ),
               ),
@@ -387,14 +387,17 @@ class _VentaFormPageMuestraState extends State<VentaFormPageMuestra> {
         SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: _agregarNuevoItem, icon: const Icon(Icons.add), label: const Text('Agregar otro producto'))),
         const SizedBox(height: 12),
         SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: puedeVenderTodo ? Colors.green.shade600 : Colors.grey, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
-            icon: const Icon(Icons.check_circle),
-            onPressed: puedeVenderTodo ? _realizarVenta : null,
-            label: const Text('Registrar Todas las Ventas'),
-          ),
-        ),
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      puedeVenderTodo ? Colors.green.shade600 : Colors.grey,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14)),
+              icon: const Icon(Icons.shopping_cart_checkout),
+              onPressed: puedeVenderTodo ? _realizarVenta : null,
+              label: const Text('Registrar Venta Muestra'),
+            )),
       ]),
     );
   }
