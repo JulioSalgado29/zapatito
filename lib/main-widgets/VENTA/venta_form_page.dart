@@ -8,7 +8,6 @@ class VentaFormPage extends StatefulWidget {
   final String? firstName;
   final String? emailUser;
   final String? inventarioId;
-  // 🔹 Nuevos parámetros para edición
   final String? ventaId;
   final Map<String, dynamic>? datosEdicion;
 
@@ -27,29 +26,26 @@ class VentaFormPage extends StatefulWidget {
 
 class _VentaFormPageState extends State<VentaFormPage> {
   bool get _esEdicion => widget.ventaId != null;
-  // --- Selecciones del usuario ---
+
   String? _calzadoId;
   int? _tallaSeleccionada;
   String? _colorSeleccionado;
   int? _tacoSeleccionado;
-  String? _plataformaSeleccionada; // 🔹 String para Bajo, Mediano, Alto
+  String? _plataformaSeleccionada;
 
-  // --- Flags del calzado seleccionado ---
   bool _tipoTieneTaco = false;
   bool _tipoTienePlataforma = false;
   bool _tipoTieneColores = false;
 
-  // --- Stock y cantidad ---
   int _stockDisponible = 0;
   int _cantidadVenta = 0;
   double _precioVentaTotal = 0.0;
   bool _cargandoStock = false;
 
-  // --- Opciones disponibles según filtros ---
   List<int> _tallasDisponibles = [];
   List<String> _coloresDisponibles = [];
   List<int> _tacosDisponibles = [];
-  List<String> _plataformasDisponibles = []; // 🔹 Nueva lista para cascada
+  List<String> _plataformasDisponibles = [];
 
   bool _errorTalla = false;
   bool _errorColor = false;
@@ -85,29 +81,40 @@ class _VentaFormPageState extends State<VentaFormPage> {
     }
   }
 
-  void _cargarDatosEdicion() {
+  // 🔹 MODIFICACIÓN: Ahora registra los criterios del calzado al cargar edición
+  Future<void> _cargarDatosEdicion() async {
     final d = widget.datosEdicion!;
-    setState(() {
-      _calzadoId = d['calzado_id'];
-      _tallaSeleccionada = d['talla'];
-      _colorSeleccionado = d['colores'] == '' ? null : d['colores'];
-      _tacoSeleccionado = d['taco'] == 0 ? null : d['taco'];
-      _plataformaSeleccionada = d['plataforma'] == '' ? null : d['plataforma'];
-      _cantidadVenta = d['cantidad'];
-      _precioVentaTotal = (d['precio_venta_total'] ?? 0.0).toDouble();
-      _metodoPagoSeleccionado = d['metodo_pago'];
-      _lugarVentaSeleccionado = d['lugar_venta'];
+    final String cId = d['calzado_id'];
 
-      _cantidadController.text = _cantidadVenta.toString();
-      _precioController.text = _precioVentaTotal.toString();
-    });
-    // Disparar la cascada inicial para cargar listas disponibles
-    _calcularStockPorCalzado(_calzadoId!).then((_) {
-      if (_tallaSeleccionada != null) {
-        _calcularStockPorTalla(_tallaSeleccionada!);
-      }
-      // Nota: Al editar, el stock disponible mostrado será el actual + lo ya vendido originalmente
-    });
+    // Obtenemos los flags del calzado para que los widgets se activen
+    final doc =
+        await FirebaseFirestore.instance.collection('calzado').doc(cId).get();
+
+    if (doc.exists) {
+      final data = doc.data()!;
+      setState(() {
+        _tipoTieneTaco = data['taco'] ?? false;
+        _tipoTienePlataforma = data['plataforma'] ?? false;
+        _tipoTieneColores = data['colores'] ?? false;
+
+        _calzadoId = cId;
+        _tallaSeleccionada = d['talla'];
+        _colorSeleccionado = d['colores'] == '' ? null : d['colores'];
+        _tacoSeleccionado = d['taco'] == 0 ? null : d['taco'];
+        _plataformaSeleccionada =
+            d['plataforma'] == '' ? null : d['plataforma'];
+        _cantidadVenta = d['cantidad'];
+        _precioVentaTotal = (d['precio_venta_total'] ?? 0.0).toDouble();
+        _metodoPagoSeleccionado = d['metodo_pago'];
+        _lugarVentaSeleccionado = d['lugar_venta'];
+
+        _cantidadController.text = _cantidadVenta.toString();
+        _precioController.text = _precioVentaTotal.toString();
+
+        // Seteamos un stock ficticio para que pase la validación de _puedeVender al editar
+        _stockDisponible = 999;
+      });
+    }
   }
 
   @override
@@ -118,7 +125,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
   }
 
   // -------------------------------------------------------
-  // CALCULOS DE STOCK (CASCADA)
   // -------------------------------------------------------
 
   Future<void> _calcularStockTotal() async {
@@ -139,18 +145,15 @@ class _VentaFormPageState extends State<VentaFormPage> {
 
       final calzadoIds = calzadosSnap.docs.map((d) => d.id).toList();
       int total = 0;
-
       for (final calzadoId in calzadoIds) {
         final filasSnap = await FirebaseFirestore.instance
             .collection('fila_inventario')
             .where('calzado_id', isEqualTo: calzadoId)
             .get();
-
         for (final fila in filasSnap.docs) {
           total += (fila['cantidad'] ?? 0) as int;
         }
       }
-
       setState(() {
         _stockDisponible = total;
         _cargandoStock = false;
@@ -170,20 +173,17 @@ class _VentaFormPageState extends State<VentaFormPage> {
 
       int total = 0;
       final Set<int> tallasSet = {};
-
       for (final fila in filasSnap.docs) {
         total += (fila['cantidad'] ?? 0) as int;
         final subfilasSnap = await FirebaseFirestore.instance
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: fila.id)
             .get();
-
         for (final sub in subfilasSnap.docs) {
           final talla = sub['talla'] ?? 0;
           if (talla > 0) tallasSet.add(talla as int);
         }
       }
-
       setState(() {
         _stockDisponible = total;
         _tallasDisponibles = tallasSet.toList()..sort();
@@ -223,14 +223,12 @@ class _VentaFormPageState extends State<VentaFormPage> {
 
       int total = 0;
       final Set<String> coloresSet = {};
-
       for (final fila in filasSnap.docs) {
         final subfilasSnap = await FirebaseFirestore.instance
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: fila.id)
             .where('talla', isEqualTo: talla)
             .get();
-
         for (final sub in subfilasSnap.docs) {
           total += (sub['cantidad'] ?? 0) as int;
           if (_tipoTieneColores) {
@@ -239,7 +237,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
           }
         }
       }
-
       setState(() {
         _stockDisponible = total;
         _coloresDisponibles = coloresSet.toList()..sort();
@@ -248,7 +245,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
         _plataformaSeleccionada = null;
         _cargandoStock = false;
       });
-
       if (!_tipoTieneColores) {
         _cargarSiguientePaso(talla: talla);
       }
@@ -279,7 +275,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
 
       int total = 0;
       final Set<int> tacosSet = {};
-
       for (final fila in filasSnap.docs) {
         final subfilasSnap = await FirebaseFirestore.instance
             .collection('subfila_inventario')
@@ -287,14 +282,12 @@ class _VentaFormPageState extends State<VentaFormPage> {
             .where('talla', isEqualTo: _tallaSeleccionada)
             .where('colores', isEqualTo: color)
             .get();
-
         for (final sub in subfilasSnap.docs) {
           total += (sub['cantidad'] ?? 0) as int;
           final taco = sub['taco'] ?? 0;
           if (_tipoTieneTaco && taco > 0) tacosSet.add(taco as int);
         }
       }
-
       setState(() {
         _stockDisponible = total;
         _tacosDisponibles = tacosSet.toList()..sort();
@@ -302,7 +295,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
         _plataformaSeleccionada = null;
         _cargandoStock = false;
       });
-
       if (!_tipoTieneTaco) {
         _cargarSiguientePaso(talla: _tallaSeleccionada, color: color);
       }
@@ -327,11 +319,9 @@ class _VentaFormPageState extends State<VentaFormPage> {
             .where('fila_inventario_id', isEqualTo: fila.id)
             .where('talla', isEqualTo: _tallaSeleccionada)
             .where('taco', isEqualTo: taco);
-
         if (_tipoTieneColores) {
           q = q.where('colores', isEqualTo: _colorSeleccionado);
         }
-
         final subSnap = await q.get();
         for (final sub in subSnap.docs) {
           total += (sub['cantidad'] ?? 0) as int;
@@ -341,7 +331,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
           }
         }
       }
-
       setState(() {
         _stockDisponible = total;
         _plataformasDisponibles = platSet.toList()..sort();
@@ -349,7 +338,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
         _plataformaSeleccionada = null;
         _cargandoStock = false;
       });
-
       if (!_tipoTienePlataforma) {
         _cantidadVenta = 0;
         _cantidadController.clear();
@@ -359,7 +347,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
     }
   }
 
-  // 🔹 Método para saltar pasos y cargar opciones de plataforma
   Future<void> _cargarSiguientePaso(
       {int? talla, String? color, int? taco}) async {
     final Set<String> platSet = {};
@@ -373,14 +360,12 @@ class _VentaFormPageState extends State<VentaFormPage> {
           .collection('subfila_inventario')
           .where('fila_inventario_id', isEqualTo: fila.id)
           .where('talla', isEqualTo: talla ?? _tallaSeleccionada);
-
       if (_tipoTieneColores) {
         q = q.where('colores', isEqualTo: color ?? _colorSeleccionado);
       }
       if (_tipoTieneTaco) {
         q = q.where('taco', isEqualTo: taco ?? _tacoSeleccionado ?? 0);
       }
-
       final subSnap = await q.get();
       for (final sub in subSnap.docs) {
         if (_tipoTienePlataforma) {
@@ -393,7 +378,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
   }
 
   Future<void> _calcularStockFinal(String plataforma) async {
-    print('Calculando stock para plataforma: $plataforma');
     if (_plataformasDisponibles.contains(plataforma)) {
       _errorPlataforma = false;
     } else {
@@ -420,14 +404,12 @@ class _VentaFormPageState extends State<VentaFormPage> {
             .where('fila_inventario_id', isEqualTo: fila.id)
             .where('talla', isEqualTo: _tallaSeleccionada)
             .where('plataforma', isEqualTo: plataforma);
-
         if (_tipoTieneColores) {
           q = q.where('colores', isEqualTo: _colorSeleccionado);
         }
         if (_tipoTieneTaco) {
           q = q.where('taco', isEqualTo: _tacoSeleccionado ?? 0);
         }
-
         final subSnap = await q.get();
         for (final sub in subSnap.docs) {
           total += (sub['cantidad'] ?? 0) as int;
@@ -443,9 +425,8 @@ class _VentaFormPageState extends State<VentaFormPage> {
   }
 
   // -------------------------------------------------------
-  // UI HELPERS
+  // ACCIONES Y LOGICA DE VENTA
   // -------------------------------------------------------
-
   void _mostrarSnack(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
@@ -457,23 +438,27 @@ class _VentaFormPageState extends State<VentaFormPage> {
     if (_tipoTienePlataforma && _plataformaSeleccionada == null) return false;
     if (_metodoPagoSeleccionado == null) return false;
     if (_lugarVentaSeleccionado == null) return false;
-    if (_cantidadVenta <= 0 ||
-        _stockDisponible <= 0 ||
-        _cantidadVenta > _stockDisponible) return false;
-    if (_precioVentaTotal <= 0) return false;
+    if (_cantidadVenta <= 0 || _precioVentaTotal <= 0) return false;
+
+    // 🔹 MODIFICACIÓN: En edición el stock ya fue restado, ignoramos el check de stock disponible
+    if (!_esEdicion &&
+        (_stockDisponible <= 0 || _cantidadVenta > _stockDisponible)) {
+      return false;
+    }
+
     return true;
   }
 
   String? get _mensajeBloqueo {
     if (_calzadoId == null || _tallaSeleccionada == null) return null;
-    if (_stockDisponible == 0) return 'Sin stock disponible';
-    if (_cantidadVenta > 0 && _cantidadVenta > _stockDisponible) {
+    if (!_esEdicion && _stockDisponible == 0) return 'Sin stock disponible';
+    if (!_esEdicion &&
+        _cantidadVenta > 0 &&
+        _cantidadVenta > _stockDisponible) {
       return 'No hay suficiente stock (disponible: $_stockDisponible)';
     }
     return null;
   }
-
-  // ... (Métodos _realizarVenta, _obtenerIconoTipo, etc. se mantienen con la lógica de String en plataforma)
 
   Future<void> _realizarVenta() async {
     if (!_puedeVender) return;
@@ -486,10 +471,8 @@ class _VentaFormPageState extends State<VentaFormPage> {
       final db = FirebaseFirestore.instance;
       final batch = db.batch();
 
-      // 1. SI ES EDICIÓN: REVERSA DEL STOCK ANTERIOR PRIMERO
       if (_esEdicion) {
         final dAntiguo = widget.datosEdicion!;
-        // Buscamos la subfila del stock antiguo para devolverlo
         final subfilasAntiguas = await db
             .collection('subfila_inventario')
             .where('talla', isEqualTo: dAntiguo['talla'])
@@ -515,7 +498,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
         }
       }
 
-      // 2. PREPARAR DATA DE LA VENTA
       final ventaMap = {
         'calzado_id': _calzadoId,
         'talla': _tallaSeleccionada,
@@ -531,7 +513,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
             _esEdicion ? widget.datosEdicion!['fecha_venta'] : Timestamp.now(),
       };
 
-      // 3. ACTUALIZAR O CREAR DOCUMENTOS DE VENTA
       DocumentReference vRef;
       if (_esEdicion) {
         vRef = db.collection('venta').doc(widget.datosEdicion!['venta_id']);
@@ -553,10 +534,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
         });
       }
 
-      // 4. DESCUENTO DE STOCK (LÓGICA CORREGIDA)
       int cantidadPorDescontar = _cantidadVenta;
-
-      // Obtenemos la fila_inventario principal
       final filasSnap = await db
           .collection('fila_inventario')
           .where('calzado_id', isEqualTo: _calzadoId)
@@ -566,13 +544,10 @@ class _VentaFormPageState extends State<VentaFormPage> {
 
       if (filasSnap.docs.isNotEmpty) {
         final filaDoc = filasSnap.docs.first;
-
-        // Buscamos la subfila específica
         Query subQuery = db
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: filaDoc.id)
             .where('talla', isEqualTo: _tallaSeleccionada);
-
         if (_tipoTieneColores) {
           subQuery =
               subQuery.where('colores', isEqualTo: _colorSeleccionado ?? '');
@@ -606,19 +581,30 @@ class _VentaFormPageState extends State<VentaFormPage> {
       }
 
       await batch.commit();
-
       if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop(); // Cerrar splash
-        _mostrarSnack(_esEdicion ? 'Venta actualizada' : 'Venta registrada');
+        Navigator.of(context, rootNavigator: true).pop();
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) Navigator.of(context, rootNavigator: true).pop();
-      _mostrarSnack('Error al procesar venta: $e');
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
-  } // -------------------------------------------------------
+  }
+
+  // -------------------------------------------------------
   // UI COMPONENTS
   // -------------------------------------------------------
+
+  Future<String?> _obtenerIconoTipo(String id) async {
+    if (_iconCache.containsKey(id)) return _iconCache[id];
+    final snap = await FirebaseFirestore.instance
+        .collection('tipo_calzado')
+        .doc(id)
+        .get();
+    _iconCache[id] = snap.data()?['icono'];
+    return _iconCache[id];
+  }
 
   Widget _buildDropdownCalzado(List<QueryDocumentSnapshot> calzados) {
     return DropdownButtonFormField<String>(
@@ -642,29 +628,33 @@ class _VentaFormPageState extends State<VentaFormPage> {
           ),
         );
       }).toList(),
-      onChanged: (v) async {
-        if (v == null) return;
-        final doc =
-            await FirebaseFirestore.instance.collection('calzado').doc(v).get();
-        if (doc.exists) {
-          final data = doc.data()!;
-          setState(() {
-            _tipoTieneTaco = data['taco'] ?? false;
-            _tipoTienePlataforma = data['plataforma'] ?? false;
-            _tipoTieneColores = data['colores'] ?? false;
-            _calzadoId = v;
-            _errorTalla = false;
-            _errorColor = false;
-            _errorPlataforma = false;
-          });
-        }
-        await _calcularStockPorCalzado(v);
-      },
+      onChanged: _esEdicion
+          ? null
+          : (v) async {
+              // 🔹 MODIFICACIÓN: Bloqueo
+              if (v == null) return;
+              final doc = await FirebaseFirestore.instance
+                  .collection('calzado')
+                  .doc(v)
+                  .get();
+              if (doc.exists) {
+                final data = doc.data()!;
+                setState(() {
+                  _tipoTieneTaco = data['taco'] ?? false;
+                  _tipoTienePlataforma = data['plataforma'] ?? false;
+                  _tipoTieneColores = data['colores'] ?? false;
+                  _calzadoId = v;
+                });
+              }
+              await _calcularStockPorCalzado(v);
+            },
     );
   }
 
   Widget _buildDropdownTalla() {
-    if (_calzadoId == null || _tallasDisponibles.isEmpty || _errorTalla) {
+    if (_calzadoId == null ||
+        (_tallasDisponibles.isEmpty && !_esEdicion) ||
+        _errorTalla) {
       _errorTalla = false;
       return const SizedBox();
     }
@@ -674,32 +664,38 @@ class _VentaFormPageState extends State<VentaFormPage> {
         decoration: const InputDecoration(
             labelText: 'Seleccionar talla', border: OutlineInputBorder()),
         value: _tallaSeleccionada,
-        items: _tallasDisponibles
-            .map((t) => DropdownMenuItem(value: t, child: Text(t.toString())))
-            .toList(),
-        onChanged: (v) {
-          if (v == null) return;
-          setState(() {
-            _tallaSeleccionada = v;
-            _cantidadVenta = 0;
-          });
-          _calcularStockPorTalla(v);
-        },
+        items: _esEdicion
+            ? [
+                DropdownMenuItem(
+                    value: _tallaSeleccionada,
+                    child: Text(_tallaSeleccionada.toString()))
+              ]
+            : _tallasDisponibles
+                .map((t) =>
+                    DropdownMenuItem(value: t, child: Text(t.toString())))
+                .toList(),
+        onChanged: _esEdicion
+            ? null
+            : (v) {
+                // 🔹 MODIFICACIÓN: Bloqueo
+                if (v == null) return;
+                setState(() {
+                  _tallaSeleccionada = v;
+                  _cantidadVenta = 0;
+                });
+                _calcularStockPorTalla(v);
+              },
       ),
     );
   }
 
   Widget _buildDropdownColor() {
-    if (!_tipoTieneColores || _coloresDisponibles.isEmpty || _errorColor) {
+    if (!_tipoTieneColores ||
+        (_coloresDisponibles.isEmpty && !_esEdicion) ||
+        _errorColor) {
       _errorColor = false;
       return const SizedBox();
     }
-
-    if (_colorSeleccionado != null &&
-        !_coloresDisponibles.contains(_colorSeleccionado)) {
-      _colorSeleccionado = null;
-    }
-
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<String>(
@@ -708,99 +704,108 @@ class _VentaFormPageState extends State<VentaFormPage> {
             border: OutlineInputBorder(),
             prefixIcon: Icon(Icons.palette)),
         value: _colorSeleccionado,
-        items: _coloresDisponibles
-            .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-            .toList(),
-        onChanged: (v) {
-          if (v == null) return;
-          setState(() {
-            _colorSeleccionado = v;
-            _cantidadVenta = 0;
-          });
-          _calcularStockPorColor(v);
-        },
+        items: _esEdicion
+            ? [
+                DropdownMenuItem(
+                    value: _colorSeleccionado,
+                    child: Text(_colorSeleccionado ?? ''))
+              ]
+            : _coloresDisponibles
+                .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                .toList(),
+        onChanged: _esEdicion
+            ? null
+            : (v) {
+                // 🔹 MODIFICACIÓN: Bloqueo
+                if (v == null) return;
+                setState(() {
+                  _colorSeleccionado = v;
+                  _cantidadVenta = 0;
+                });
+                _calcularStockPorColor(v);
+              },
       ),
     );
   }
 
   Widget _buildDropdownTaco() {
-    if (!_tipoTieneTaco || _tacosDisponibles.isEmpty) return const SizedBox();
+    if (!_tipoTieneTaco || (_tacosDisponibles.isEmpty && !_esEdicion)) {
+      return const SizedBox();
+    }
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<int>(
         decoration: const InputDecoration(
             labelText: 'Seleccionar taco (cm)', border: OutlineInputBorder()),
         value: _tacoSeleccionado,
-        items: _tacosDisponibles
-            .map((t) => DropdownMenuItem(value: t, child: Text('$t cm')))
-            .toList(),
-        onChanged: (v) {
-          if (v == null) return;
-          _calcularStockPorTaco(v);
-        },
+        items: _esEdicion
+            ? [
+                DropdownMenuItem(
+                    value: _tacoSeleccionado,
+                    child: Text('$_tacoSeleccionado cm'))
+              ]
+            : _tacosDisponibles
+                .map((t) => DropdownMenuItem(value: t, child: Text('$t cm')))
+                .toList(),
+        onChanged: _esEdicion
+            ? null
+            : (v) => _calcularStockPorTaco(v!), // 🔹 MODIFICACIÓN: Bloqueo
       ),
     );
   }
 
   Widget _buildDropdownPlataforma() {
     if (!_tipoTienePlataforma ||
-        _plataformasDisponibles.isEmpty ||
+        (_plataformasDisponibles.isEmpty && !_esEdicion) ||
         _errorPlataforma) {
       _errorPlataforma = false;
       return const SizedBox();
     }
-
-    if (_plataformaSeleccionada != null &&
-        !_plataformasDisponibles.contains(_plataformaSeleccionada)) {
-      _plataformaSeleccionada = null;
-    }
-
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<String>(
         decoration: const InputDecoration(
-          labelText: 'Seleccionar plataforma',
-          border: OutlineInputBorder(),
-          prefixIcon: Icon(Icons.layers_outlined),
-        ),
+            labelText: 'Seleccionar plataforma',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.layers_outlined)),
         value: _plataformaSeleccionada,
-        items: _plataformasDisponibles
-            .map((p) => DropdownMenuItem(value: p, child: Text(p)))
-            .toList(),
-        onChanged: (v) {
-          if (v == null) return;
-          setState(() {
-            _plataformaSeleccionada = v;
-            _cantidadVenta = 0;
-            _cantidadController.clear();
-          });
-          _calcularStockFinal(v);
-        },
+        items: _esEdicion
+            ? [
+                DropdownMenuItem(
+                    value: _plataformaSeleccionada,
+                    child: Text(_plataformaSeleccionada ?? ''))
+              ]
+            : _plataformasDisponibles
+                .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+                .toList(),
+        onChanged: _esEdicion
+            ? null
+            : (v) {
+                // 🔹 MODIFICACIÓN: Bloqueo
+                if (v == null) return;
+                setState(() {
+                  _plataformaSeleccionada = v;
+                  _cantidadVenta = 0;
+                });
+                _calcularStockFinal(v);
+              },
       ),
     );
-  }
-
-  Future<String?> _obtenerIconoTipo(String id) async {
-    if (_iconCache.containsKey(id)) return _iconCache[id];
-    final snap = await FirebaseFirestore.instance
-        .collection('tipo_calzado')
-        .doc(id)
-        .get();
-    _iconCache[id] = snap.data()?['icono'];
-    return _iconCache[id];
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: Designwidgets().appBarMain('Nueva Venta Código'),
+      appBar: Designwidgets()
+          .appBarMain(_esEdicion ? 'Editar Venta' : 'Nueva Venta Código'),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildStockLabel(),
+              if (!_esEdicion)
+                _buildStockLabel(), // 🔹 MODIFICACIÓN: Ocultar stock en edición
               const SizedBox(height: 16),
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -828,7 +833,8 @@ class _VentaFormPageState extends State<VentaFormPage> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   icon: const Icon(Icons.shopping_cart_checkout),
-                  label: const Text('Registrar venta'),
+                  label:
+                      Text(_esEdicion ? 'Actualizar venta' : 'Registrar venta'),
                   onPressed: _puedeVender ? _realizarVenta : null,
                 ),
               ),
@@ -869,74 +875,48 @@ class _VentaFormPageState extends State<VentaFormPage> {
   }
 
   Widget _buildMetodoYLugar() {
-    return Column(
-      children: [
-        const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment
-              .start, // Alinea al inicio por si el texto envuelve
-          children: [
-            // Dropdown Metodo de Pago
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                isExpanded:
-                    true, // 🔹 Obliga al contenido a no salirse del ancho asignado
-                decoration: const InputDecoration(
-                  labelText: 'Pago',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.payments_outlined, size: 20),
-                  contentPadding: EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 12), // Espacio interno reducido
-                ),
-                value: _metodoPagoSeleccionado,
-                style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.black), // 🔹 Fuente un poco más pequeña
-                items: _metodosPago
-                    .map((m) => DropdownMenuItem(
-                          value: m,
-                          child: Text(
-                            m,
-                            overflow: TextOverflow
-                                .ellipsis, // 🔹 Corta el texto con "..." si es muy largo
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => _metodoPagoSeleccionado = v),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Dropdown Lugar de Venta
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                isExpanded: true, // 🔹 Obliga al contenido a no salirse
-                decoration: const InputDecoration(
-                  labelText: 'Lugar',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.location_on_outlined, size: 20),
-                  contentPadding:
-                      EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                ),
-                value: _lugarVentaSeleccionado,
-                style: const TextStyle(fontSize: 13, color: Colors.black),
-                items: _lugaresVenta
-                    .map((l) => DropdownMenuItem(
-                          value: l,
-                          child: Text(
-                            l,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                        ))
-                    .toList(),
-                onChanged: (v) => setState(() => _lugarVentaSeleccionado = v),
-              ),
-            ),
-          ],
+    return Column(children: [
+      const SizedBox(height: 12),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            isExpanded: true,
+            decoration: const InputDecoration(
+                labelText: 'Pago',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.payments_outlined, size: 20)),
+            value: _metodoPagoSeleccionado,
+            items: _metodosPago
+                .map((m) => DropdownMenuItem(
+                    value: m,
+                    child: Text(m,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13))))
+                .toList(),
+            onChanged: (v) => setState(() => _metodoPagoSeleccionado = v),
+          ),
         ),
-      ],
-    );
+        const SizedBox(width: 8),
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            isExpanded: true,
+            decoration: const InputDecoration(
+                labelText: 'Lugar',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.location_on_outlined, size: 20)),
+            value: _lugarVentaSeleccionado,
+            items: _lugaresVenta
+                .map((l) => DropdownMenuItem(
+                    value: l,
+                    child: Text(l,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13))))
+                .toList(),
+            onChanged: (v) => setState(() => _lugarVentaSeleccionado = v),
+          ),
+        ),
+      ]),
+    ]);
   }
 
   Widget _buildCantidadYPrecio() {
@@ -951,55 +931,49 @@ class _VentaFormPageState extends State<VentaFormPage> {
       const SizedBox(height: 12),
       Row(children: [
         Expanded(
-            child: TextFormField(
-          controller: _cantidadController,
-          decoration: const InputDecoration(
-              labelText: 'Cantidad', border: OutlineInputBorder()),
-          keyboardType: TextInputType.number,
-          onChanged: (v) {
-            setState(() {
-              _cantidadVenta = int.tryParse(v) ?? 0;
-
-              if (_cantidadVenta <= 0) {
-                // 🔹 SI ES CERO O BORRAN, LIMPIEZA TOTAL: esto lo deja vacío en la pantalla
-                _precioController.clear();
+          child: TextFormField(
+            controller: _cantidadController,
+            // 🔹 BLOQUEO: Si es edición, el campo es solo lectura
+            readOnly: _esEdicion,
+            decoration: InputDecoration(
+              labelText: 'Cantidad',
+              border: const OutlineInputBorder(),
+              // 🔹 OPCIONAL: Un color de fondo gris para indicar visualmente que está bloqueado
+              fillColor: _esEdicion ? Colors.grey.shade200 : null,
+              filled: _esEdicion,
+            ),
+            keyboardType: TextInputType.number,
+            onChanged: (v) {
+              // 🔹 SEGURIDAD: Solo actualizamos el estado si NO es edición
+              if (!_esEdicion) {
+                setState(() {
+                  _cantidadVenta = int.tryParse(v) ?? 0;
+                  if (_cantidadVenta <= 0) {
+                    _precioController.clear();
+                  }
+                });
               }
-            });
-          },
-        )),
+            },
+          ),
+        ),
         const SizedBox(width: 10),
         Expanded(
           child: TextFormField(
             controller: _precioController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
-              // 🔹 Bloquea cualquier cosa que no sea número o punto decimal (máx 2 decimales)
-              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))
             ],
             decoration: const InputDecoration(
-              labelText: 'Precio Total',
-              border: OutlineInputBorder(),
-              prefixText: 'S/ ',
-              // 🔹 Usamos hintText para que el usuario sepa qué escribir sin tener un valor real
-              hintText: 'Ingrese monto',
-            ),
-            onChanged: (v) {
-              setState(() {
-                // 🔹 Solo parseamos si hay texto, si no, se queda en 0.0 interno para la lógica
-                if (v.isEmpty) {
-                  _precioVentaTotal = 0.0;
-                } else {
-                  _precioVentaTotal = double.tryParse(v) ?? 0.0;
-                }
-              });
-            },
+                labelText: 'Precio Total',
+                border: OutlineInputBorder(),
+                prefixText: 'S/ '),
+            onChanged: (v) =>
+                setState(() => _precioVentaTotal = double.tryParse(v) ?? 0.0),
           ),
         ),
       ]),
-
-      // 🔹 AQUÍ AGREGAMOS LOS NUEVOS SELECTORES
       _buildMetodoYLugar(),
-
       if (_mensajeBloqueo != null)
         Padding(
             padding: const EdgeInsets.only(top: 8),
