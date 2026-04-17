@@ -67,7 +67,6 @@ class _InventarioPageState extends State<InventarioPage> {
     return snapshot.docs;
   }
 
-  /// 🔹 Obtiene datos del calzado directamente (Agregado campo 'estado')
   Future<Map<String, dynamic>> _getDatosCalzado(String calzadoId) async {
     final calzadoSnap = await FirebaseFirestore.instance
         .collection('calzado')
@@ -81,7 +80,7 @@ class _InventarioPageState extends State<InventarioPage> {
         'taco': true,
         'plataforma': true,
         'colores': true,
-        'activo': false, // Por defecto inactivo si no existe
+        'activo': false,
       };
     }
 
@@ -93,7 +92,7 @@ class _InventarioPageState extends State<InventarioPage> {
       'taco': calzadoData?['taco'] ?? true,
       'plataforma': calzadoData?['plataforma'] ?? true,
       'colores': calzadoData?['colores'] ?? true,
-      'activo': calzadoData?['activo'] ?? true, // <--- Nuevo campo extraído
+      'activo': calzadoData?['activo'] ?? true,
     };
   }
 
@@ -303,7 +302,6 @@ class _InventarioPageState extends State<InventarioPage> {
     );
   }
 
-  /// 🔹 Widget para mostrar si el producto está Activo/Inactivo
   Widget _buildEstadoChip(bool activo) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -315,10 +313,10 @@ class _InventarioPageState extends State<InventarioPage> {
       ),
       child: Text(
         activo ? 'CODIGO\nACTIVO' : 'CODIGO\nINACTIVO',
-        textAlign: TextAlign.center, // Alinea ambas palabras al centro
+        textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: 10,
-          height: 1.1, // Ajusta el espacio entre las dos líneas si es necesario
+          height: 1.1,
           fontWeight: FontWeight.bold,
           color: activo ? Colors.green[700] : Colors.red[700],
         ),
@@ -372,8 +370,7 @@ class _InventarioPageState extends State<InventarioPage> {
                   final tieneTaco = calzadoData['taco'] ?? true;
                   final tienePlataforma = calzadoData['plataforma'] ?? true;
                   final tieneColores = calzadoData['colores'] ?? true;
-                  final estaActivo =
-                      calzadoData['activo'] ?? true; // <--- Valor obtenido
+                  final estaActivo = calzadoData['activo'] ?? true;
 
                   return FutureBuilder<List<QueryDocumentSnapshot>>(
                     future: _getSubfilas(fila.id),
@@ -395,7 +392,6 @@ class _InventarioPageState extends State<InventarioPage> {
                         child: ExpansionTile(
                           leading: _buildIcon(icono),
                           title: Row(
-                            // <-- Row para mostrar nombre y estado
                             children: [
                               Expanded(
                                 child: Text(
@@ -405,8 +401,7 @@ class _InventarioPageState extends State<InventarioPage> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              _buildEstadoChip(
-                                  estaActivo), // <-- Indicador de Estado
+                              _buildEstadoChip(estaActivo),
                             ],
                           ),
                           subtitle: Text('Cantidad total: $cantidad'),
@@ -482,9 +477,11 @@ class _InventarioPageState extends State<InventarioPage> {
                                       children: [
                                         if (tieneTaco)
                                           _buildInfoChip('Taco: $taco'),
-                                        if (tienePlataforma)
-                                          _buildInfoChip(
-                                              'Plataforma: ${plataforma ? 'Sí' : 'No'}'),
+                                        
+                                        // 🔹 CORRECCIÓN: Ahora plataforma es String
+                                        if (tienePlataforma && plataforma != null)
+                                          _buildInfoChip('Plataforma: $plataforma'),
+                                        
                                         if (tieneColores &&
                                             colores != null &&
                                             colores.toString().isNotEmpty)
