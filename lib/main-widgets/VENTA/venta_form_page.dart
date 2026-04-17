@@ -691,7 +691,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: Designwidgets().appBarMain('Nueva Venta'),
+      appBar: Designwidgets().appBarMain('Nueva Venta Código'),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(

@@ -32,6 +32,18 @@ class Designwidgets {
     );
   }
 
+  LinearGradient linearGradientPurple(BuildContext context) {
+  return const LinearGradient(
+    colors: [
+      Color(0xFF6A11CB), // Púrpura azulado (conecta con el azul)
+      Color(0xFF8E24AA), // Violeta medio
+      Color(0xFFD81B60), // Rosa/Rojo intenso (conecta con el fuego)
+    ],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+}
+
   LinearGradient linearGradientFire(BuildContext context) {
     return const LinearGradient(
       colors: [

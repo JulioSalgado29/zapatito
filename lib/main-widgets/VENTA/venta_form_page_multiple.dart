@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
 
@@ -382,7 +383,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
   }
 
   Future<void> _realizarVenta() async {
-
+    
     if (!_itemsVenta.every((i) =>
         i.calzadoId != null &&
         i.tallaSeleccionada != null &&
@@ -630,63 +631,71 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
   }
 
   Widget _buildMetodoYLugar(int index) {
-  var item = _itemsVenta[index];
-  
-  bool listo = item.tallaSeleccionada != null &&
+    var item = _itemsVenta[index];
+
+    bool listo = item.tallaSeleccionada != null &&
         (!item.tipoTieneColores || item.colorSeleccionado != null) &&
         (!item.tipoTieneTaco || item.tacoSeleccionado != null) &&
         (!item.tipoTienePlataforma || item.plataformaSeleccionada != null);
 
     if (!listo) return const SizedBox();
 
-  return Padding(
-    padding: const EdgeInsets.only(top: 12),
-    child: Row(
-      children: [
-        // Método de Pago
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            isExpanded: true, // 🔹 Crucial: Fuerza al contenido a ajustarse al ancho
-            decoration: const InputDecoration(
-              labelText: 'Método de Pago', // Acorté un poco el texto para ganar espacio
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10), // Reduce padding interno
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(
+        children: [
+          // Método de Pago
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              isExpanded:
+                  true, // 🔹 Crucial: Fuerza al contenido a ajustarse al ancho
+              decoration: const InputDecoration(
+                labelText:
+                    'Método de Pago', // Acorté un poco el texto para ganar espacio
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 10), // Reduce padding interno
+              ),
+              value: item.metodoPagoSeleccionado,
+              items: _metodosPago
+                  .map((m) => DropdownMenuItem(
+                      value: m,
+                      child: Text(m,
+                          overflow: TextOverflow
+                              .ellipsis) // 🔹 Evita desborde de texto
+                      ))
+                  .toList(),
+              onChanged: (v) => setState(() => item.metodoPagoSeleccionado = v),
             ),
-            value: item.metodoPagoSeleccionado,
-            items: _metodosPago
-                .map((m) => DropdownMenuItem(
-                      value: m, 
-                      child: Text(m, overflow: TextOverflow.ellipsis) // 🔹 Evita desborde de texto
-                    ))
-                .toList(),
-            onChanged: (v) => setState(() => item.metodoPagoSeleccionado = v),
           ),
-        ),
-        const SizedBox(width: 8),
-        // Lugar de Venta
-        Expanded(
-          child: DropdownButtonFormField<String>(
-            isExpanded: true, // 🔹 Crucial
-            decoration: const InputDecoration(
-              labelText: 'Lugar de Venta',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          const SizedBox(width: 8),
+          // Lugar de Venta
+          Expanded(
+            child: DropdownButtonFormField<String>(
+              isExpanded: true, // 🔹 Crucial
+              decoration: const InputDecoration(
+                labelText: 'Lugar de Venta',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+              ),
+              value: item.lugarVentaSeleccionado,
+              items: _lugaresVenta
+                  .map((l) => DropdownMenuItem(
+                      value: l,
+                      child: Text(l,
+                          overflow: TextOverflow
+                              .ellipsis) // 🔹 Evita desborde de texto
+                      ))
+                  .toList(),
+              onChanged: (v) => setState(() => item.lugarVentaSeleccionado = v),
             ),
-            value: item.lugarVentaSeleccionado,
-            items: _lugaresVenta
-                .map((l) => DropdownMenuItem(
-                      value: l, 
-                      child: Text(l, overflow: TextOverflow.ellipsis) // 🔹 Evita desborde de texto
-                    ))
-                .toList(),
-            onChanged: (v) => setState(() => item.lugarVentaSeleccionado = v),
           ),
-        ),
-      ],
-    ),
-  );
-}
-  
+        ],
+      ),
+    );
+  }
+
   Widget _buildCantidadYPrecio(int index) {
     var item = _itemsVenta[index];
     bool listo = item.tallaSeleccionada != null &&
@@ -716,15 +725,30 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
           const SizedBox(width: 10),
           Expanded(
             child: TextFormField(
-              controller: item.precioController,
-              decoration: const InputDecoration(
-                  labelText: 'Precio Total',
-                  border: OutlineInputBorder(),
-                  prefixText: 'S/ '),
-              keyboardType: TextInputType.number,
-              onChanged: (v) => setState(
-                  () => item.precioVentaTotal = double.tryParse(v) ?? 0.0),
+            controller: item.precioController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              // 🔹 Bloquea cualquier cosa que no sea número o punto decimal (máx 2 decimales)
+              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+            ],
+            decoration: const InputDecoration(
+              labelText: 'Precio Total',
+              border: OutlineInputBorder(),
+              prefixText: 'S/ ',
+              // 🔹 Usamos hintText para que el usuario sepa qué escribir sin tener un valor real
+              hintText: 'Ingrese monto',
             ),
+            onChanged: (v) {
+              setState(() {
+                // 🔹 Solo parseamos si hay texto, si no, se queda en 0.0 interno para la lógica
+                if (v.isEmpty) {
+                  item.precioVentaTotal = 0.0;
+                } else {
+                  item.precioVentaTotal = double.tryParse(v) ?? 0.0;
+                }
+              });
+            },
+          ),
           ),
         ],
       ),

@@ -5,6 +5,7 @@ import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:zapatito/main-widgets/MAIN/home_page.dart';
 import 'package:zapatito/main-widgets/VENTA/venta_form_page.dart';
+import 'package:zapatito/main-widgets/VENTA/venta_form_page_muestra.dart';
 import 'package:zapatito/main-widgets/VENTA/venta_form_page_multiple.dart';
 
 class VentaPage extends StatefulWidget {
@@ -184,10 +185,14 @@ class _VentaPageState extends State<VentaPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildFab(Designwidgets().linearGradientBlue(context), "btn1",
-              _navegarFormulario, "Por Código"),
+              _navegarFormulario, "Código"),
+          const SizedBox(height: 12),
+          _buildFab(Designwidgets().linearGradientPurple(context), "btn3",
+              _navegarFormularioMuestra, "Muestra"),
           const SizedBox(height: 12),
           _buildFab(Designwidgets().linearGradientFire(context), "btn2",
               _navegarFormularioMultiple, "Por Mayor"),
+          
         ],
       ),
     );
@@ -342,6 +347,7 @@ class _VentaPageState extends State<VentaPage> {
 
   void _navegarFormulario() => Navigator.push(context, MaterialPageRoute(builder: (_) => VentaFormPage(firstName: widget.firstName, emailUser: widget.emailUser, inventarioId: widget.inventarioId)));
   void _navegarFormularioMultiple() => Navigator.push(context, MaterialPageRoute(builder: (_) => VentaFormPageMultiple(firstName: widget.firstName, emailUser: widget.emailUser, inventarioId: widget.inventarioId)));
+  void _navegarFormularioMuestra() => Navigator.push(context, MaterialPageRoute(builder: (_) => VentaFormPageMuestra(firstName: widget.firstName, emailUser: widget.emailUser, inventarioId: widget.inventarioId)));
 
   Widget _buildFab(Gradient gradient, String tag, VoidCallback onPressed, String label) {
     return SizedBox(
