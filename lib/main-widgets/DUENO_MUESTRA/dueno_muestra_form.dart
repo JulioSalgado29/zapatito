@@ -69,8 +69,9 @@ class _DuenoMuestraFormState extends State<DuenoMuestraForm> {
 
     final Map<String, dynamic> data = {
       'nombre': _nombreController.text.trim(),
-      'usuario_edicion': widget.firstName ?? 'anon',
-      'fecha_modificacion': Timestamp.now(),
+      'id_inventario': widget.inventarioId,
+      'email_usuario': widget.emailUser,
+      'usuario_creacion': widget.firstName,
     };
 
     if (_estaEditando) {

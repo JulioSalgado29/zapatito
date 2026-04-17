@@ -156,6 +156,7 @@ class _DuenoMuestraPageState extends State<DuenoMuestraPage> {
         stream: FirebaseFirestore.instance
             .collection('dueno_muestra')
             .where('estado', isEqualTo: true) // 🔹 FILTRO: Solo activos
+            .where('id_inventario', isEqualTo: widget.inventarioId)
             .orderBy('nombre', descending: false)
             .snapshots(),
         builder: (context, snapshot) {
