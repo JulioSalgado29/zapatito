@@ -544,6 +544,8 @@ class _VentaFormPageState extends State<VentaFormPage> {
 
       if (filasSnap.docs.isNotEmpty) {
         final filaDoc = filasSnap.docs.first;
+        int stockActualFila = filaDoc['cantidad'] ?? 0;
+
         Query subQuery = db
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: filaDoc.id)
@@ -566,7 +568,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
           final subDoc = subSnap.docs.first;
           int stockActualSub = subDoc['cantidad'];
 
-          // Si el descuento deja el stock en 0 o menos, ELIMINAMOS la subfila
           if (stockActualSub <= cantidadPorDescontar) {
             batch.delete(subDoc.reference);
           } else {
@@ -574,9 +575,13 @@ class _VentaFormPageState extends State<VentaFormPage> {
                 {'cantidad': FieldValue.increment(-cantidadPorDescontar)});
           }
 
-          // Siempre descontamos de la fila principal (stock total del código)
-          batch.update(filaDoc.reference,
-              {'cantidad': FieldValue.increment(-cantidadPorDescontar)});
+          // 🔹 NUEVA LÓGICA: Si la fila principal queda en 0 o menos, se elimina
+          if (stockActualFila <= cantidadPorDescontar) {
+            batch.delete(filaDoc.reference);
+          } else {
+            batch.update(filaDoc.reference,
+                {'cantidad': FieldValue.increment(-cantidadPorDescontar)});
+          }
         }
       }
 
@@ -591,7 +596,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
           .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
-
   // -------------------------------------------------------
   // UI COMPONENTS
   // -------------------------------------------------------

@@ -163,7 +163,7 @@ class _VentaPageState extends State<VentaPage> {
               'taco': data['taco'] ?? 0,
               'plataforma': data['plataforma'] ?? '',
               'cantidad': data[
-                  'cantidad'], // Insertamos la cantidad que se está devolviendo
+              'cantidad'], // Insertamos la cantidad que se está devolviendo
             });
           }
 
