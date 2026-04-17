@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
 
-// Modelo para manejar cada fila de venta independiente sin validación de stock
+// Modelo para manejar cada fila de venta independiente
 class VentaItem {
   String? duenoMuestraId;
   String? calzadoId;
@@ -15,7 +16,9 @@ class VentaItem {
   int cantidadVenta = 0;
   double precioVentaTotal = 0.0;
   
-  // Flags de configuración del calzado
+  // 🔹 NUEVA ETIQUETA: Identificador de muestra
+  bool muestra = true;
+
   bool tipoTieneTaco = false;
   bool tipoTienePlataforma = false;
   bool tipoTieneColores = false;
@@ -24,6 +27,7 @@ class VentaItem {
   String? lugarVentaSeleccionado;
 
   final TextEditingController cantidadController = TextEditingController();
+  // 🔹 El controlador nace vacío para evitar el 0.0 visual
   final TextEditingController precioController = TextEditingController();
 
   void dispose() {
@@ -101,6 +105,8 @@ class _VentaFormPageMuestraState extends State<VentaFormPageMuestra> {
           'lugar_venta': item.lugarVentaSeleccionado,
           'fecha_venta': Timestamp.now(),
           'usuario_creacion': widget.firstName ?? 'anon',
+          // 🔹 REGISTRO DE ETIQUETA EN FIREBASE
+          'muestra': item.muestra, 
         };
 
         final ventaRef = await db.collection('venta').add(ventaData);
@@ -110,6 +116,8 @@ class _VentaFormPageMuestraState extends State<VentaFormPageMuestra> {
           'venta_id': ventaRef.id,
           'fecha_creacion': Timestamp.now(),
           'email_user': widget.emailUser ?? 'anon',
+          // 🔹 TAMBIÉN EN FILA_VENTA
+          'muestra': item.muestra, 
         });
       }
       _ocultarSplashScreen();
@@ -120,18 +128,67 @@ class _VentaFormPageMuestraState extends State<VentaFormPageMuestra> {
     }
   }
 
-  Future<String?> _obtenerIconoTipo(String id) async {
-    if (_iconCache.containsKey(id)) return _iconCache[id];
-    final snap = await FirebaseFirestore.instance.collection('tipo_calzado').doc(id).get();
-    _iconCache[id] = snap.data()?['icono'];
-    return _iconCache[id];
-  }
-
-  void _mostrarSplashScreen() => showDialog(context: context, barrierDismissible: false, builder: (_) => const SplashScreen02());
-  void _ocultarSplashScreen() => Navigator.of(context, rootNavigator: true).canPop() ? Navigator.of(context, rootNavigator: true).pop() : null;
-
   // --- WIDGETS DE FORMULARIO ---
 
+  // ... (Tus otros widgets _buildDropdownDueno, _buildDropdownCalzado, _buildCascadaAtributos, _buildPagoYLugar se mantienen igual)
+
+  Widget _buildCantidadYPrecio(int index) {
+    var item = _itemsVenta[index];
+    if (item.calzadoId == null) return const SizedBox();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextFormField(
+              controller: item.cantidadController,
+              decoration: const InputDecoration(labelText: 'Cantidad', border: OutlineInputBorder()),
+              keyboardType: TextInputType.number,
+              onChanged: (v) {
+                setState(() {
+                  item.cantidadVenta = int.tryParse(v) ?? 0;
+                  if (item.cantidadVenta <= 0) {
+                    item.precioController.clear();
+                    item.precioVentaTotal = 0.0;
+                  }
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextFormField(
+              controller: item.precioController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+              ],
+              decoration: const InputDecoration(
+                labelText: 'Precio Total', 
+                border: OutlineInputBorder(), 
+                prefixText: 'S/ ',
+                hintText: '0.00',
+              ),
+              onChanged: (v) {
+                setState(() {
+                  if (v.isEmpty) {
+                    item.precioVentaTotal = 0.0;
+                  } else {
+                    item.precioVentaTotal = double.tryParse(v) ?? 0.0;
+                  }
+                });
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ... (El resto del código del Scaffold y Footer se mantiene igual)
+
+  // (Implementación de placeholders para que el código sea funcional)
   Widget _buildDropdownDueno(int index) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('dueno_muestra').orderBy('nombre', descending: false).snapshots(),
@@ -265,35 +322,15 @@ class _VentaFormPageMuestraState extends State<VentaFormPageMuestra> {
     );
   }
 
-  Widget _buildCantidadYPrecio(int index) {
-    var item = _itemsVenta[index];
-    if (item.calzadoId == null) return const SizedBox();
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextFormField(
-              controller: item.cantidadController,
-              decoration: const InputDecoration(labelText: 'Cantidad', border: OutlineInputBorder()),
-              keyboardType: TextInputType.number,
-              onChanged: (v) => setState(() => item.cantidadVenta = int.tryParse(v) ?? 0),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextFormField(
-              controller: item.precioController,
-              decoration: const InputDecoration(labelText: 'Precio Total', border: OutlineInputBorder(), prefixText: 'S/ '),
-              keyboardType: TextInputType.number,
-              onChanged: (v) => setState(() => item.precioVentaTotal = double.tryParse(v) ?? 0.0),
-            ),
-          ),
-        ],
-      ),
-    );
+  Future<String?> _obtenerIconoTipo(String id) async {
+    if (_iconCache.containsKey(id)) return _iconCache[id];
+    final snap = await FirebaseFirestore.instance.collection('tipo_calzado').doc(id).get();
+    _iconCache[id] = snap.data()?['icono'];
+    return _iconCache[id];
   }
+
+  void _mostrarSplashScreen() => showDialog(context: context, barrierDismissible: false, builder: (_) => const SplashScreen02());
+  void _ocultarSplashScreen() => Navigator.of(context, rootNavigator: true).canPop() ? Navigator.of(context, rootNavigator: true).pop() : null;
 
   @override
   Widget build(BuildContext context) {
@@ -329,8 +366,8 @@ class _VentaFormPageMuestraState extends State<VentaFormPageMuestra> {
                     _buildDropdownDueno(index),
                     _buildDropdownCalzado(index),
                     _buildCascadaAtributos(index),
-                    _buildPagoYLugar(index),
                     _buildCantidadYPrecio(index),
+                    _buildPagoYLugar(index),
                   ]),
                 ),
               ),
