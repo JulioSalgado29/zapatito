@@ -33,13 +33,64 @@ class _VentaPageState extends State<VentaPage> {
   Future<void> _eliminarVentaConReversa(String filaVentaId, Map<String, dynamic> data) async {
   bool confirm = await showDialog(
     context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('¿Eliminar venta?'),
-      content: const Text('Se devolverá la cantidad vendida al stock del inventario.'),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-        TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar', style: TextStyle(color: Colors.red))),
-      ],
+    builder: (ctx) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+      elevation: 20,
+      backgroundColor: Colors.transparent, // Para que el Container maneje el fondo
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(25),
+          gradient: const LinearGradient(
+            colors: [Color.fromARGB(255, 33, 47, 243), Color(0xFF4A5AF7)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.warning_amber_rounded, size: 60, color: Colors.white),
+            const SizedBox(height: 16),
+            const Text(
+              '¿Eliminar venta?',
+              style: TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Se devolverá la cantidad vendida al stock del inventario.',
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // BOTÓN CANCELAR
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[900],
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  onPressed: () => Navigator.pop(ctx, false),
+                  icon: const Icon(Icons.cancel, color: Colors.white),
+                  label: const Text('Cancelar', style: TextStyle(color: Colors.white)),
+                ),
+                // BOTÓN ELIMINAR
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  icon: const Icon(Icons.delete_forever, color: Colors.white),
+                  label: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     ),
   ) ?? false;
 
