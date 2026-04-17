@@ -42,7 +42,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
         'cantidad': 0,
         'talla': 0,
         'taco': 0,
-        'plataforma': false,
+        'plataforma': null, // 🔹 Forzamos null para obligar selección
         'colores': ''
       });
     }
@@ -60,7 +60,6 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
       _calzadoId = data['calzado_id'];
       _cantidadFila = data['cantidad'] ?? 0;
 
-      // 🔹 Cargar directamente desde colección CALZADO
       final calzadoDoc = await FirebaseFirestore.instance
           .collection('calzado')
           .doc(_calzadoId)
@@ -85,7 +84,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
           'cantidad': doc['cantidad'] ?? 0,
           'talla': doc['talla'] ?? 0,
           'taco': doc['taco'] ?? 0,
-          'plataforma': doc['plataforma'] ?? false,
+          'plataforma': doc['plataforma'], // 🔹 Carga el valor String o null
           'colores': doc['colores'] ?? '',
         });
       }
@@ -95,7 +94,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
           'cantidad': 0,
           'talla': 0,
           'taco': 0,
-          'plataforma': false,
+          'plataforma': null,
           'colores': ''
         });
       }
@@ -103,33 +102,24 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
     setState(() => _cargandoDatos = false);
   }
 
-  // 🔹 Ya no se usa tipo_calzado, pero dejamos para compatibilidad con iconos
   Future<String?> _obtenerIconoTipo(String tipoCalzadoId) async {
     if (_iconCache.containsKey(tipoCalzadoId)) return _iconCache[tipoCalzadoId];
-
     final tipoSnap = await FirebaseFirestore.instance
         .collection('tipo_calzado')
         .doc(tipoCalzadoId)
         .get();
-
     String? icono;
     final data = tipoSnap.data();
-    if (data != null && data['icono'] != null) {
-      icono = data['icono'].toString();
-    }
+    if (data != null && data['icono'] != null) icono = data['icono'].toString();
     _iconCache[tipoCalzadoId] = icono;
     return icono;
   }
 
-  void _mostrarSplashScreen() {
-    showDialog(
+  void _mostrarSplashScreen() => showDialog(
       context: context,
       barrierDismissible: false,
       useRootNavigator: true,
-      builder: (_) => const SplashScreen02(),
-    );
-  }
-
+      builder: (_) => const SplashScreen02());
   void _ocultarSplashScreen() {
     if (Navigator.of(context, rootNavigator: true).canPop()) {
       Navigator.of(context, rootNavigator: true).pop();
@@ -138,10 +128,8 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
 
   Future<void> _guardarFilaInventario() async {
     if (_calzadoId == null || _cantidadFila <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Selecciona un calzado y una cantidad válida')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Selecciona un calzado y una cantidad válida')));
       return;
     }
 
@@ -149,58 +137,52 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
     for (var sub in _subfilas) {
       final key =
           '${sub['talla']}_${sub['taco']}_${sub['plataforma']}_${sub['colores']}';
+
       if ((sub['cantidad'] ?? 0) <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content:
-                  Text('Todas las subfilas deben tener cantidad mayor a 0')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('Todas las subfilas deben tener cantidad mayor a 0')));
         return;
       }
       if ((sub['talla'] ?? 0) <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text(
-                  'Todas las subfilas deben tener una talla seleccionada')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('Todas las subfilas deben tener una talla seleccionada')));
+        return;
+      }
+      // 🔹 Validación obligatoria de plataforma si el calzado la requiere
+      if (_tipoTienePlataforma &&
+          (sub['plataforma'] == null || sub['plataforma'].toString().isEmpty)) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Selecciona el tipo de plataforma en todas las subfilas')));
         return;
       }
       if ((sub['colores'] ?? '') == '' && _tipoTieneColores) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text(
-                  'Todas las subfilas deben tener un color especificado')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('Todas las subfilas deben tener un color especificado')));
         return;
       }
       if (combinaciones.contains(key)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text(
-                  'No se pueden repetir subfilas con misma talla y/o taco y/o plataforma y/o colores')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content:
+                Text('No se pueden repetir subfilas con mismos atributos')));
         return;
       }
       combinaciones.add(key);
     }
 
-    // Validar suma total
     final totalSubfila = _subfilas.fold<int>(
-      0,
-      (suma, item) => suma + (item['cantidad'] ?? 0) as int,
-    );
-
+        0, (suma, item) => suma + (item['cantidad'] ?? 0) as int);
     if (totalSubfila != _cantidadFila) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content:
-                Text('La suma de subfilas debe ser igual a la cantidad total')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content:
+              Text('La suma de subfilas debe ser igual a la cantidad total')));
       return;
     }
 
     _mostrarSplashScreen();
-
     try {
       if (widget.filaId == null) {
         final filaExistenteSnap = await FirebaseFirestore.instance
@@ -209,16 +191,12 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
             .where('calzado_id', isEqualTo: _calzadoId)
             .limit(1)
             .get();
-
         DocumentReference filaRef;
-
         if (filaExistenteSnap.docs.isNotEmpty) {
-          // Fusión
           final filaDoc = filaExistenteSnap.docs.first;
           filaRef = filaDoc.reference;
-          final cantidadActual = filaDoc['cantidad'] ?? 0;
-          await filaRef.update({'cantidad': cantidadActual + _cantidadFila});
-
+          await filaRef
+              .update({'cantidad': (filaDoc['cantidad'] ?? 0) + _cantidadFila});
           for (var sub in _subfilas) {
             final subExistente = await FirebaseFirestore.instance
                 .collection('subfila_inventario')
@@ -229,12 +207,11 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
                 .where('colores', isEqualTo: sub['colores'])
                 .limit(1)
                 .get();
-
             if (subExistente.docs.isNotEmpty) {
               final doc = subExistente.docs.first;
-              final cantidadNueva =
-                  (doc['cantidad'] ?? 0) + (sub['cantidad'] ?? 0);
-              await doc.reference.update({'cantidad': cantidadNueva});
+              await doc.reference.update({
+                'cantidad': (doc['cantidad'] ?? 0) + (sub['cantidad'] ?? 0)
+              });
             } else {
               await FirebaseFirestore.instance
                   .collection('subfila_inventario')
@@ -243,7 +220,7 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
                 'cantidad': sub['cantidad'],
                 'talla': sub['talla'],
                 'taco': _tipoTieneTaco ? sub['taco'] : 0,
-                'plataforma': _tipoTienePlataforma ? sub['plataforma'] : false,
+                'plataforma': _tipoTienePlataforma ? sub['plataforma'] : '',
                 'colores': _tipoTieneColores ? sub['colores'] : '',
                 'fecha_creacion': Timestamp.now(),
                 'usuario_creacion': widget.firstName ?? 'anon',
@@ -251,7 +228,6 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
             }
           }
         } else {
-          // Nueva fila
           filaRef = await FirebaseFirestore.instance
               .collection('fila_inventario')
               .add({
@@ -260,9 +236,8 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
             'cantidad': _cantidadFila,
             'fecha_creacion': Timestamp.now(),
             'usuario_creacion': widget.firstName ?? 'anon',
-            'email_user': widget.emailUser ?? 'anon',
+            'email_user': widget.emailUser ?? 'anon'
           });
-
           for (var sub in _subfilas) {
             await FirebaseFirestore.instance
                 .collection('subfila_inventario')
@@ -271,35 +246,26 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
               'cantidad': sub['cantidad'],
               'talla': sub['talla'],
               'taco': _tipoTieneTaco ? sub['taco'] : 0,
-              'plataforma': _tipoTienePlataforma ? sub['plataforma'] : false,
+              'plataforma': _tipoTienePlataforma ? sub['plataforma'] : '',
               'colores': _tipoTieneColores ? sub['colores'] : '',
               'fecha_creacion': Timestamp.now(),
               'usuario_creacion': widget.firstName ?? 'anon',
-              'email_user': widget.emailUser ?? 'anon',
+              'email_user': widget.emailUser ?? 'anon'
             });
           }
         }
       } else {
-        // Editar fila existente
-        final filaRef = FirebaseFirestore.instance
+        await FirebaseFirestore.instance
             .collection('fila_inventario')
-            .doc(widget.filaId);
-        await filaRef.update({
-          'calzado_id': _calzadoId,
-          'cantidad': _cantidadFila,
-        });
-
-        // 🔹 1. Eliminar todas las subfilas anteriores
+            .doc(widget.filaId)
+            .update({'calzado_id': _calzadoId, 'cantidad': _cantidadFila});
         final subExistentes = await FirebaseFirestore.instance
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: widget.filaId)
             .get();
-
         for (var doc in subExistentes.docs) {
           await doc.reference.delete();
         }
-
-        // 🔹 2. Insertar todas las subfilas actuales (nuevas)
         for (var sub in _subfilas) {
           await FirebaseFirestore.instance
               .collection('subfila_inventario')
@@ -308,37 +274,31 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
             'cantidad': sub['cantidad'],
             'talla': sub['talla'],
             'taco': _tipoTieneTaco ? sub['taco'] : 0,
-            'plataforma': _tipoTienePlataforma ? sub['plataforma'] : false,
+            'plataforma': _tipoTienePlataforma ? sub['plataforma'] : '',
             'colores': _tipoTieneColores ? sub['colores'] : '',
             'fecha_creacion': Timestamp.now(),
-            'usuario_creacion': widget.firstName ?? 'anon',
+            'usuario_creacion': widget.firstName ?? 'anon'
           });
         }
       }
-      _ocultarSplashScreen(); // 👈 CERRAR LOADER
-
+      _ocultarSplashScreen();
       await Future.delayed(const Duration(milliseconds: 150));
-
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Codigo de inventario guardado correctamente')),
-      );
+          const SnackBar(content: Text('Inventario guardado correctamente')));
       Navigator.pop(context, true);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al guardar: $e')),
-      );
+      _ocultarSplashScreen();
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error al guardar: $e')));
     }
   }
 
-  /// ---------- UI ----------
   Widget _buildSubfilaItem(int index) {
     final sub = _subfilas[index];
-
     final tallas = List.generate(18, (i) => i + 25);
     final tacos = List.generate(15, (i) => i + 1);
+    final opcionesPlataforma = ['Bajo', 'Mediano', 'Alto'];
 
     final tallaActual = (sub['talla'] != null && tallas.contains(sub['talla']))
         ? sub['talla']
@@ -347,6 +307,11 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
         ? sub['taco']
         : null;
     final cantidadActual = (sub['cantidad'] ?? 0) > 0 ? sub['cantidad'] : 0;
+
+    // 🔹 Mantenemos null si no hay valor previo
+    final plataformaActual = opcionesPlataforma.contains(sub['plataforma'])
+        ? sub['plataforma']
+        : null;
 
     return Column(
       key: ValueKey('subfila_$index'),
@@ -358,22 +323,16 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
             padding: const EdgeInsets.only(top: 8),
             child: TextFormField(
               decoration: const InputDecoration(
-                labelText: 'Color',
-                hintText: 'Ej. Negro, Blanco, Rojo...',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.color_lens_outlined),
-              ),
-              // Usamos el valor actual del mapa o un string vacío
+                  labelText: 'Color',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.color_lens_outlined)),
               initialValue: sub['colores'] ?? '',
-              onChanged: (v) => setState(() {
-                _subfilas[index]['colores'] = v;
-              }),
+              onChanged: (v) => setState(() => _subfilas[index]['colores'] = v),
             ),
           ),
         const SizedBox(height: 12),
         Row(
           children: [
-            // Cantidad
             Expanded(
               child: TextFormField(
                 key: ValueKey(
@@ -389,8 +348,6 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
                 },
               ),
             ),
-
-            // Talla
             const SizedBox(width: 8),
             Expanded(
               child: DropdownButtonFormField<int>(
@@ -399,14 +356,11 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
                 value: tallaActual,
                 items: tallas
                     .map((talla) => DropdownMenuItem<int>(
-                          value: talla,
-                          child: Text(talla.toString()),
-                        ))
+                        value: talla, child: Text(talla.toString())))
                     .toList(),
                 onChanged: (val) => setState(() => sub['talla'] = val),
               ),
             ),
-            // Taco (si aplica)
             if (_tipoTieneTaco) ...[
               const SizedBox(width: 8),
               Expanded(
@@ -423,36 +377,33 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
                 ),
               ),
             ],
-
-            // ❌ Botón para eliminar subfila (solo UI)
             IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () {
-                setState(() {
-                  _subfilas.removeAt(index);
-                });
-              },
-            ),
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () => setState(() => _subfilas.removeAt(index))),
           ],
         ),
-
-        const SizedBox(height: 12),
-        // Checkbox plataforma
+        const SizedBox(height: 4),
+        // Checkbox plataforma (ahora Dropdown)
         if (_tipoTienePlataforma)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Row(
-              children: [
-                const Text('Plataforma'),
-                Checkbox(
-                  value: sub['plataforma'] ?? false,
-                  onChanged: (v) => setState(
-                      () => _subfilas[index]['plataforma'] = v ?? false),
-                ),
-              ],
+            padding: const EdgeInsets.only(top: 8), // Aumenté a 8 para igualar al color
+            child: DropdownButtonFormField<String>(
+              decoration: const InputDecoration(
+                labelText: 'Tipo de Plataforma',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.layers_outlined),
+              ),
+              value: plataformaActual,
+              items: opcionesPlataforma
+                  .map((opcion) => DropdownMenuItem(
+                        value: opcion,
+                        child: Text(opcion),
+                      ))
+                  .toList(),
+              onChanged: (v) => setState(
+                  () => _subfilas[index]['plataforma'] = v),
             ),
           ),
-        
         const Divider(),
       ],
     );
@@ -461,18 +412,14 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
   Widget _buildDropdownConIconos(
       AsyncSnapshot<QuerySnapshot> snapshot, bool esEdicion) {
     final calzados = snapshot.data!.docs;
-
     return IgnorePointer(
       ignoring: esEdicion,
       child: DropdownButtonFormField<String>(
         decoration: InputDecoration(
-          labelText: 'Seleccionar código',
-          border: const OutlineInputBorder(),
-
-          // 👇 COLOR CUANDO ESTÁ BLOQUEADO
-          filled: true,
-          fillColor: esEdicion ? Colors.grey.shade200 : Colors.white,
-        ),
+            labelText: 'Seleccionar código',
+            border: const OutlineInputBorder(),
+            filled: true,
+            fillColor: esEdicion ? Colors.grey.shade200 : Colors.white),
         value: _calzadoId,
         items: calzados.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
@@ -484,36 +431,27 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
               future: _obtenerIconoTipo(tipoCalzadoId),
               builder: (context, iconSnapshot) {
                 final icono = iconSnapshot.data;
-                return Row(
-                  children: [
-                    if (icono != null && icono.isNotEmpty)
-                      Image.asset(icono, width: 32, height: 32),
-                    const SizedBox(width: 8),
-                    Text(
-                      nombre,
+                return Row(children: [
+                  if (icono != null && icono.isNotEmpty)
+                    Image.asset(icono, width: 32, height: 32),
+                  const SizedBox(width: 8),
+                  Text(nombre,
                       style: TextStyle(
-                        color: esEdicion ? Colors.grey : Colors.black,
-                      ),
-                    ),
-                  ],
-                );
+                          color: esEdicion ? Colors.grey : Colors.black))
+                ]);
               },
             ),
           );
         }).toList(),
         onChanged: (v) async {
-          setState(() {
-            _calzadoId = v;
-          });
+          setState(() => _calzadoId = v);
           if (v != null) {
             final calzadoDoc = await FirebaseFirestore.instance
                 .collection('calzado')
                 .doc(v)
                 .get();
-
             if (calzadoDoc.exists) {
               final calzadoData = calzadoDoc.data()!;
-
               setState(() {
                 _tipoTieneTaco = calzadoData['taco'] ?? true;
                 _tipoTienePlataforma = calzadoData['plataforma'] ?? true;
@@ -528,50 +466,36 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_cargandoDatos) {
-      return const SplashScreen02();
-    }
-
+    if (_cargandoDatos) return const SplashScreen02();
     return Scaffold(
       appBar: Designwidgets().appBarMain(
-        widget.filaId != null ? "Editar Inventario" : "Agregado Manual",
-      ),
+          widget.filaId != null ? "Editar Inventario" : "Agregado Manual"),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Column(
             children: [
               StreamBuilder<QuerySnapshot>(
-                stream: widget.filaId != null
-                    ? FirebaseFirestore.instance
-                        .collection('calzado')
-                        .where('id_inventario', isEqualTo: widget.inventarioId)
-                        .snapshots() // 👈 EDITAR: trae todos
-                    : FirebaseFirestore.instance
-                        .collection('calzado')
-                        .where('id_inventario', isEqualTo: widget.inventarioId)
-                        .where('activo', isEqualTo: true)
-                        .snapshots(), // 👈 NUEVO: solo activos
-
+                stream: FirebaseFirestore.instance
+                    .collection('calzado')
+                    .where('id_inventario', isEqualTo: widget.inventarioId)
+                    .snapshots(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return const Text('No tienes calzados registrados.');
                   }
-
                   return _buildDropdownConIconos(
                       snapshot, widget.filaId != null);
                 },
               ),
               const SizedBox(height: 12),
               TextFormField(
-                initialValue: _cantidadFila > 0 ? '$_cantidadFila' : '',
-                decoration: const InputDecoration(
-                  labelText: 'Cantidad total',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-                onChanged: (v) => _cantidadFila = int.tryParse(v) ?? 0,
-              ),
+                  initialValue: _cantidadFila > 0 ? '$_cantidadFila' : '',
+                  decoration: const InputDecoration(
+                      labelText: 'Cantidad total',
+                      border: OutlineInputBorder()),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => _cantidadFila = int.tryParse(v) ?? 0),
               const Divider(height: 32),
               const Text('Subfilas de inventario',
                   style: TextStyle(fontWeight: FontWeight.bold)),
@@ -584,42 +508,29 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
                   icon: const Icon(Icons.add),
                   onPressed: () {
                     if (_cantidadFila <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content:
-                                Text('Primero ingresa una cantidad total')),
-                      );
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Primero ingresa una cantidad total')));
                       return;
                     }
                     if (_subfilas.length >= _cantidadFila) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                'La cantidad de sufilas no puede exceder la cantidad total')),
-                      );
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('No puede exceder la cantidad total')));
                       return;
                     }
-                    final totalActual = _subfilas.fold<int>(
-                      0,
-                      (suma, item) => suma + (item['cantidad'] ?? 0) as int,
-                    );
+                    final totalActual = _subfilas.fold<int>(0,
+                        (suma, item) => suma + (item['cantidad'] ?? 0) as int);
                     if (totalActual >= _cantidadFila) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text(
-                                'Las cantidades de las subfilas ya suman la cantidad total')),
-                      );
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Ya suman la cantidad total')));
                       return;
                     }
-                    setState(() {
-                      _subfilas.add({
-                        'cantidad': 0,
-                        'talla': 0,
-                        'taco': 0,
-                        'plataforma': false,
-                        'colores': '',
-                      });
-                    });
+                    setState(() => _subfilas.add({
+                          'cantidad': 0,
+                          'talla': 0,
+                          'taco': 0,
+                          'plataforma': null,
+                          'colores': ''
+                        }));
                   },
                   label: const Text('Agregar subfila'),
                 ),
@@ -628,13 +539,12 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: _guardarFilaInventario,
-                  icon:
-                      Icon(widget.filaId != null ? Icons.save_as : Icons.save),
-                  label: Text(widget.filaId == null
-                      ? 'Guardar inventario'
-                      : 'Actualizar inventario'),
-                ),
+                    onPressed: _guardarFilaInventario,
+                    icon: Icon(
+                        widget.filaId != null ? Icons.save_as : Icons.save),
+                    label: Text(widget.filaId == null
+                        ? 'Guardar inventario'
+                        : 'Actualizar inventario')),
               ),
               const SizedBox(height: 20),
             ],
