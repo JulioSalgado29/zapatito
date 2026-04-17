@@ -8,23 +8,25 @@ class VentaItem {
   String? calzadoId;
   int? tallaSeleccionada;
   int? tacoSeleccionado;
-  String? colorSeleccionado; 
+  String? colorSeleccionado;
   String? plataformaSeleccionada; // 🔹 Cambiado a String
   int stockDisponible = 0;
   int cantidadVenta = 0;
-  double precioVentaTotal = 0.0; 
+  double precioVentaTotal = 0.0;
   bool cargandoStock = false;
   List<int> tallasDisponibles = [];
   List<int> tacosDisponibles = [];
-  List<String> coloresDisponibles = []; 
+  List<String> coloresDisponibles = [];
   List<String> plataformasDisponibles = []; // 🔹 Nueva lista para cascada
   bool errorTalla = false;
   bool errorColor = false;
   bool errorTaco = false;
   bool tipoTieneTaco = false;
   bool tipoTienePlataforma = false;
-  bool tipoTieneColores = false; 
-  
+  bool tipoTieneColores = false;
+  String? metodoPagoSeleccionado;
+  String? lugarVentaSeleccionado;
+
   final TextEditingController cantidadController = TextEditingController();
   final TextEditingController precioController = TextEditingController();
 
@@ -49,6 +51,19 @@ class VentaFormPageMultiple extends StatefulWidget {
 class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
   final List<VentaItem> _itemsVenta = [];
   final Map<String, String?> _iconCache = {};
+
+  final List<String> _metodosPago = [
+    'Efectivo',
+    'Yape',
+    'Plin',
+    'Transferencia',
+    'POS',
+    'Efectivo y Yape',
+    'Efectivo y Plin',
+    'Efectivo y Transferencia',
+    'Efectivo y POS'
+  ];
+  final List<String> _lugaresVenta = ['Tienda', 'Live'];
 
   @override
   void initState() {
@@ -160,33 +175,33 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
           .get();
 
       int total = 0;
-      final Set<String> coloresSet = {}; 
+      final Set<String> coloresSet = {};
 
       for (final fila in filasSnap.docs) {
         Query q = FirebaseFirestore.instance
             .collection('subfila_inventario')
             .where('fila_inventario_id', isEqualTo: fila.id)
             .where('talla', isEqualTo: talla);
-            
+
         final subfilasSnap = await q.get();
         for (final sub in subfilasSnap.docs) {
           total += (sub['cantidad'] ?? 0) as int;
-          final color = sub['colores']?.toString() ?? ''; 
+          final color = sub['colores']?.toString() ?? '';
           if (item.tipoTieneColores && color.isNotEmpty) coloresSet.add(color);
         }
       }
 
       setState(() {
         item.stockDisponible = total;
-        item.coloresDisponibles = coloresSet.toList()..sort(); 
-        item.colorSeleccionado = null; 
+        item.coloresDisponibles = coloresSet.toList()..sort();
+        item.colorSeleccionado = null;
         item.tacoSeleccionado = null;
         item.plataformaSeleccionada = null;
         item.tacosDisponibles = [];
         item.plataformasDisponibles = [];
         item.cargandoStock = false;
       });
-      
+
       if (!item.tipoTieneColores) _cargarSiguientePaso(index);
     } catch (e) {
       setState(() => item.cargandoStock = false);
@@ -218,7 +233,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
             .where('fila_inventario_id', isEqualTo: fila.id)
             .where('talla', isEqualTo: item.tallaSeleccionada)
             .where('colores', isEqualTo: color);
-            
+
         final subfilasSnap = await q.get();
         for (final sub in subfilasSnap.docs) {
           total += (sub['cantidad'] ?? 0) as int;
@@ -258,8 +273,10 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
             .where('fila_inventario_id', isEqualTo: fila.id)
             .where('talla', isEqualTo: item.tallaSeleccionada)
             .where('taco', isEqualTo: taco);
-            
-        if (item.tipoTieneColores) q = q.where('colores', isEqualTo: item.colorSeleccionado);
+
+        if (item.tipoTieneColores) {
+          q = q.where('colores', isEqualTo: item.colorSeleccionado);
+        }
 
         final subSnap = await q.get();
         for (final sub in subSnap.docs) {
@@ -296,9 +313,13 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
           .collection('subfila_inventario')
           .where('fila_inventario_id', isEqualTo: fila.id)
           .where('talla', isEqualTo: item.tallaSeleccionada);
-      
-      if (item.tipoTieneColores) q = q.where('colores', isEqualTo: item.colorSeleccionado);
-      if (item.tipoTieneTaco) q = q.where('taco', isEqualTo: item.tacoSeleccionado ?? 0);
+
+      if (item.tipoTieneColores) {
+        q = q.where('colores', isEqualTo: item.colorSeleccionado);
+      }
+      if (item.tipoTieneTaco) {
+        q = q.where('taco', isEqualTo: item.tacoSeleccionado ?? 0);
+      }
 
       final subSnap = await q.get();
       for (final sub in subSnap.docs) {
@@ -328,8 +349,12 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
             .where('talla', isEqualTo: item.tallaSeleccionada)
             .where('plataforma', isEqualTo: plataforma);
 
-        if (item.tipoTieneColores) q = q.where('colores', isEqualTo: item.colorSeleccionado);
-        if (item.tipoTieneTaco) q = q.where('taco', isEqualTo: item.tacoSeleccionado ?? 0);
+        if (item.tipoTieneColores) {
+          q = q.where('colores', isEqualTo: item.colorSeleccionado);
+        }
+        if (item.tipoTieneTaco) {
+          q = q.where('taco', isEqualTo: item.tacoSeleccionado ?? 0);
+        }
 
         final subSnap = await q.get();
         for (final sub in subSnap.docs) {
@@ -347,7 +372,8 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
   }
 
   void _notificarDuplicado(int index) {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Esta combinación ya está en la lista.')));
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Esta combinación ya está en la lista.')));
     setState(() {
       _itemsVenta[index].tallaSeleccionada = null;
       _itemsVenta[index].cantidadVenta = 0;
@@ -356,7 +382,15 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
   }
 
   Future<void> _realizarVenta() async {
-    if (!_itemsVenta.every((i) => i.calzadoId != null && i.tallaSeleccionada != null && i.cantidadVenta > 0 && i.cantidadVenta <= i.stockDisponible)) return;
+
+    if (!_itemsVenta.every((i) =>
+        i.calzadoId != null &&
+        i.tallaSeleccionada != null &&
+        i.metodoPagoSeleccionado != null &&
+        i.lugarVentaSeleccionado != null &&
+        i.cantidadVenta > 0 &&
+        i.cantidadVenta <= i.stockDisponible)) return;
+
     _mostrarSplashScreen();
     try {
       final db = FirebaseFirestore.instance;
@@ -366,12 +400,17 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
           'talla': item.tallaSeleccionada,
           'taco': item.tipoTieneTaco ? item.tacoSeleccionado ?? 0 : 0,
           'colores': item.tipoTieneColores ? item.colorSeleccionado ?? '' : '',
-          'plataforma': item.tipoTienePlataforma ? item.plataformaSeleccionada ?? '' : '',
+          'plataforma':
+              item.tipoTienePlataforma ? item.plataformaSeleccionada ?? '' : '',
           'cantidad': item.cantidadVenta,
           'precio_venta_total': item.precioVentaTotal,
+          'metodo_pago': item.metodoPagoSeleccionado, // 🔹 Valor por item
+          'lugar_venta': item.lugarVentaSeleccionado, // 🔹 Valor por item'
           'fecha_venta': Timestamp.now(),
           'usuario_creacion': widget.firstName ?? 'anon',
+          // 🔹 AGREGADOS A LA DATA DE FIREBASE
         };
+
         final ventaRef = await db.collection('venta').add(ventaData);
         await db.collection('fila_venta').add({
           ...ventaData,
@@ -381,33 +420,47 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
           'email_user': widget.emailUser ?? 'anon',
         });
 
-        // Lógica de descuento omitida para brevedad pero se mantiene igual que tu original
+        // (Lógica de descuento de stock...)
       }
       _ocultarSplashScreen();
       Navigator.pop(context, true);
     } catch (e) {
       _ocultarSplashScreen();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   Future<String?> _obtenerIconoTipo(String id) async {
     if (_iconCache.containsKey(id)) return _iconCache[id];
-    final snap = await FirebaseFirestore.instance.collection('tipo_calzado').doc(id).get();
+    final snap = await FirebaseFirestore.instance
+        .collection('tipo_calzado')
+        .doc(id)
+        .get();
     _iconCache[id] = snap.data()?['icono'];
     return _iconCache[id];
   }
 
-  void _mostrarSplashScreen() => showDialog(context: context, barrierDismissible: false, builder: (_) => const SplashScreen02());
-  void _ocultarSplashScreen() => Navigator.of(context, rootNavigator: true).canPop() ? Navigator.of(context, rootNavigator: true).pop() : null;
+  void _mostrarSplashScreen() => showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const SplashScreen02());
+  void _ocultarSplashScreen() =>
+      Navigator.of(context, rootNavigator: true).canPop()
+          ? Navigator.of(context, rootNavigator: true).pop()
+          : null;
 
   Widget _buildDropdownCalzado(int index) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('calzado').where('id_inventario', isEqualTo: widget.inventarioId).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('calzado')
+          .where('id_inventario', isEqualTo: widget.inventarioId)
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const LinearProgressIndicator();
         return DropdownButtonFormField<String>(
-          decoration: const InputDecoration(labelText: 'Calzado', border: OutlineInputBorder()),
+          decoration: const InputDecoration(
+              labelText: 'Calzado', border: OutlineInputBorder()),
           value: _itemsVenta[index].calzadoId,
           items: snapshot.data!.docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
@@ -416,7 +469,8 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
               child: FutureBuilder<String?>(
                 future: _obtenerIconoTipo(data['tipo_calzado_id'] ?? ''),
                 builder: (context, iconSnap) => Row(children: [
-                  if (iconSnap.data != null) Image.asset(iconSnap.data!, width: 24, height: 24),
+                  if (iconSnap.data != null)
+                    Image.asset(iconSnap.data!, width: 24, height: 24),
                   const SizedBox(width: 8),
                   Text(data['nombre'] ?? 'S/N'),
                 ]),
@@ -425,7 +479,10 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
           }).toList(),
           onChanged: (v) async {
             if (v == null) return;
-            final doc = await FirebaseFirestore.instance.collection('calzado').doc(v).get();
+            final doc = await FirebaseFirestore.instance
+                .collection('calzado')
+                .doc(v)
+                .get();
             final data = doc.data()!;
             setState(() {
               var item = _itemsVenta[index];
@@ -433,7 +490,8 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
               item.tipoTieneTaco = data['taco'] ?? false;
               item.tipoTienePlataforma = data['plataforma'] ?? false;
               item.tipoTieneColores = data['colores'] ?? false;
-              item.precioVentaTotal = (data['precio'] ?? 0).toDouble() * item.cantidadVenta;
+              item.precioVentaTotal =
+                  (data['precio'] ?? 0).toDouble() * item.cantidadVenta;
               item.precioController.text = item.precioVentaTotal.toString();
               item.errorTalla = false;
               item.errorColor = false;
@@ -447,19 +505,29 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Widget _buildDropdownTalla(int index) {
     var item = _itemsVenta[index];
-    if (item.calzadoId == null || item.tallasDisponibles.isEmpty || item.errorTalla) {
+    if (item.calzadoId == null ||
+        item.tallasDisponibles.isEmpty ||
+        item.errorTalla) {
       item.errorTalla = false;
       return const SizedBox();
     }
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<int>(
-        decoration: const InputDecoration(labelText: 'Talla', border: OutlineInputBorder()),
+        decoration: const InputDecoration(
+            labelText: 'Talla', border: OutlineInputBorder()),
         value: item.tallaSeleccionada,
-        items: item.tallasDisponibles.toSet().map((t) => DropdownMenuItem(value: t, child: Text(t.toString()))).toList(),
+        items: item.tallasDisponibles
+            .toSet()
+            .map((t) => DropdownMenuItem(value: t, child: Text(t.toString())))
+            .toList(),
         onChanged: (v) {
           if (v == null) return;
-          setState(() { item.tallaSeleccionada = v; item.cantidadVenta = 0; item.cantidadController.clear(); });
+          setState(() {
+            item.tallaSeleccionada = v;
+            item.cantidadVenta = 0;
+            item.cantidadController.clear();
+          });
           _calcularStockPorTalla(index, v);
         },
       ),
@@ -468,19 +536,29 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Widget _buildDropdownColor(int index) {
     var item = _itemsVenta[index];
-    if (!item.tipoTieneColores || item.tallaSeleccionada == null || item.coloresDisponibles.isEmpty || item.errorColor) {
+    if (!item.tipoTieneColores ||
+        item.tallaSeleccionada == null ||
+        item.coloresDisponibles.isEmpty ||
+        item.errorColor) {
       item.errorColor = false;
       return const SizedBox();
     }
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<String>(
-        decoration: const InputDecoration(labelText: 'Color', border: OutlineInputBorder()),
+        decoration: const InputDecoration(
+            labelText: 'Color', border: OutlineInputBorder()),
         value: item.colorSeleccionado,
-        items: item.coloresDisponibles.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+        items: item.coloresDisponibles
+            .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+            .toList(),
         onChanged: (v) {
           if (v == null) return;
-          setState(() { item.colorSeleccionado = v; item.cantidadVenta = 0; item.cantidadController.clear(); });
+          setState(() {
+            item.colorSeleccionado = v;
+            item.cantidadVenta = 0;
+            item.cantidadController.clear();
+          });
           _calcularStockPorColor(index, v);
         },
       ),
@@ -489,16 +567,26 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Widget _buildDropdownTaco(int index) {
     var item = _itemsVenta[index];
-    if (!item.tipoTieneTaco || item.tallaSeleccionada == null || (item.tipoTieneColores && item.colorSeleccionado == null) || item.tacosDisponibles.isEmpty) return const SizedBox();
+    if (!item.tipoTieneTaco ||
+        item.tallaSeleccionada == null ||
+        (item.tipoTieneColores && item.colorSeleccionado == null) ||
+        item.tacosDisponibles.isEmpty) return const SizedBox();
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<int>(
-        decoration: const InputDecoration(labelText: 'Taco (cm)', border: OutlineInputBorder()),
+        decoration: const InputDecoration(
+            labelText: 'Taco (cm)', border: OutlineInputBorder()),
         value: item.tacoSeleccionado,
-        items: item.tacosDisponibles.map((t) => DropdownMenuItem(value: t, child: Text('$t cm'))).toList(),
+        items: item.tacosDisponibles
+            .map((t) => DropdownMenuItem(value: t, child: Text('$t cm')))
+            .toList(),
         onChanged: (v) {
           if (v == null) return;
-          setState(() { item.tacoSeleccionado = v; item.cantidadVenta = 0; item.cantidadController.clear(); });
+          setState(() {
+            item.tacoSeleccionado = v;
+            item.cantidadVenta = 0;
+            item.cantidadController.clear();
+          });
           _calcularStockPorTaco(index, v);
         },
       ),
@@ -507,35 +595,105 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   Widget _buildDropdownPlataforma(int index) {
     var item = _itemsVenta[index];
-    if (!item.tipoTienePlataforma || item.plataformasDisponibles.isEmpty) return const SizedBox();
-    
+    if (!item.tipoTienePlataforma || item.plataformasDisponibles.isEmpty) {
+      return const SizedBox();
+    }
+
     // 🔥 VALIDACIÓN: Previene error de aserción si el valor actual no está en la nueva lista
-    if (item.plataformaSeleccionada != null && !item.plataformasDisponibles.contains(item.plataformaSeleccionada)) {
+    if (item.plataformaSeleccionada != null &&
+        !item.plataformasDisponibles.contains(item.plataformaSeleccionada)) {
       item.plataformaSeleccionada = null;
     }
 
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: DropdownButtonFormField<String>(
-        decoration: const InputDecoration(labelText: 'Plataforma', border: OutlineInputBorder(), prefixIcon: Icon(Icons.layers_outlined)),
+        decoration: const InputDecoration(
+            labelText: 'Plataforma',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.layers_outlined)),
         value: item.plataformaSeleccionada,
-        items: item.plataformasDisponibles.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+        items: item.plataformasDisponibles
+            .map((p) => DropdownMenuItem(value: p, child: Text(p)))
+            .toList(),
         onChanged: (v) {
           if (v == null) return;
-          setState(() { item.plataformaSeleccionada = v; item.cantidadVenta = 0; item.cantidadController.clear(); });
+          setState(() {
+            item.plataformaSeleccionada = v;
+            item.cantidadVenta = 0;
+            item.cantidadController.clear();
+          });
           _calcularStockFinal(index, v);
         },
       ),
     );
   }
 
+  Widget _buildMetodoYLugar(int index) {
+  var item = _itemsVenta[index];
+  
+  bool listo = item.tallaSeleccionada != null &&
+        (!item.tipoTieneColores || item.colorSeleccionado != null) &&
+        (!item.tipoTieneTaco || item.tacoSeleccionado != null) &&
+        (!item.tipoTienePlataforma || item.plataformaSeleccionada != null);
+
+    if (!listo) return const SizedBox();
+
+  return Padding(
+    padding: const EdgeInsets.only(top: 12),
+    child: Row(
+      children: [
+        // Método de Pago
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            isExpanded: true, // 🔹 Crucial: Fuerza al contenido a ajustarse al ancho
+            decoration: const InputDecoration(
+              labelText: 'Método de Pago', // Acorté un poco el texto para ganar espacio
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10), // Reduce padding interno
+            ),
+            value: item.metodoPagoSeleccionado,
+            items: _metodosPago
+                .map((m) => DropdownMenuItem(
+                      value: m, 
+                      child: Text(m, overflow: TextOverflow.ellipsis) // 🔹 Evita desborde de texto
+                    ))
+                .toList(),
+            onChanged: (v) => setState(() => item.metodoPagoSeleccionado = v),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Lugar de Venta
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            isExpanded: true, // 🔹 Crucial
+            decoration: const InputDecoration(
+              labelText: 'Lugar de Venta',
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            ),
+            value: item.lugarVentaSeleccionado,
+            items: _lugaresVenta
+                .map((l) => DropdownMenuItem(
+                      value: l, 
+                      child: Text(l, overflow: TextOverflow.ellipsis) // 🔹 Evita desborde de texto
+                    ))
+                .toList(),
+            onChanged: (v) => setState(() => item.lugarVentaSeleccionado = v),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+  
   Widget _buildCantidadYPrecio(int index) {
     var item = _itemsVenta[index];
-    bool listo = item.tallaSeleccionada != null && 
-                 (!item.tipoTieneColores || item.colorSeleccionado != null) &&
-                 (!item.tipoTieneTaco || item.tacoSeleccionado != null) &&
-                 (!item.tipoTienePlataforma || item.plataformaSeleccionada != null);
-                 
+    bool listo = item.tallaSeleccionada != null &&
+        (!item.tipoTieneColores || item.colorSeleccionado != null) &&
+        (!item.tipoTieneTaco || item.tacoSeleccionado != null) &&
+        (!item.tipoTienePlataforma || item.plataformaSeleccionada != null);
+
     if (!listo) return const SizedBox();
     return Padding(
       padding: const EdgeInsets.only(top: 12),
@@ -547,18 +705,25 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
               decoration: InputDecoration(
                   labelText: 'Cantidad',
                   border: const OutlineInputBorder(),
-                  errorText: item.cantidadVenta > item.stockDisponible ? 'Excede stock' : null),
+                  errorText: item.cantidadVenta > item.stockDisponible
+                      ? 'Excede stock'
+                      : null),
               keyboardType: TextInputType.number,
-              onChanged: (v) => setState(() => item.cantidadVenta = int.tryParse(v) ?? 0),
+              onChanged: (v) =>
+                  setState(() => item.cantidadVenta = int.tryParse(v) ?? 0),
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: TextFormField(
               controller: item.precioController,
-              decoration: const InputDecoration(labelText: 'Precio Total', border: OutlineInputBorder(), prefixText: 'S/ '),
+              decoration: const InputDecoration(
+                  labelText: 'Precio Total',
+                  border: OutlineInputBorder(),
+                  prefixText: 'S/ '),
               keyboardType: TextInputType.number,
-              onChanged: (v) => setState(() => item.precioVentaTotal = double.tryParse(v) ?? 0.0),
+              onChanged: (v) => setState(
+                  () => item.precioVentaTotal = double.tryParse(v) ?? 0.0),
             ),
           ),
         ],
@@ -568,9 +733,16 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
 
   @override
   Widget build(BuildContext context) {
-    bool puedeVenderTodo = _itemsVenta.isNotEmpty && _itemsVenta.every((i) => 
-      i.calzadoId != null && i.tallaSeleccionada != null && i.cantidadVenta > 0 && i.cantidadVenta <= i.stockDisponible && i.precioVentaTotal > 0 &&
-      (!i.tipoTienePlataforma || i.plataformaSeleccionada != null));
+    bool puedeVenderTodo = _itemsVenta.isNotEmpty &&
+        _itemsVenta.every((i) =>
+            i.calzadoId != null &&
+            i.metodoPagoSeleccionado != null && // 🔹 Obligatorio
+            i.lugarVentaSeleccionado != null && // 🔹 Obligatorio
+            i.tallaSeleccionada != null &&
+            i.cantidadVenta > 0 &&
+            i.cantidadVenta <= i.stockDisponible &&
+            i.precioVentaTotal > 0 &&
+            (!i.tipoTienePlataforma || i.plataformaSeleccionada != null));
 
     return Scaffold(
       appBar: Designwidgets().appBarMain('Nueva Venta Por Mayor'),
@@ -578,17 +750,25 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
         children: [
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(vertical: 16),
               itemCount: _itemsVenta.length,
               itemBuilder: (context, index) => Card(
                 margin: const EdgeInsets.only(bottom: 16),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(children: [
-                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      Text('Venta #${index + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      if (_itemsVenta.length > 1) IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _eliminarItem(index)),
-                    ]),
+                    Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Venta #${index + 1}',
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.bold)),
+                          if (_itemsVenta.length > 1)
+                            IconButton(
+                                icon:
+                                    const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _eliminarItem(index)),
+                        ]),
                     const Divider(),
                     _buildStockIndicator(index),
                     const SizedBox(height: 12),
@@ -596,7 +776,8 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
                     _buildDropdownTalla(index),
                     _buildDropdownColor(index),
                     _buildDropdownTaco(index),
-                    _buildDropdownPlataforma(index), // 🔹 Cambiado de Checkbox a Dropdown
+                    _buildDropdownPlataforma(index),
+                    _buildMetodoYLugar(index),
                     _buildCantidadYPrecio(index),
                   ]),
                 ),
@@ -613,11 +794,20 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
     var item = _itemsVenta[index];
     return Container(
       padding: const EdgeInsets.all(8),
-      color: item.stockDisponible > 0 ? Colors.green.shade50 : Colors.red.shade50,
+      color:
+          item.stockDisponible > 0 ? Colors.green.shade50 : Colors.red.shade50,
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         const Text('Stock disponible:'),
-        item.cargandoStock ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2)) 
-        : Text('${item.stockDisponible} unidades', style: TextStyle(fontWeight: FontWeight.bold, color: item.stockDisponible > 0 ? Colors.green : Colors.red)),
+        item.cargandoStock
+            ? const SizedBox(
+                width: 15,
+                height: 15,
+                child: CircularProgressIndicator(strokeWidth: 2))
+            : Text('${item.stockDisponible} unidades',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color:
+                        item.stockDisponible > 0 ? Colors.green : Colors.red)),
       ]),
     );
   }
@@ -626,14 +816,25 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(children: [
-        SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: _agregarNuevoItem, icon: const Icon(Icons.add), label: const Text('Agregar otro producto'))),
+        SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+                onPressed: _agregarNuevoItem,
+                icon: const Icon(Icons.add),
+                label: const Text('Agregar otro producto'))),
         const SizedBox(height: 12),
-        SizedBox(width: double.infinity, child: ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(backgroundColor: puedeVenderTodo ? Colors.green.shade600 : Colors.grey, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)),
-          icon: const Icon(Icons.shopping_cart_checkout),
-          onPressed: puedeVenderTodo ? _realizarVenta : null,
-          label: const Text('Registrar Venta Total'),
-        )),
+        SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      puedeVenderTodo ? Colors.green.shade600 : Colors.grey,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14)),
+              icon: const Icon(Icons.shopping_cart_checkout),
+              onPressed: puedeVenderTodo ? _realizarVenta : null,
+              label: const Text('Registrar Venta Total'),
+            )),
       ]),
     );
   }

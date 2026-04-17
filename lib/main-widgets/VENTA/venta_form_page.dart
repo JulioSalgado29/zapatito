@@ -771,34 +771,55 @@ class _VentaFormPageState extends State<VentaFormPage> {
       children: [
         const SizedBox(height: 12),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start, // Alinea al inicio por si el texto envuelve
           children: [
             // Dropdown Metodo de Pago
             Expanded(
               child: DropdownButtonFormField<String>(
+                isExpanded: true, // 🔹 Obliga al contenido a no salirse del ancho asignado
                 decoration: const InputDecoration(
-                  labelText: 'Método de Pago',
+                  labelText: 'Pago',
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.payments_outlined),
+                  prefixIcon: Icon(Icons.payments_outlined, size: 20),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12), // Espacio interno reducido
                 ),
                 value: _metodoPagoSeleccionado,
+                style: const TextStyle(fontSize: 13, color: Colors.black), // 🔹 Fuente un poco más pequeña
                 items: _metodosPago
-                    .map((m) => DropdownMenuItem(value: m, child: Text(m)))
+                    .map((m) => DropdownMenuItem(
+                          value: m,
+                          child: Text(
+                            m,
+                            overflow: TextOverflow.ellipsis, // 🔹 Corta el texto con "..." si es muy largo
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ))
                     .toList(),
                 onChanged: (v) => setState(() => _metodoPagoSeleccionado = v),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             // Dropdown Lugar de Venta
             Expanded(
               child: DropdownButtonFormField<String>(
+                isExpanded: true, // 🔹 Obliga al contenido a no salirse
                 decoration: const InputDecoration(
-                  labelText: 'Lugar de Venta',
+                  labelText: 'Lugar',
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.location_on_outlined),
+                  prefixIcon: Icon(Icons.location_on_outlined, size: 20),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                 ),
                 value: _lugarVentaSeleccionado,
+                style: const TextStyle(fontSize: 13, color: Colors.black),
                 items: _lugaresVenta
-                    .map((l) => DropdownMenuItem(value: l, child: Text(l)))
+                    .map((l) => DropdownMenuItem(
+                          value: l,
+                          child: Text(
+                            l,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ))
                     .toList(),
                 onChanged: (v) => setState(() => _lugarVentaSeleccionado = v),
               ),
@@ -808,7 +829,6 @@ class _VentaFormPageState extends State<VentaFormPage> {
       ],
     );
   }
-
   Widget _buildCantidadYPrecio() {
     final bool camposListos = _tallaSeleccionada != null &&
         (!_tipoTieneColores || _colorSeleccionado != null) &&
