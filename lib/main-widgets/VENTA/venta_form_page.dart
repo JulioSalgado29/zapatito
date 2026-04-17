@@ -56,7 +56,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
   String? _metodoPagoSeleccionado;
   String? _lugarVentaSeleccionado;
 
-  final List<String> _metodosPago = ['Efectivo', 'Yape', 'Plin', 'POS'];
+  final List<String> _metodosPago = ['Efectivo', 'Yape', 'Plin', 'Transferencia', 'POS', 'Efectivo y Yape', 'Efectivo y Plin', 'Efectivo y Transferencia', 'Efectivo y POS'];
   final List<String> _lugaresVenta = ['Tienda', 'Live'];
 
   @override
