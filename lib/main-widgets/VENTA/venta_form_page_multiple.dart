@@ -411,6 +411,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
           'usuario_creacion': widget.firstName ?? 'anon',
           // 🔹 AGREGADOS A LA DATA DE FIREBASE
         };
+        item.precioController.text = item.precioVentaTotal.toString();
 
         final ventaRef = await db.collection('venta').add(ventaData);
         await db.collection('fila_venta').add({
@@ -491,9 +492,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
               item.tipoTieneTaco = data['taco'] ?? false;
               item.tipoTienePlataforma = data['plataforma'] ?? false;
               item.tipoTieneColores = data['colores'] ?? false;
-              item.precioVentaTotal =
-                  (data['precio'] ?? 0).toDouble() * item.cantidadVenta;
-              item.precioController.text = item.precioVentaTotal.toString();
+              item.precioController.text = item.precioVentaTotal == 0.0 ? '' : item.precioVentaTotal.toString();
               item.errorTalla = false;
               item.errorColor = false;
             });
@@ -697,50 +696,57 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
   }
 
   Widget _buildCantidadYPrecio(int index) {
-    var item = _itemsVenta[index];
-    bool listo = item.tallaSeleccionada != null &&
-        (!item.tipoTieneColores || item.colorSeleccionado != null) &&
-        (!item.tipoTieneTaco || item.tacoSeleccionado != null) &&
-        (!item.tipoTienePlataforma || item.plataformaSeleccionada != null);
+  var item = _itemsVenta[index];
+  bool listo = item.tallaSeleccionada != null &&
+      (!item.tipoTieneColores || item.colorSeleccionado != null) &&
+      (!item.tipoTieneTaco || item.tacoSeleccionado != null) &&
+      (!item.tipoTienePlataforma || item.plataformaSeleccionada != null);
 
-    if (!listo) return const SizedBox();
-    return Padding(
-      padding: const EdgeInsets.only(top: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextFormField(
-              controller: item.cantidadController,
-              decoration: InputDecoration(
-                  labelText: 'Cantidad',
-                  border: const OutlineInputBorder(),
-                  errorText: item.cantidadVenta > item.stockDisponible
-                      ? 'Excede stock'
-                      : null),
-              keyboardType: TextInputType.number,
-              onChanged: (v) =>
-                  setState(() => item.cantidadVenta = int.tryParse(v) ?? 0),
-            ),
+  if (!listo) return const SizedBox();
+  return Padding(
+    padding: const EdgeInsets.only(top: 12),
+    child: Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: item.cantidadController,
+            decoration: InputDecoration(
+                labelText: 'Cantidad',
+                border: const OutlineInputBorder(),
+                errorText: item.cantidadVenta > item.stockDisponible
+                    ? 'Excede stock'
+                    : null),
+            keyboardType: TextInputType.number,
+            onChanged: (v) {
+              setState(() {
+                item.cantidadVenta = int.tryParse(v) ?? 0;
+                if (v.isEmpty || item.cantidadVenta <= 0) {
+                  // 🔹 Limpiamos visualmente el controlador
+                  item.precioController.clear();
+                  // 🔹 Reseteamos la variable a 0.0 internamente
+                  item.precioVentaTotal = 0.0; 
+                }
+              });
+            },
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: TextFormField(
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: TextFormField(
             controller: item.precioController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
-              // 🔹 Bloquea cualquier cosa que no sea número o punto decimal (máx 2 decimales)
               FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
             ],
             decoration: const InputDecoration(
               labelText: 'Precio Total',
               border: OutlineInputBorder(),
               prefixText: 'S/ ',
-              // 🔹 Usamos hintText para que el usuario sepa qué escribir sin tener un valor real
-              hintText: 'Ingrese monto',
+              hintText: '0.00', // Esto solo se ve cuando el campo está vacío
             ),
             onChanged: (v) {
               setState(() {
-                // 🔹 Solo parseamos si hay texto, si no, se queda en 0.0 interno para la lógica
+                // 🔹 Si el usuario borra el texto, la variable es 0, pero no tocamos el controller
                 if (v.isEmpty) {
                   item.precioVentaTotal = 0.0;
                 } else {
@@ -749,12 +755,11 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
               });
             },
           ),
-          ),
-        ],
-      ),
-    );
-  }
-
+        ),
+      ],
+    ),
+  );
+}
   @override
   Widget build(BuildContext context) {
     bool puedeVenderTodo = _itemsVenta.isNotEmpty &&
