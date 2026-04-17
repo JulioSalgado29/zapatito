@@ -31,6 +31,9 @@ class _VentaPageState extends State<VentaPage> {
 
   // --- LÓGICA DE ELIMINACIÓN Y REVERSA CORREGIDA ---
   Future<void> _eliminarVentaConReversa(String filaVentaId, Map<String, dynamic> data) async {
+  // 🔹 Determinar si es una muestra para cambiar el comportamiento
+  final bool esMuestra = data['muestra'] ?? false;
+
   bool confirm = await showDialog(
     context: context,
     builder: (ctx) => Dialog(
@@ -52,14 +55,16 @@ class _VentaPageState extends State<VentaPage> {
           children: [
             const Icon(Icons.warning_amber_rounded, size: 60, color: Colors.white),
             const SizedBox(height: 16),
-            const Text(
-              '¿Eliminar venta?',
-              style: TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
+            Text(
+              esMuestra ? '¿Eliminar muestra?' : '¿Eliminar venta?',
+              style: const TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Se devolverá la cantidad vendida al stock del inventario.',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+            Text(
+              esMuestra 
+                ? 'Esta acción eliminará el registro de la muestra.'
+                : 'Se devolverá la cantidad vendida al stock del inventario.',
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -102,52 +107,55 @@ class _VentaPageState extends State<VentaPage> {
     final db = FirebaseFirestore.instance;
     final batch = db.batch();
 
-    // 1. Localizar la fila_inventario (el contenedor principal del código)
-    final filasSnap = await db.collection('fila_inventario')
-        .where('calzado_id', isEqualTo: data['calzado_id'])
-        .where('inventario_id', isEqualTo: widget.inventarioId)
-        .limit(1)
-        .get();
-
-    if (filasSnap.docs.isNotEmpty) {
-      final filaDoc = filasSnap.docs.first;
-      final filaId = filaDoc.id;
-
-      // 2. Buscar si la subfila existe actualmente
-      final subfilasSnap = await db.collection('subfila_inventario')
-          .where('fila_inventario_id', isEqualTo: filaId)
-          .where('talla', isEqualTo: data['talla'])
-          .where('colores', isEqualTo: data['colores'] ?? '')
-          .where('taco', isEqualTo: data['taco'] ?? 0)
-          .where('plataforma', isEqualTo: data['plataforma'] ?? '')
+    // 🔹 SOLO SI NO ES MUESTRA: Se modifica el inventario
+    if (!esMuestra) {
+      // 1. Localizar la fila_inventario (el contenedor principal del código)
+      final filasSnap = await db.collection('fila_inventario')
+          .where('calzado_id', isEqualTo: data['calzado_id'])
+          .where('inventario_id', isEqualTo: widget.inventarioId)
           .limit(1)
           .get();
 
-      if (subfilasSnap.docs.isNotEmpty) {
-        // SI EXISTE: Solo incrementamos
-        batch.update(subfilasSnap.docs.first.reference, {
+      if (filasSnap.docs.isNotEmpty) {
+        final filaDoc = filasSnap.docs.first;
+        final filaId = filaDoc.id;
+
+        // 2. Buscar si la subfila existe actualmente
+        final subfilasSnap = await db.collection('subfila_inventario')
+            .where('fila_inventario_id', isEqualTo: filaId)
+            .where('talla', isEqualTo: data['talla'])
+            .where('colores', isEqualTo: data['colores'] ?? '')
+            .where('taco', isEqualTo: data['taco'] ?? 0)
+            .where('plataforma', isEqualTo: data['plataforma'] ?? '')
+            .limit(1)
+            .get();
+
+        if (subfilasSnap.docs.isNotEmpty) {
+          // SI EXISTE: Solo incrementamos
+          batch.update(subfilasSnap.docs.first.reference, {
+            'cantidad': FieldValue.increment(data['cantidad'])
+          });
+        } else {
+          // NO EXISTE (Se borró al llegar a 0): La creamos de nuevo
+          final nuevaSubfilaRef = db.collection('subfila_inventario').doc();
+          batch.set(nuevaSubfilaRef, {
+            'fila_inventario_id': filaId,
+            'talla': data['talla'],
+            'colores': data['colores'] ?? '',
+            'taco': data['taco'] ?? 0,
+            'plataforma': data['plataforma'] ?? '',
+            'cantidad': data['cantidad'], // Insertamos la cantidad que se está devolviendo
+          });
+        }
+
+        // 3. Siempre incrementamos la fila principal
+        batch.update(filaDoc.reference, {
           'cantidad': FieldValue.increment(data['cantidad'])
         });
-      } else {
-        // NO EXISTE (Se borró al llegar a 0): La creamos de nuevo
-        final nuevaSubfilaRef = db.collection('subfila_inventario').doc();
-        batch.set(nuevaSubfilaRef, {
-          'fila_inventario_id': filaId,
-          'talla': data['talla'],
-          'colores': data['colores'] ?? '',
-          'taco': data['taco'] ?? 0,
-          'plataforma': data['plataforma'] ?? '',
-          'cantidad': data['cantidad'], // Insertamos la cantidad que se está devolviendo
-        });
       }
-
-      // 3. Siempre incrementamos la fila principal
-      batch.update(filaDoc.reference, {
-        'cantidad': FieldValue.increment(data['cantidad'])
-      });
     }
 
-    // 4. Eliminar los registros de venta
+    // 4. Eliminar los registros de venta (Esto se hace siempre)
     batch.delete(db.collection('fila_venta').doc(filaVentaId));
     if (data['venta_id'] != null) {
       batch.delete(db.collection('venta').doc(data['venta_id']));
@@ -156,10 +164,10 @@ class _VentaPageState extends State<VentaPage> {
     await batch.commit();
     
     if (mounted) Navigator.of(context, rootNavigator: true).pop();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Venta eliminada y stock restaurado.')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(esMuestra ? 'Muestra eliminada.' : 'Venta eliminada y stock restaurado.')));
   } catch (e) {
     if (mounted) Navigator.of(context, rootNavigator: true).pop();
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al restaurar stock: $e')));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al procesar: $e')));
   }
 }
   Stream<QuerySnapshot> _getFilasVenta() {
@@ -295,6 +303,7 @@ class _VentaPageState extends State<VentaPage> {
   Widget _buildVentaCard(QueryDocumentSnapshot fila) {
     final filaId = fila.id;
     final filaData = fila.data() as Map<String, dynamic>;
+    final bool esMuestra = filaData['muestra'] ?? false; // 🔹 Capturar etiqueta muestra
     final DateTime fechaVenta = (filaData['fecha_creacion'] as Timestamp).toDate();
     final bool esVentaDeHoy = DateFormat('dd/MM/yyyy').format(fechaVenta) == DateFormat('dd/MM/yyyy').format(DateTime.now());
 
@@ -328,6 +337,9 @@ class _VentaPageState extends State<VentaPage> {
                   child: Wrap(
                     spacing: 4, runSpacing: 4,
                     children: [
+                      // 🔹 CHIP DE MUESTRA (Aparece si es true)
+                      if (esMuestra) _miniChip('MUESTRA', Colors.black),
+                      
                       _miniChip(filaData['metodo_pago'] ?? 'N/A', Colors.teal),
                       _miniChip(filaData['lugar_venta'] ?? 'N/A', Colors.purple),
                       if (filaData['taco'] != null && filaData['taco'] != 0) _miniChip('Taco: ${filaData['taco']}', Colors.orange),
