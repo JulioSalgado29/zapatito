@@ -293,7 +293,7 @@ class _TipoCalzadoPageState extends State<TipoCalzadoPage> {
                               _buildFeatureChip(
                                   Icons.layers, 'Plataforma', plataforma),
                               _buildFeatureChip(
-                                  Icons.layers, 'Colores', colores),
+                                  Icons.palette, 'Colores', colores),
                             ],
                           ),
 
