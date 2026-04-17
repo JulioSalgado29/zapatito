@@ -25,6 +25,9 @@ class VentaFormPage extends StatefulWidget {
 }
 
 class _VentaFormPageState extends State<VentaFormPage> {
+  bool esMuestra = false;
+  String? idDuenoMuestra;
+  String? nombreDuenoMuestra;
   bool get _esEdicion => widget.ventaId != null;
 
   String? _calzadoId;
@@ -83,39 +86,53 @@ class _VentaFormPageState extends State<VentaFormPage> {
 
   // 🔹 MODIFICACIÓN: Ahora registra los criterios del calzado al cargar edición
   Future<void> _cargarDatosEdicion() async {
-    final d = widget.datosEdicion!;
-    final String cId = d['calzado_id'];
+  final d = widget.datosEdicion!;
+  final String cId = d['calzado_id'];
 
-    // Obtenemos los flags del calzado para que los widgets se activen
-    final doc =
-        await FirebaseFirestore.instance.collection('calzado').doc(cId).get();
+  // 1. Obtenemos datos del calzado (configuración de la UI)
+  final doc = await FirebaseFirestore.instance.collection('calzado').doc(cId).get();
 
-    if (doc.exists) {
-      final data = doc.data()!;
-      setState(() {
-        _tipoTieneTaco = data['taco'] ?? false;
-        _tipoTienePlataforma = data['plataforma'] ?? false;
-        _tipoTieneColores = data['colores'] ?? false;
-
-        _calzadoId = cId;
-        _tallaSeleccionada = d['talla'];
-        _colorSeleccionado = d['colores'] == '' ? null : d['colores'];
-        _tacoSeleccionado = d['taco'] == 0 ? null : d['taco'];
-        _plataformaSeleccionada =
-            d['plataforma'] == '' ? null : d['plataforma'];
-        _cantidadVenta = d['cantidad'];
-        _precioVentaTotal = (d['precio_venta_total'] ?? 0.0).toDouble();
-        _metodoPagoSeleccionado = d['metodo_pago'];
-        _lugarVentaSeleccionado = d['lugar_venta'];
-
-        _cantidadController.text = _cantidadVenta.toString();
-        _precioController.text = _precioVentaTotal.toString();
-
-        // Seteamos un stock ficticio para que pase la validación de _puedeVender al editar
-        _stockDisponible = 999;
-      });
+  if (doc.exists) {
+    final data = doc.data()!;
+    
+    // 2. Si la venta es una muestra, buscamos el nombre del dueño
+    if (d['muestra'] == true && d['dueno_muestra_id'] != null) {
+      final docDueno = await FirebaseFirestore.instance
+          .collection('dueno_muestra')
+          .doc(d['dueno_muestra_id'])
+          .get();
+      
+      if (docDueno.exists) {
+        nombreDuenoMuestra = docDueno['nombre'];
+      }
     }
+
+    setState(() {
+      _tipoTieneTaco = data['taco'] ?? false;
+      _tipoTienePlataforma = data['plataforma'] ?? false;
+      _tipoTieneColores = data['colores'] ?? false;
+
+      _calzadoId = cId;
+      _tallaSeleccionada = d['talla'];
+      _colorSeleccionado = d['colores'] == '' ? null : d['colores'];
+      _tacoSeleccionado = d['taco'] == 0 ? null : d['taco'];
+      _plataformaSeleccionada = d['plataforma'] == '' ? null : d['plataforma'];
+      _cantidadVenta = d['cantidad'];
+      _precioVentaTotal = (d['precio_venta_total'] ?? 0.0).toDouble();
+      _metodoPagoSeleccionado = d['metodo_pago'];
+      _lugarVentaSeleccionado = d['lugar_venta'];
+
+      // 🔹 Nuevos campos para el Dueño
+      esMuestra = d['muestra'] ?? false;
+      idDuenoMuestra = d['dueno_muestra_id'];
+
+      _cantidadController.text = _cantidadVenta.toString();
+      _precioController.text = _precioVentaTotal.toString();
+
+      _stockDisponible = 999;
+    });
   }
+}
 
   @override
   void dispose() {
@@ -693,6 +710,33 @@ class _VentaFormPageState extends State<VentaFormPage> {
     );
   }
 
+  Widget _buildDropdownDueno() {
+  // Retornamos el widget estático directamente si es edición
+  if (_esEdicion) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: DropdownButtonFormField<String>(
+        decoration: const InputDecoration(
+          labelText: 'Dueño de Muestra',
+          border: OutlineInputBorder(),
+          filled: true,
+          fillColor: Color(0xFFF5F5F5), // Color gris para indicar bloqueo
+        ),
+        value: idDuenoMuestra,
+        items: [
+          DropdownMenuItem(
+            value: idDuenoMuestra,
+            child: Text(nombreDuenoMuestra ?? 'Cargando...'),
+          )
+        ],
+        onChanged: null, // Bloquea el Dropdown
+      ),
+    );
+  }
+
+  // Si no es edición, aquí iría tu lógica normal o un SizedBox
+  return const SizedBox(); 
+}
   Widget _buildDropdownColor() {
     if (!_tipoTieneColores ||
         (_coloresDisponibles.isEmpty && !_esEdicion) ||
@@ -808,6 +852,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_esEdicion && esMuestra)_buildDropdownDueno(),  
               if (!_esEdicion)
                 _buildStockLabel(), // 🔹 MODIFICACIÓN: Ocultar stock en edición
               const SizedBox(height: 16),
