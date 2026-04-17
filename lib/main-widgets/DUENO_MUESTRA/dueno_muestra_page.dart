@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:zapatito/components/SplashScreen/splash_screen.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:zapatito/main-widgets/DUENO_MUESTRA/dueno_muestra_form.dart';
+import 'package:zapatito/main-widgets/MAIN/home_page.dart';
 
 class DuenoMuestraPage extends StatefulWidget {
   final String? firstName;
@@ -16,8 +17,38 @@ class DuenoMuestraPage extends StatefulWidget {
 }
 
 class _DuenoMuestraPageState extends State<DuenoMuestraPage> {
-  // 🔹 Función para mostrar el diálogo de confirmación de eliminación
-  // 🔹 Función para mostrar el diálogo de confirmación con estilo "Zapatito"
+  
+  @override
+  void initState() {
+    super.initState();
+    _verificarInventario();
+  }
+
+  Future<void> _verificarInventario() async {
+    try {
+      // 1. Acceso directo al documento por su ID único
+      final docSnapshot = await FirebaseFirestore.instance
+          .collection('inventario')
+          .doc(widget
+              .inventarioId) // Buscamos el documento con ese nombre exacto
+          .get();
+
+      // 2. Verificamos si el documento existe físicamente en Firestore
+      if (!docSnapshot.exists) {
+        // Si no existe, redirigimos
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomePage()),
+          );
+        });
+      }
+    } catch (e) {
+      print("Error al buscar el ID del inventario: $e");
+    }
+  }
+
+
   void _confirmarEliminacion(String id, String nombre) {
     showDialog(
       context: context,
@@ -136,6 +167,9 @@ class _DuenoMuestraPageState extends State<DuenoMuestraPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.inventarioId == null) {
+      return const SplashScreen02();
+    }
     return Scaffold(
       appBar: Designwidgets().appBarMain('Dueños de Muestras'),
       floatingActionButton: FloatingActionButton(
