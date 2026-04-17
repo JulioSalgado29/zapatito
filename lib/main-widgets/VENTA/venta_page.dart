@@ -210,6 +210,8 @@ class _VentaPageState extends State<VentaPage> {
     );
   }
 
+  // ... (Toda la parte inicial se mantiene igual hasta _buildVentaCard)
+
   Widget _buildVentaCard(QueryDocumentSnapshot fila) {
     final filaData = fila.data() as Map<String, dynamic>;
     
@@ -222,8 +224,12 @@ class _VentaPageState extends State<VentaPage> {
         final precioTotal = (filaData['precio_venta_total'] ?? 0.0).toDouble();
 
         final taco = filaData['taco'];
-        final plataforma = filaData['plataforma'] == true;
+        final plataforma = filaData['plataforma']; // Se evalúa el valor (String o bool)
         final colores = filaData['colores'];
+        
+        // 🔹 NUEVOS DATOS
+        final metodoPago = filaData['metodo_pago'] ?? 'No especificado';
+        final lugarVenta = filaData['lugar_venta'] ?? 'No especificado';
 
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
@@ -250,20 +256,26 @@ class _VentaPageState extends State<VentaPage> {
                             fontSize: 15)),
                   ],
                 ),
-                if (taco != null || plataforma || (colores != null && colores.toString().isNotEmpty))
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        if (taco != null && taco != 0) _miniChip('Taco: $taco', Colors.orange),
-                        if (plataforma) _miniChip('Con Plataforma', Colors.blue),
-                        if (colores != null && colores.toString().isNotEmpty) 
-                          _miniChip('Color: $colores', Colors.indigo),
-                      ],
-                    ),
+                // 🔹 WRAP ACTUALIZADO CON MÉTODO Y LUGAR
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: [
+                      if (metodoPago != 'No especificado') 
+                        _miniChip(metodoPago, Colors.teal),
+                      if (lugarVenta != 'No especificado') 
+                        _miniChip(lugarVenta, Colors.purple),
+                      if (taco != null && taco != 0) 
+                        _miniChip('Taco: $taco', Colors.orange),
+                      if (plataforma != null && plataforma != '' && plataforma != false) 
+                        _miniChip('Plat: $plataforma', Colors.blue),
+                      if (colores != null && colores.toString().isNotEmpty) 
+                        _miniChip('Color: $colores', Colors.indigo),
+                    ],
                   ),
+                ),
                 const SizedBox(height: 10),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -289,16 +301,18 @@ class _VentaPageState extends State<VentaPage> {
             ),
             children: [
               const Divider(),
-              _buildDetalleRow(Icons.person, 'Vendedor', filaData['usuario_creacion'] ?? 'Desconocido'),
-              if (taco != null && taco != 0) 
-                _buildDetalleRow(Icons.height, 'Medida Taco', '$taco'),
-              if (plataforma) 
-                _buildDetalleRow(Icons.layers, 'Plataforma', 'Sí incluye'),
+              _buildDetalleRow(Icons.shopping_bag, 'Cantidad Vendida', filaData['cantidad'].toString()),
+              _buildDetalleRow(Icons.straighten, 'Talla Seleccionada', filaData['talla'].toString()),
+              _buildDetalleRow(Icons.monetization_on, 'Precio de Venta', 'S/ ${precioTotal.toStringAsFixed(2)}'),
+              _buildDetalleRow(Icons.payments, 'Método de Pago', metodoPago),
+              _buildDetalleRow(Icons.storefront, 'Lugar de Venta', lugarVenta),
               if (colores != null && colores.toString().isNotEmpty)
                 _buildDetalleRow(Icons.palette, 'Color Especificado', colores.toString()),
-              _buildDetalleRow(Icons.straighten, 'Talla Seleccionada', filaData['talla'].toString()),
-              _buildDetalleRow(Icons.shopping_bag, 'Cantidad Vendida', filaData['cantidad'].toString()),
-              _buildDetalleRow(Icons.monetization_on, 'Total de la Fila', 'S/ ${precioTotal.toStringAsFixed(2)}'),
+              if (taco != null && taco != 0) 
+                _buildDetalleRow(Icons.height, 'Medida Taco', '$taco'),
+              if (plataforma != null && plataforma != '' && plataforma != false) 
+                _buildDetalleRow(Icons.layers, 'Plataforma', plataforma.toString()),
+              _buildDetalleRow(Icons.person, 'Vendedor', filaData['usuario_creacion'] ?? 'Desconocido'),
               const SizedBox(height: 10),
             ],
           ),
@@ -306,7 +320,7 @@ class _VentaPageState extends State<VentaPage> {
       },
     );
   }
-
+// ... (El resto del código se mantiene igual)
   Widget _buildDetalleRow(IconData icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
