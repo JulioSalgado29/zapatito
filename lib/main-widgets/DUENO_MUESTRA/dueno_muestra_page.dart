@@ -8,14 +8,14 @@ class DuenoMuestraPage extends StatefulWidget {
   final String? firstName;
   final String? emailUser;
   final String? inventarioId;
-  const DuenoMuestraPage({super.key, this.firstName, this.emailUser, this.inventarioId});
+  const DuenoMuestraPage(
+      {super.key, this.firstName, this.emailUser, this.inventarioId});
 
   @override
   State<DuenoMuestraPage> createState() => _DuenoMuestraPageState();
 }
 
 class _DuenoMuestraPageState extends State<DuenoMuestraPage> {
-  
   // 🔹 Función para mostrar el diálogo de confirmación de eliminación
   // 🔹 Función para mostrar el diálogo de confirmación con estilo "Zapatito"
   void _confirmarEliminacion(String id, String nombre) {
@@ -38,11 +38,15 @@ class _DuenoMuestraPageState extends State<DuenoMuestraPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.warning_amber_rounded, size: 60, color: Colors.white),
+              const Icon(Icons.warning_amber_rounded,
+                  size: 60, color: Colors.white),
               const SizedBox(height: 16),
               const Text(
                 '¿Eliminar Dueño?',
-                style: TextStyle(fontSize: 22, color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    fontSize: 22,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
               Text(
@@ -58,23 +62,24 @@ class _DuenoMuestraPageState extends State<DuenoMuestraPage> {
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.grey[900],
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
                     ),
                     onPressed: () => Navigator.pop(ctx),
                     icon: const Icon(Icons.cancel, color: Colors.white),
-                    label: const Text('Cancelar', style: TextStyle(color: Colors.white)),
+                    label: const Text('Cancelar',
+                        style: TextStyle(color: Colors.white)),
                   ),
                   // Botón Eliminar
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.redAccent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
                     ),
+                    // Dentro del onPressed del botón Eliminar del diálogo:
                     onPressed: () async {
-                      // 🔹 Cerramos el diálogo primero
                       Navigator.pop(ctx);
-
-                      // 🔹 Mostramos el SplashScreen de carga
                       showDialog(
                         context: context,
                         barrierDismissible: false,
@@ -82,37 +87,43 @@ class _DuenoMuestraPageState extends State<DuenoMuestraPage> {
                       );
 
                       try {
-                        // 🔹 Eliminación real en Firestore
+                        // 🔹 CAMBIO: De .delete() a .update()
                         await FirebaseFirestore.instance
                             .collection('dueno_muestra')
                             .doc(id)
-                            .delete();
+                            .update({
+                          'estado': false, // Borrado lógico
+                          'fecha_eliminacion': Timestamp.now(),
+                          'usuario_eliminacion': widget.firstName ?? 'anon',
+                        });
 
-                        // 🔹 Quitamos el Splash
                         if (mounted && Navigator.canPop(context)) {
                           Navigator.pop(context);
                         }
 
-                        // 🔹 Mensaje de éxito
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Dueño eliminado correctamente 🗑️'),
+                              content: Text(
+                                  'Dueño quitado de la lista correctamente 🗑️'),
                               duration: Duration(seconds: 2),
-                              backgroundColor: Colors.redAccent,
+                              backgroundColor: Colors
+                                  .orangeAccent, // Cambié a naranja para indicar que no se borró de la DB
                             ),
                           );
                         }
                       } catch (e) {
-                        // En caso de error, quitamos el splash y avisamos
-                        if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+                        if (mounted && Navigator.canPop(context)) {
+                          Navigator.pop(context);
+                        }
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error al eliminar: $e')),
+                          SnackBar(content: Text('Error al procesar: $e')),
                         );
                       }
                     },
                     icon: const Icon(Icons.delete_forever, color: Colors.white),
-                    label: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+                    label: const Text('Eliminar',
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
@@ -122,6 +133,7 @@ class _DuenoMuestraPageState extends State<DuenoMuestraPage> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,14 +155,21 @@ class _DuenoMuestraPageState extends State<DuenoMuestraPage> {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('dueno_muestra')
+            .where('estado', isEqualTo: true) // 🔹 FILTRO: Solo activos
             .orderBy('nombre', descending: false)
             .snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return const Center(child: Text('Error al cargar'));
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (snapshot.hasError) {
+            return const Center(child: Text('Error al cargar'));
+          }
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
           final docs = snapshot.data!.docs;
-          if (docs.isEmpty) return const Center(child: Text('No hay registros disponibles.'));
+          if (docs.isEmpty) {
+            return const Center(child: Text('No hay registros disponibles.'));
+          }
 
           return ListView.separated(
             padding: const EdgeInsets.all(16),
@@ -167,14 +186,16 @@ class _DuenoMuestraPageState extends State<DuenoMuestraPage> {
                   backgroundColor: Colors.black12,
                   child: Icon(Icons.person, color: Colors.black),
                 ),
-                title: Text(nombre, style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(nombre,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
                 // 🔹 Trailing con botones de Editar y Eliminar
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // Botón Editar Azul
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Color.fromARGB(255, 33, 47, 243)),
+                      icon: const Icon(Icons.edit,
+                          color: Color.fromARGB(255, 33, 47, 243)),
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(

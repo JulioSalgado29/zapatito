@@ -53,45 +53,43 @@ class _DuenoMuestraFormState extends State<DuenoMuestraForm> {
   }
 
   Future<void> _guardarDueno() async {
-    if (!_puedeGuardar) {
-      _mostrarSnack('Por favor, ingrese un nombre.');
-      return;
-    }
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const SplashScreen02(),
-    );
-
-    try {
-      final db = FirebaseFirestore.instance.collection('dueno_muestra');
-
-      final Map<String, dynamic> data = {
-        'nombre': _nombreController.text.trim(),
-        'usuario_edicion': widget.firstName ?? 'anon',
-        'fecha_modificacion': Timestamp.now(),
-      };
-
-      if (_estaEditando) {
-        // 🔹 ACTUALIZAR
-        await db.doc(widget.duenoId).update(data);
-      } else {
-        // 🔹 INSERTAR NUEVO
-        await db.add(data);
-      }
-
-      if (Navigator.canPop(context)) Navigator.pop(context); // Cerrar Splash
-      _mostrarSnack(_estaEditando
-          ? 'Actualizado correctamente'
-          : 'Registrado correctamente');
-      Navigator.pop(context); // Volver al listado
-    } catch (e) {
-      if (Navigator.canPop(context)) Navigator.pop(context);
-      _mostrarSnack('Error: $e');
-    }
+  if (!_puedeGuardar) {
+    _mostrarSnack('Por favor, ingrese un nombre.');
+    return;
   }
 
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const SplashScreen02(),
+  );
+
+  try {
+    final db = FirebaseFirestore.instance.collection('dueno_muestra');
+
+    final Map<String, dynamic> data = {
+      'nombre': _nombreController.text.trim(),
+      'usuario_edicion': widget.firstName ?? 'anon',
+      'fecha_modificacion': Timestamp.now(),
+    };
+
+    if (_estaEditando) {
+      await db.doc(widget.duenoId).update(data);
+    } else {
+      // 🔹 Al insertar nuevo, añadimos estado: true
+      data['estado'] = true; 
+      data['fecha_creacion'] = Timestamp.now(); // Recomendado tenerlo
+      await db.add(data);
+    }
+
+    if (Navigator.canPop(context)) Navigator.pop(context); 
+    _mostrarSnack(_estaEditando ? 'Actualizado' : 'Registrado');
+    Navigator.pop(context); 
+  } catch (e) {
+    if (Navigator.canPop(context)) Navigator.pop(context);
+    _mostrarSnack('Error: $e');
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(

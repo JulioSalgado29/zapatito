@@ -191,7 +191,7 @@ class _VentaFormPageMuestraState extends State<VentaFormPageMuestra> {
   // (Implementación de placeholders para que el código sea funcional)
   Widget _buildDropdownDueno(int index) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('dueno_muestra').orderBy('nombre', descending: false).snapshots(),
+      stream: FirebaseFirestore.instance.collection('dueno_muestra').where('estado', isEqualTo: true).orderBy('nombre', descending: false).snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox();
         return DropdownButtonFormField<String>(

@@ -312,10 +312,12 @@ class _VentaPageState extends State<VentaPage> {
               child: StreamBuilder<QuerySnapshot>(
                 stream: _getFilasVenta(),
                 builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting)
+                  if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
-                  if (snapshot.hasError)
+                  }
+                  if (snapshot.hasError) {
                     return const Center(child: Text('Error de conexión.'));
+                  }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return Center(
                         child: Text(esHoy
@@ -574,9 +576,10 @@ class _VentaPageState extends State<VentaPage> {
   }
 
   Widget _buildIcon(String? icono) {
-    if (icono == null || icono.isEmpty)
+    if (icono == null || icono.isEmpty) {
       return const Icon(Icons.image_not_supported,
           size: 35, color: Colors.grey);
+    }
     return Image.asset(icono,
         width: 40,
         height: 40,
