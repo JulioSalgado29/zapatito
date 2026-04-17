@@ -422,7 +422,57 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
           'email_user': widget.emailUser ?? 'anon',
         });
 
-        // (Lógica de descuento de stock...)
+        int cantidadPorDescontar = item.cantidadVenta;
+        final filasSnap = await db
+            .collection('fila_inventario')
+            .where('calzado_id', isEqualTo: item.calzadoId)
+            .get();
+
+        for (final fila in filasSnap.docs) {
+          if (cantidadPorDescontar <= 0) break;
+          Query subQuery = db
+              .collection('subfila_inventario')
+              .where('fila_inventario_id', isEqualTo: fila.id)
+              .where('talla', isEqualTo: item.tallaSeleccionada);
+          if (item.tipoTieneTaco && item.tacoSeleccionado != null) {
+            subQuery = subQuery.where('taco', isEqualTo: item.tacoSeleccionado);
+          }
+          if (item.tipoTieneColores && item.colorSeleccionado != null) { // 🔥 Descuento color
+            subQuery = subQuery.where('colores', isEqualTo: item.colorSeleccionado);
+          }
+          if (item.tipoTienePlataforma) {
+            subQuery = subQuery.where('plataforma',
+                isEqualTo: item.plataformaSeleccionada);
+          }
+
+          final subfilasSnap = await subQuery.get();
+          for (final subDoc in subfilasSnap.docs) {
+            if (cantidadPorDescontar <= 0) break;
+            final cantidadActual = (subDoc['cantidad'] ?? 0) as int;
+            final descuento = cantidadPorDescontar > cantidadActual
+                ? cantidadActual
+                : cantidadPorDescontar;
+            cantidadPorDescontar -= descuento;
+            final nuevaCantidad = cantidadActual - descuento;
+
+            if (nuevaCantidad <= 0) {
+              await subDoc.reference.delete();
+            } else {
+              await subDoc.reference.update({'cantidad': nuevaCantidad});
+            }
+          }
+          final subRestantes = await db
+              .collection('subfila_inventario')
+              .where('fila_inventario_id', isEqualTo: fila.id)
+              .get();
+          if (subRestantes.docs.isEmpty) {
+            await fila.reference.delete();
+          } else {
+            final nuevaCantFila = subRestantes.docs.fold<int>(
+                0, (int sum, d) => sum + ((d['cantidad'] ?? 0) as int));
+            await fila.reference.update({'cantidad': nuevaCantFila});
+          }
+        }
       }
       _ocultarSplashScreen();
       Navigator.pop(context, true);
