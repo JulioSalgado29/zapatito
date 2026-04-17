@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:zapatito/components/widgets.dart';
 import 'package:zapatito/main-widgets/CALZADO/calzado_page.dart';
+import 'package:zapatito/main-widgets/DUENO_MUESTRA/dueno_muestra_page.dart';
 import 'package:zapatito/main-widgets/INVENTARIO/inventario_page.dart';
 import 'package:zapatito/main-widgets/TIPO_CALZADO/tipo_calzado_page.dart';
 import 'package:zapatito/main-widgets/VENTA/venta_page.dart';
@@ -126,6 +127,16 @@ Widget build(BuildContext context) {
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 30),
+
+                if (isAdmin || isAlmacenero)
+                  _buildMenuButton(
+                    context,
+                    label: 'Dueños de Muestras',
+                    page: DuenoMuestraPage(
+                        firstName: firstName,
+                        emailUser: emailUser,
+                        inventarioId: inventarioId),
+                  ),
 
                 if (isAdmin || isAlmacenero)
                   _buildMenuButton(

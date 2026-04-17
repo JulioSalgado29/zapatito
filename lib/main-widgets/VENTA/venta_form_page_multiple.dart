@@ -573,7 +573,7 @@ class _VentaFormPageMultipleState extends State<VentaFormPageMultiple> {
       (!i.tipoTienePlataforma || i.plataformaSeleccionada != null));
 
     return Scaffold(
-      appBar: Designwidgets().appBarMain('Nueva Venta Múltiple'),
+      appBar: Designwidgets().appBarMain('Nueva Venta Por Mayor'),
       body: Column(
         children: [
           Expanded(
