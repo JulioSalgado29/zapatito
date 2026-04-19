@@ -931,7 +931,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
           child: DropdownButtonFormField<String>(
             isExpanded: true,
             decoration: const InputDecoration(
-                labelText: 'Pago',
+                labelText: 'Método de Pago',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.payments_outlined, size: 20)),
             value: _metodoPagoSeleccionado,
@@ -950,7 +950,7 @@ class _VentaFormPageState extends State<VentaFormPage> {
           child: DropdownButtonFormField<String>(
             isExpanded: true,
             decoration: const InputDecoration(
-                labelText: 'Lugar',
+                labelText: 'Lugar de Venta',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.location_on_outlined, size: 20)),
             value: _lugarVentaSeleccionado,
