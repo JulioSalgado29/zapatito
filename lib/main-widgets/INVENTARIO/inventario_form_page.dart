@@ -476,16 +476,25 @@ class _InventarioFormPageState extends State<InventarioFormPage> {
           child: Column(
             children: [
               StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('calzado')
-                    .where('id_inventario', isEqualTo: widget.inventarioId)
-                    .snapshots(),
+                stream: () {
+                  Query query = FirebaseFirestore.instance
+                      .collection('calzado')
+                      .where('id_inventario', isEqualTo: widget.inventarioId);
+                      
+                  if (widget.filaId == null) {
+                    query = query.where('activo', isEqualTo: true);
+                  }
+                  
+                  return query.snapshots();
+                }(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return const Text('No tienes calzados registrados.');
                   }
                   return _buildDropdownConIconos(
-                      snapshot, widget.filaId != null);
+                    snapshot, 
+                    widget.filaId != null
+                  );
                 },
               ),
               const SizedBox(height: 12),
